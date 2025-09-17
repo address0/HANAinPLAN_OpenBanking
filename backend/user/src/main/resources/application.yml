@@ -1,0 +1,26 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: user-server
+  
+  datasource:
+    url: jdbc:mysql://localhost:3310/user_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${MYSQL_ROOT_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+logging:
+  level:
+    com.hanainplan.user: DEBUG
+    org.springframework.web: DEBUG
