@@ -1,0 +1,146 @@
+services:
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    container_name: hanainplan-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+#      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hanainplan-network
+    restart: unless-stopped
+
+  # Redis 캐시 및 세션 스토어
+  redis:
+    image: redis:7-alpine
+    container_name: hanainplan-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - hanainplan-network
+    restart: unless-stopped
+
+  # MongoDB 문서 데이터베이스
+  mongodb:
+    image: mongo:6.0
+    container_name: hanainplan-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - hanainplan-network
+    restart: unless-stopped
+
+  # Kafka 메시지 브로커 (KRaft 모드)
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: hanainplan-kafka
+    user: root
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+    networks:
+      - hanainplan-network
+    restart: unless-stopped
+
+  # Spring Boot 애플리케이션
+  hanainplan-app:
+    build: .
+    container_name: hanainplan-spring-app
+    depends_on:
+      - mysql
+      - redis
+      - mongodb
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: ${MONGO_DATABASE}
+      MONGODB_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGODB_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    networks:
+      - hanainplan-network
+    restart: unless-stopped
+
+  # 관리 도구들 (선택사항)
+
+#  mongo-express:
+#    image: mongo-express
+#    container_name: hanainplan-mongo-express
+#    depends_on:
+#      - mongodb
+#    ports:
+#      - "8082:8081"
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+#      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+#      ME_CONFIG_MONGODB_SERVER: mongodb
+#    networks:
+#      - hanainplan-network
+#
+#  redis-commander:
+#    image: rediscommander/redis-commander:latest
+#    container_name: hanainplan-redis-commander
+#    depends_on:
+#      - redis
+#    ports:
+#      - "8083:8081"
+#    environment:
+#      REDIS_HOSTS: local:redis:6379
+#    networks:
+#      - hanainplan-network
+
+volumes:
+  mysql_data:
+  redis_data:
+  mongodb_data:
+  kafka_data:
+
+networks:
+  hanainplan-network:
+    driver: bridge
