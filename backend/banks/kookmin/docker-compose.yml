@@ -1,0 +1,41 @@
+services:
+  kookmin-bank-app:
+    build: .
+    ports:
+      - "8083:8083"
+    environment:
+      - DB_USERNAME=root
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - DB_HOST=kookmin-mysql
+    depends_on:
+      kookmin-mysql:
+        condition: service_healthy
+    networks:
+      - kookmin-network
+
+  kookmin-mysql:
+    image: mysql:8.0
+    container_name: kookmin-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3309:3306"
+    volumes:
+      - kookmin_mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - kookmin-network
+
+volumes:
+  kookmin_mysql_data:
+
+networks:
+  kookmin-network:
+    driver: bridge

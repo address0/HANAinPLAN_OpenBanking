@@ -1,0 +1,114 @@
+services:
+  # HANA Bank Services
+  hana-bank-app:
+    build: ./hana
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - DB_HOST=hana-mysql
+    depends_on:
+      hana-mysql:
+        condition: service_healthy
+    networks:
+      - banking-network
+
+  hana-mysql:
+    image: mysql:8.0
+    container_name: hana-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: hana_bank
+      MYSQL_USER: hana_user
+      MYSQL_PASSWORD: hana_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - hana_mysql_data:/var/lib/mysql
+      - ./hana/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - banking-network
+
+  # Shinhan Bank Services
+  shinhan-bank-app:
+    build: ./shinhan
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - DB_HOST=shinhan-mysql
+    depends_on:
+      shinhan-mysql:
+        condition: service_healthy
+    networks:
+      - banking-network
+
+  shinhan-mysql:
+    image: mysql:8.0
+    container_name: shinhan-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: shinhan_bank
+      MYSQL_USER: shinhan_user
+      MYSQL_PASSWORD: shinhan_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - shinhan_mysql_data:/var/lib/mysql
+      - ./shinhan/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - banking-network
+
+  # Kookmin Bank Services
+  kookmin-bank-app:
+    build: ./kookmin
+    ports:
+      - "8083:8083"
+    environment:
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+      - DB_HOST=kookmin-mysql
+    depends_on:
+      kookmin-mysql:
+        condition: service_healthy
+    networks:
+      - banking-network
+
+  kookmin-mysql:
+    image: mysql:8.0
+    container_name: kookmin-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: kookmin_bank
+      MYSQL_USER: kookmin_user
+      MYSQL_PASSWORD: kookmin_password
+    ports:
+      - "3309:3306"
+    volumes:
+      - kookmin_mysql_data:/var/lib/mysql
+      - ./kookmin/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - banking-network
+
+volumes:
+  hana_mysql_data:
+  shinhan_mysql_data:
+  kookmin_mysql_data:
+
+networks:
+  banking-network:
+    driver: bridge
