@@ -19,8 +19,23 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+  
+  security:
+    user:
+      name: admin
+      password: admin
+      roles: ADMIN
 
 logging:
   level:
     com.hanainplan.user: DEBUG
     org.springframework.web: DEBUG
+
+# Swagger 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  show-actuator: true
