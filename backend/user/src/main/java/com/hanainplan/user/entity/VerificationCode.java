@@ -1,4 +1,4 @@
-package com.hanainplan.domain.user.entity;
+package com.hanainplan.user.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * - 전화번호 인증을 위한 인증번호 관리
  */
 @Entity
-@Table(name = "tb_verification_code")
+@Table(name = "verification_codes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

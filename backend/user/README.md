@@ -75,6 +75,27 @@ curl -X POST http://localhost:8084/api/user/ci/verify \
 curl "http://localhost:8084/api/user/ci/test?name=홍길동&birthDate=19900115&gender=M&residentNumber=9001151234567"
 ```
 
+### 전화번호 인증 API
+```bash
+# 인증번호 발송
+curl -X POST http://localhost:8084/api/user/phone/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "010-1234-5678"
+  }'
+
+# 인증번호 검증
+curl -X POST http://localhost:8084/api/user/phone/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "010-1234-5678",
+    "verificationCode": "123456"
+  }'
+
+# 인증 상태 확인
+curl http://localhost:8084/api/user/phone/status/010-1234-5678
+```
+
 ### 사용자 관리 API
 ```bash
 # 사용자 생성 (CI 포함)
