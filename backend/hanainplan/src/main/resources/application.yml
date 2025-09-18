@@ -19,3 +19,8 @@ kakao:
     key: ${KAKAO_RESTAPI_KEY}
   redirect:
     uri: http://localhost:5173/auth/kakao/callback
+
+# User 서버 설정
+user:
+  server:
+    url: ${USER_SERVER_URL:http://localhost:8084}

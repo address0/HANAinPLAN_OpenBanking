@@ -1,0 +1,41 @@
+package com.hanainplan.user.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
+public class VerifyCodeRequestDto {
+
+    @NotBlank(message = "전화번호는 필수입니다.")
+    @Pattern(regexp = "^010-\\d{4}-\\d{4}$", message = "전화번호 형식이 올바르지 않습니다. (010-0000-0000)")
+    private String phoneNumber;
+
+    @NotBlank(message = "인증번호는 필수입니다.")
+    @Pattern(regexp = "^\\d{6}$", message = "인증번호는 6자리 숫자여야 합니다.")
+    private String verificationCode;
+
+    // 기본 생성자
+    public VerifyCodeRequestDto() {}
+
+    // 생성자
+    public VerifyCodeRequestDto(String phoneNumber, String verificationCode) {
+        this.phoneNumber = phoneNumber;
+        this.verificationCode = verificationCode;
+    }
+
+    // Getters and Setters
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
+    }
+}

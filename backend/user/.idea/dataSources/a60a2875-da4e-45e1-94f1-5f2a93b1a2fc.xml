@@ -934,7 +934,7 @@ user\\_db|schema||user_user||UPDATE|G</Grants>
       <AutoIntrospectionLevel>3</AutoIntrospectionLevel>
       <Current>1</Current>
       <LastIntrospectionLevel>3</LastIntrospectionLevel>
-      <LastIntrospectionLocalTimestamp>2025-09-18.04:44:06</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2025-09-18.05:26:22</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <user id="291" parent="1" name="user_user"/>
@@ -943,50 +943,103 @@ user\\_db|schema||user_user||UPDATE|G</Grants>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <column id="293" parent="292" name="id">
+    <table id="293" parent="290" name="verification_codes">
+      <DetailsLevel>3</DetailsLevel>
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <column id="294" parent="292" name="id">
       <AutoIncrement>1</AutoIncrement>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StoredType>bigint|0s</StoredType>
     </column>
-    <column id="294" parent="292" name="ci">
+    <column id="295" parent="292" name="ci">
       <Position>2</Position>
       <StoredType>varchar(64)|0s</StoredType>
     </column>
-    <column id="295" parent="292" name="phone">
+    <column id="296" parent="292" name="phone">
       <Position>3</Position>
       <StoredType>varchar(20)|0s</StoredType>
     </column>
-    <column id="296" parent="292" name="name">
+    <column id="297" parent="292" name="name">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StoredType>varchar(100)|0s</StoredType>
     </column>
-    <column id="297" parent="292" name="birth_date">
+    <column id="298" parent="292" name="birth_date">
       <Position>5</Position>
       <StoredType>varchar(8)|0s</StoredType>
     </column>
-    <column id="298" parent="292" name="gender">
+    <column id="299" parent="292" name="gender">
       <Position>6</Position>
       <StoredType>varchar(1)|0s</StoredType>
     </column>
-    <index id="299" parent="292" name="PRIMARY">
+    <index id="300" parent="292" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="300" parent="292" name="UK_g1y6e86gbsc4t44ne6fk0ll3j">
+    <index id="301" parent="292" name="UK_g1y6e86gbsc4t44ne6fk0ll3j">
       <ColNames>ci</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="301" parent="292" name="PRIMARY">
+    <key id="302" parent="292" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <key id="302" parent="292" name="UK_g1y6e86gbsc4t44ne6fk0ll3j">
+    <key id="303" parent="292" name="UK_g1y6e86gbsc4t44ne6fk0ll3j">
       <UnderlyingIndexName>UK_g1y6e86gbsc4t44ne6fk0ll3j</UnderlyingIndexName>
+    </key>
+    <column id="304" parent="293" name="verification_id">
+      <AutoIncrement>1</AutoIncrement>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StoredType>bigint|0s</StoredType>
+    </column>
+    <column id="305" parent="293" name="attempt_count">
+      <Position>2</Position>
+      <StoredType>int|0s</StoredType>
+    </column>
+    <column id="306" parent="293" name="verification_code">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StoredType>varchar(6)|0s</StoredType>
+    </column>
+    <column id="307" parent="293" name="created_at">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <column id="308" parent="293" name="expires_at">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <column id="309" parent="293" name="is_verified">
+      <Position>6</Position>
+      <StoredType>bit(1)|0s</StoredType>
+    </column>
+    <column id="310" parent="293" name="phone_number">
+      <NotNull>1</NotNull>
+      <Position>7</Position>
+      <StoredType>varchar(13)|0s</StoredType>
+    </column>
+    <column id="311" parent="293" name="verified_at">
+      <Position>8</Position>
+      <StoredType>datetime(6)|0s</StoredType>
+    </column>
+    <index id="312" parent="293" name="PRIMARY">
+      <ColNames>verification_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="313" parent="293" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
   </database-model>
 </dataSource>
