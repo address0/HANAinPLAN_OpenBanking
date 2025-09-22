@@ -45,6 +45,9 @@ public class ProductSubscription {
 
     @Column(name = "contract_period")
     private Integer contractPeriod; // 약정기간 (개월)
+    
+    @Column(name = "maturity_period", length = 50)
+    private String maturityPeriod; // 만기기간 (예: "12개월", "24개월", "36개월")
 
     @Column(name = "rate_type", length = 10)
     private String rateType; // 고정/변동여부 (FIXED, VARIABLE)

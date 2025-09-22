@@ -18,6 +18,9 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
+                // Swagger 관련 경로 허용
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                // 모든 API 요청 허용 (개발용)
                 .anyRequest().permitAll()
             );
         return http.build();
