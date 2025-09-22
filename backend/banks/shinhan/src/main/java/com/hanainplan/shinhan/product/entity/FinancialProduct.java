@@ -62,14 +62,6 @@ public class FinancialProduct {
     @Column(name = "precautions", length = 1000)
     private String precautions; // 유의사항
 
-    @Column(name = "base_interest_rate", precision = 5, scale = 4)
-    private BigDecimal baseInterestRate; // 기본이자율
-
-    @Column(name = "preferential_interest_rate", precision = 5, scale = 4)
-    private BigDecimal preferentialInterestRate; // 우대이자율(선택)
-
-    @Column(name = "preferential_conditions", length = 500)
-    private String preferentialConditions; // 우대이자조건(선택)
 
     @Column(name = "contract_cancellation_right", length = 200)
     private String contractCancellationRight; // 위법계약해지권(선택)
