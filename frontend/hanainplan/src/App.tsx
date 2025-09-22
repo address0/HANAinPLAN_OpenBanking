@@ -4,6 +4,7 @@ import './App.css'
 import Login from './pages/Login'
 import VideoCall from './pages/VideoCall'
 import Main from './pages/Main'
+import Portfolio from './pages/Portfolio'
 import PensionCalculator from './pages/PensionCalculator'
 import MyAccount from './pages/MyAccount'
 import UserProfile from './pages/UserProfile'
@@ -88,6 +89,7 @@ function App() {
         <Route path="/test-callback" element={<KakaoCallback />} />
         <Route path="/webrtc" element={<VideoCall />} />
         <Route path="/main" element={<Main />} />
+        <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/pension-calculator" element={<PensionCalculator />} />
         <Route path="/my-account" element={<MyAccount />} />
         <Route path="/user-profile" element={<UserProfile />} />
