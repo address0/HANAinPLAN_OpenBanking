@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +14,8 @@ import java.util.Optional;
 public interface FinancialProductRepository extends JpaRepository<FinancialProduct, Long> {
 
     Optional<FinancialProduct> findByProductCode(String productCode);
+    
+    boolean existsByProductCode(String productCode);
 
     List<FinancialProduct> findByDepositType(String depositType);
 
@@ -26,12 +27,14 @@ public interface FinancialProductRepository extends JpaRepository<FinancialProdu
     @Query("SELECT p FROM FinancialProduct p WHERE p.startDate <= :date AND p.endDate >= :date AND p.isActive = true")
     List<FinancialProduct> findActiveProductsByDate(@Param("date") LocalDate date);
 
-    @Query("SELECT p FROM FinancialProduct p WHERE p.baseInterestRate >= :minRate AND p.isActive = true")
-    List<FinancialProduct> findByMinInterestRate(@Param("minRate") BigDecimal minRate);
 
     @Query("SELECT p FROM FinancialProduct p WHERE p.subscriptionAmount <= :maxAmount AND p.isActive = true")
-    List<FinancialProduct> findByMaxSubscriptionAmount(@Param("maxAmount") BigDecimal maxAmount);
+    List<FinancialProduct> findByMaxSubscriptionAmount(@Param("maxAmount") String maxAmount);
 
     @Query("SELECT p FROM FinancialProduct p WHERE p.productName LIKE %:keyword% AND p.isActive = true")
     List<FinancialProduct> findByProductNameContaining(@Param("keyword") String keyword);
+    
+    List<FinancialProduct> findByProductNameContainingIgnoreCase(String productName);
+    
+    List<FinancialProduct> findByProductCategory(String productCategory);
 }

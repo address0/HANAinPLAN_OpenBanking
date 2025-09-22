@@ -20,6 +20,7 @@ public class ProductSubscriptionResponseDto {
     private LocalDate subscriptionDate;
     private LocalDate maturityDate;
     private Integer contractPeriod;
+    private String maturityPeriod;
     private String rateType;
     private BigDecimal baseRate;
     private BigDecimal preferentialRate;
@@ -56,6 +57,7 @@ public class ProductSubscriptionResponseDto {
         this.subscriptionDate = subscription.getSubscriptionDate();
         this.maturityDate = subscription.getMaturityDate();
         this.contractPeriod = subscription.getContractPeriod();
+        this.maturityPeriod = subscription.getMaturityPeriod();
         this.rateType = subscription.getRateType();
         this.baseRate = subscription.getBaseRate();
         this.preferentialRate = subscription.getPreferentialRate();

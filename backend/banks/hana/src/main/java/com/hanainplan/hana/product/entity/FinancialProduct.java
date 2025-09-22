@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -32,14 +31,20 @@ public class FinancialProduct {
     @Column(name = "deposit_type", length = 50)
     private String depositType; // 예금종류
 
-    @Column(name = "subscription_period", length = 50)
-    private String subscriptionPeriod; // 가입기간
+    @Column(name = "min_contract_period")
+    private Integer minContractPeriod; // 가입기간(최소)
+
+    @Column(name = "max_contract_period")
+    private Integer maxContractPeriod; // 가입기간(최대)
+
+    @Column(name = "contract_period_unit", length = 10)
+    private String contractPeriodUnit; // 가입기간 단위 (개월, 년)
 
     @Column(name = "subscription_target", length = 100)
     private String subscriptionTarget; // 가입대상
 
-    @Column(name = "subscription_amount", precision = 15, scale = 2)
-    private BigDecimal subscriptionAmount; // 가입금액
+    @Column(name = "subscription_amount", length = 50)
+    private String subscriptionAmount; // 가입금액 (varchar)
 
     @Column(name = "product_category", length = 50)
     private String productCategory; // 상품유형(선택)
