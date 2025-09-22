@@ -25,7 +25,10 @@ function Nav() {
         <button className="hover:text-hana-green transition-colors" onClick={() => navigate('/main')}>
           홈
         </button>
-        <button className="hover:text-hana-green transition-colors">
+        <button 
+          onClick={() => navigate('/portfolio')}
+          className="hover:text-hana-green transition-colors"
+        >
           포트폴리오
         </button>
         <button 
