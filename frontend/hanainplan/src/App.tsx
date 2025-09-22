@@ -9,6 +9,12 @@ import PensionCalculator from './pages/PensionCalculator'
 import MyAccount from './pages/MyAccount'
 import UserProfile from './pages/UserProfile'
 import KakaoCallback from './pages/KakaoCallback'
+import DepositProducts from './pages/products/DepositProducts'
+import SavingsProducts from './pages/products/SavingsProducts'
+import IrpProducts from './pages/products/IrpProducts'
+import InsuranceProducts from './pages/products/InsuranceProducts'
+import ConsultationStaff from './pages/consultation/ConsultationStaff'
+import ConsultationRequest from './pages/consultation/ConsultationRequest'
 
 function Landing() {
   const [isLoading, setIsLoading] = useState(true)
@@ -93,6 +99,12 @@ function App() {
         <Route path="/pension-calculator" element={<PensionCalculator />} />
         <Route path="/my-account" element={<MyAccount />} />
         <Route path="/user-profile" element={<UserProfile />} />
+        <Route path="/products/deposit" element={<DepositProducts />} />
+        <Route path="/products/savings" element={<SavingsProducts />} />
+        <Route path="/products/irp" element={<IrpProducts />} />
+        <Route path="/products/insurance" element={<InsuranceProducts />} />
+        <Route path="/consultation/staff" element={<ConsultationStaff />} />
+        <Route path="/consultation/request" element={<ConsultationRequest />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
