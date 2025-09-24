@@ -6,6 +6,7 @@ import Step5PasswordSetup from './Step5PasswordSetup'
 import Step6Complete from './Step6Complete'
 import { signUp, type SignUpRequest } from '../../api/userApi'
 import AlertModal from '../modal/AlertModal'
+import MyDataConsentModal from '../modal/MyDataConsentModal'
 
 interface GeneralSignUpProps {
   onBackToLogin: () => void;
@@ -58,6 +59,11 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
     message: '',
     type: 'info' as 'success' | 'error' | 'info' | 'warning'
   })
+
+  // MyDataConsentModal 상태
+  const [myDataModal, setMyDataModal] = useState({
+    isOpen: false
+  })
   const [signUpData, setSignUpData] = useState<SignUpData>({
     name: '',
     socialNumber: '',
@@ -104,7 +110,7 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
   // 유효성 검사
   const isStep2Valid = () => {
     const isNameValid = signUpData.name.trim().length >= 2
-    const isSocialNumberValid = signUpData.socialNumber.replace(/[^\d]/g, '').length === 7
+    const isSocialNumberValid = signUpData.socialNumber.replace(/[^\d]/g, '').length === 13
     const isVerified = signUpData.verificationCode.trim().length > 0
     return isNameValid && isSocialNumberValid && isVerified
   }
@@ -307,6 +313,24 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
     }
   }
 
+  // 마이데이터 동의 처리
+  const handleMyDataConsent = async (consent: boolean) => {
+    setMyDataModal(prev => ({ ...prev, isOpen: false }))
+    
+    // 동의 여부와 관계없이 다음 단계로 진행
+    setCurrentStep(3)
+  }
+
+  // 다음 단계로 이동
+  const handleNextStep = () => {
+    if (currentStep === 2) {
+      // 기본정보 입력 완료 후 마이데이터 동의 모달 표시
+      setMyDataModal(prev => ({ ...prev, isOpen: true }))
+    } else {
+      setCurrentStep((prev) => (prev + 1) as SignUpStep)
+    }
+  }
+
   return (
     <div className="w-[600px] h-full backdrop-blur-sm p-[10px] flex flex-col items-center justify-center gap-4 rounded-r-[20px] shadow-[4px_0px_20px_rgba(0,0,0,0.25)] animate-slide-in border-y-2 border-r-2 border-white overflow-hidden">
       {/* 공통 헤더 */}
@@ -373,7 +397,7 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
             이전 단계
           </button>
           <button 
-            onClick={currentStep === 5 ? handleSignUp : () => setCurrentStep((prev) => (prev + 1) as SignUpStep)}
+            onClick={currentStep === 5 ? handleSignUp : handleNextStep}
             disabled={!isCurrentStepValid() || isSubmitting}
             className={`px-6 py-3 rounded-[10px] font-['Hana2.0_M'] text-[16px] transition-all duration-200 ${
               isCurrentStepValid() && !isSubmitting
@@ -400,6 +424,18 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
         type={alertModal.type}
         autoClose={alertModal.type === 'success'}
         autoCloseDelay={3000}
+      />
+
+      {/* MyDataConsentModal */}
+      <MyDataConsentModal
+        isOpen={myDataModal.isOpen}
+        onClose={() => setMyDataModal(prev => ({ ...prev, isOpen: false }))}
+        onConsent={handleMyDataConsent}
+        personalInfo={{
+          phoneNumber: signUpData.phoneNumber,
+          socialNumber: signUpData.socialNumber,
+          name: signUpData.name
+        }}
       />
     </div>
   )

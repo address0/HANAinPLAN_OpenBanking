@@ -307,3 +307,48 @@ export const deleteAccount = async (userId: number, password: string): Promise<{
   });
   return await response.json();
 };
+
+// ================================
+// 마이데이터 수집 동의 관련 API
+// ================================
+
+// 계좌 정보 타입
+export interface AccountInfo {
+  accountNumber: string;
+  accountType: number;
+  balance: number;
+  openingDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 은행 계좌 정보 타입
+export interface BankAccountInfo {
+  bankName: string;
+  bankCode: string;
+  customerName: string;
+  customerCi: string;
+  accounts: AccountInfo[];
+  isCustomer: boolean;
+}
+
+// 마이데이터 수집 동의 요청 타입
+export interface MyDataConsentRequest {
+  phoneNumber: string;
+  socialNumber: string;
+  name: string;
+  consentToMyDataCollection: boolean;
+}
+
+// 마이데이터 수집 동의 응답 타입
+export interface MyDataConsentResponse {
+  message: string;
+  bankAccountInfo: BankAccountInfo[];
+  totalBanks: number;
+  totalAccounts: number;
+}
+
+// 마이데이터 수집 동의
+export const processMyDataConsent = async (request: MyDataConsentRequest): Promise<MyDataConsentResponse> => {
+  return await httpPost<MyDataConsentResponse>('user/mydata/consent', request);
+};

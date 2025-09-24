@@ -24,6 +24,11 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   const [timeLeft, setTimeLeft] = useState(0)
   const [isVerified, setIsVerified] = useState(false)
   
+  // 주민번호 분리된 입력 필드들
+  const [socialFront, setSocialFront] = useState('') // 앞자리 6자리
+  const [socialBackFirst, setSocialBackFirst] = useState('') // 뒷자리 첫번째
+  const [socialBackRest, setSocialBackRest] = useState('') // 뒷자리 나머지 6자리
+  
   // AlertModal 상태
   const [alertModal, setAlertModal] = useState({
     isOpen: false,
@@ -47,27 +52,55 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 주민번호 포맷팅 함수 (앞자리 6자리 + 뒷자리 1자리)
-  const formatSocialNumber = (value: string) => {
-    const numbers = value.replace(/[^\d]/g, '')
-    if (numbers.length > 7) {
-      return signUpData.socialNumber
-    }
-    if (numbers.length <= 6) {
-      return numbers
-    } else {
-      return `${numbers.slice(0, 6)}-${numbers.slice(6, 7)}`
-    }
-  }
 
   // 입력 핸들러들
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onDataChange({ name: e.target.value })
   }
 
-  const handleSocialNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatSocialNumber(e.target.value)
-    onDataChange({ socialNumber: formatted })
+  // 주민번호 앞자리 입력 핸들러
+  const handleSocialFrontChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^\d]/g, '')
+    if (value.length <= 6) {
+      setSocialFront(value)
+      updateSocialNumber(value, socialBackFirst, socialBackRest)
+      
+      // 6자리가 채워지면 다음 필드로 포커스 이동
+      if (value.length === 6) {
+        const nextInput = e.target.parentElement?.querySelector('input:nth-of-type(2)') as HTMLInputElement
+        nextInput?.focus()
+      }
+    }
+  }
+
+  // 주민번호 뒷자리 첫번째 입력 핸들러
+  const handleSocialBackFirstChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^\d]/g, '')
+    if (value.length <= 1) {
+      setSocialBackFirst(value)
+      updateSocialNumber(socialFront, value, socialBackRest)
+      
+      // 1자리가 채워지면 다음 필드로 포커스 이동
+      if (value.length === 1) {
+        const nextInput = e.target.parentElement?.querySelector('input:nth-of-type(3)') as HTMLInputElement
+        nextInput?.focus()
+      }
+    }
+  }
+
+  // 주민번호 뒷자리 나머지 입력 핸들러
+  const handleSocialBackRestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^\d]/g, '')
+    if (value.length <= 6) {
+      setSocialBackRest(value)
+      updateSocialNumber(socialFront, socialBackFirst, value)
+    }
+  }
+
+  // 전체 주민번호 업데이트
+  const updateSocialNumber = (front: string, backFirst: string, backRest: string) => {
+    const fullNumber = front + backFirst + backRest
+    onDataChange({ socialNumber: fullNumber })
   }
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,8 +198,9 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
 
   const isSocialNumberValid = () => {
     const numbers = signUpData.socialNumber.replace(/[^\d]/g, '')
-    return numbers.length === 7
+    return numbers.length === 13
   }
+
 
   // 타이머 useEffect
   useEffect(() => {
@@ -227,28 +261,54 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* 주민번호 입력 필드 */}
+      {/* 주민번호 입력 필드 (분리된 형태) */}
       <div className="w-[400px] flex items-center gap-4">
         <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
           주민번호 <span className="text-red-500">*</span>
         </label>
-        <div className={`w-[280px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
-          isSocialFocused 
-            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
-            : 'border-[#E0E0E0] hover:border-[#008485]/50'
-        }`}>
+        <div className="flex items-center gap-2 w-[280px]">
+          {/* 앞자리 6자리 */}
           <input
             type="text"
-            value={signUpData.socialNumber}
-            onChange={handleSocialNumberChange}
+            value={socialFront}
+            onChange={handleSocialFrontChange}
             onFocus={() => setIsSocialFocused(true)}
             onBlur={() => setIsSocialFocused(false)}
-            placeholder="주민번호 7자리 (000000-0)"
-            className="w-full bg-transparent font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700"
-            maxLength={8}
+            placeholder="000000"
+            maxLength={6}
+            className="w-[100px] h-[60px] bg-white rounded-[15px] border-2 border-[#E0E0E0] px-3 font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700 focus:border-[#008485] focus:shadow-[0_0_0_3px_rgba(0,132,133,0.1)] transition-all duration-200"
           />
+          
+          {/* 하이픈 */}
+          <span className="font-['Hana2.0_M'] text-[16px] text-gray-700">-</span>
+          
+          {/* 뒷자리 첫번째 */}
+          <input
+            type="text"
+            value={socialBackFirst}
+            onChange={handleSocialBackFirstChange}
+            onFocus={() => setIsSocialFocused(true)}
+            onBlur={() => setIsSocialFocused(false)}
+            placeholder="0"
+            maxLength={1}
+            className="w-[40px] h-[60px] bg-white rounded-[15px] border-2 border-[#E0E0E0] px-2 font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700 focus:border-[#008485] focus:shadow-[0_0_0_3px_rgba(0,132,133,0.1)] transition-all duration-200"
+          />
+          
+          {/* 뒷자리 나머지 6자리 (비밀번호 형식) */}
+          <input
+            type="password"
+            value={socialBackRest}
+            onChange={handleSocialBackRestChange}
+            onFocus={() => setIsSocialFocused(true)}
+            onBlur={() => setIsSocialFocused(false)}
+            placeholder="******"
+            maxLength={6}
+            className="w-[100px] h-[60px] bg-white rounded-[15px] border-2 border-[#E0E0E0] px-3 font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700 focus:border-[#008485] focus:shadow-[0_0_0_3px_rgba(0,132,133,0.1)] transition-all duration-200"
+          />
+          
+          {/* 유효성 검사 아이콘 */}
           {isSocialNumberValid() && (
-            <div className="text-green-600 text-sm">
+            <div className="text-green-600 text-sm ml-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
