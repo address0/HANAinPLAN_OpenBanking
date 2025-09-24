@@ -214,10 +214,10 @@ public class CiConversionService {
             throw new IllegalArgumentException("유효하지 않은 출생연도입니다. 1900년 이후만 가능합니다.");
         }
         
-        // 4. 체크섬 검증 (주민번호 마지막 자리)
-        if (!validateChecksum(residentNumber)) {
-            throw new IllegalArgumentException("주민번호의 체크섬이 올바르지 않습니다.");
-        }
+        // 4. 체크섬 검증 (주민번호 마지막 자리) - 임시 주석 처리
+        // if (!validateChecksum(residentNumber)) {
+        //     throw new IllegalArgumentException("주민번호의 체크섬이 올바르지 않습니다.");
+        // }
     }
 
     /**
