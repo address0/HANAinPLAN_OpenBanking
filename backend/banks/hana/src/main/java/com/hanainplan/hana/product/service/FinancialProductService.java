@@ -32,22 +32,17 @@ public class FinancialProductService {
             .productCode(request.getProductCode())
             .productName(request.getProductName())
             .depositType(request.getDepositType())
-            .subscriptionPeriod(request.getSubscriptionPeriod())
+            .minContractPeriod(request.getMinContractPeriod())
+            .maxContractPeriod(request.getMaxContractPeriod())
+            .contractPeriodUnit(request.getContractPeriodUnit())
             .subscriptionTarget(request.getSubscriptionTarget())
             .subscriptionAmount(request.getSubscriptionAmount())
             .productCategory(request.getProductCategory())
             .interestPayment(request.getInterestPayment())
             .taxBenefit(request.getTaxBenefit())
             .partialWithdrawal(request.getPartialWithdrawal())
-            .depositorProtection(request.getDepositorProtection())
-            .transactionMethod(request.getTransactionMethod())
-            .precautions(request.getPrecautions())
-            .contractCancellationRight(request.getContractCancellationRight())
             .cancellationPenalty(request.getCancellationPenalty())
-            .paymentRestrictions(request.getPaymentRestrictions())
-            .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-            .startDate(request.getStartDate())
-            .endDate(request.getEndDate())
+            .description(request.getDescription())
             .build();
 
         FinancialProduct savedProduct = financialProductRepository.save(product);
@@ -83,16 +78,7 @@ public class FinancialProductService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 활성화된 금융상품 조회
-     */
-    @Transactional(readOnly = true)
-    public List<FinancialProductResponseDto> getActiveProducts() {
-        List<FinancialProduct> products = financialProductRepository.findByIsActiveTrue();
-        return products.stream()
-            .map(FinancialProductResponseDto::from)
-            .collect(Collectors.toList());
-    }
+    // isActive 필드가 삭제되어 활성화된 상품 조회 기능 제거됨
 
     /**
      * 상품명으로 검색
@@ -132,38 +118,23 @@ public class FinancialProductService {
         product.setProductCode(request.getProductCode());
         product.setProductName(request.getProductName());
         product.setDepositType(request.getDepositType());
-        product.setSubscriptionPeriod(request.getSubscriptionPeriod());
+        product.setMinContractPeriod(request.getMinContractPeriod());
+        product.setMaxContractPeriod(request.getMaxContractPeriod());
+        product.setContractPeriodUnit(request.getContractPeriodUnit());
         product.setSubscriptionTarget(request.getSubscriptionTarget());
         product.setSubscriptionAmount(request.getSubscriptionAmount());
         product.setProductCategory(request.getProductCategory());
         product.setInterestPayment(request.getInterestPayment());
         product.setTaxBenefit(request.getTaxBenefit());
         product.setPartialWithdrawal(request.getPartialWithdrawal());
-        product.setDepositorProtection(request.getDepositorProtection());
-        product.setTransactionMethod(request.getTransactionMethod());
-        product.setPrecautions(request.getPrecautions());
-        product.setContractCancellationRight(request.getContractCancellationRight());
         product.setCancellationPenalty(request.getCancellationPenalty());
-        product.setPaymentRestrictions(request.getPaymentRestrictions());
-        product.setIsActive(request.getIsActive());
-        product.setStartDate(request.getStartDate());
-        product.setEndDate(request.getEndDate());
+        product.setDescription(request.getDescription());
 
         FinancialProduct updatedProduct = financialProductRepository.save(product);
         return FinancialProductResponseDto.from(updatedProduct);
     }
 
-    /**
-     * 금융상품 활성화/비활성화
-     */
-    public FinancialProductResponseDto toggleProductStatus(Long productId) {
-        FinancialProduct product = financialProductRepository.findById(productId)
-            .orElseThrow(() -> new IllegalArgumentException("금융상품을 찾을 수 없습니다: " + productId));
-
-        product.setIsActive(!product.getIsActive());
-        FinancialProduct updatedProduct = financialProductRepository.save(product);
-        return FinancialProductResponseDto.from(updatedProduct);
-    }
+    // isActive 필드가 삭제되어 활성화/비활성화 기능 제거됨
 
     /**
      * 금융상품 삭제
@@ -175,3 +146,4 @@ public class FinancialProductService {
         financialProductRepository.deleteById(productId);
     }
 }
+

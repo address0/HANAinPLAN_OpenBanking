@@ -12,13 +12,9 @@ import java.util.Optional;
 @Repository
 public interface AccountRepository extends JpaRepository<Account, String> {
 
-    List<Account> findByCustomerUserId(Long userId);
-
-    @Query("SELECT a FROM Account a WHERE a.customer.ci = :ci")
-    List<Account> findByCustomerCi(@Param("ci") String ci);
+    List<Account> findByCustomerCi(String ci);
 
     Optional<Account> findByAccountNumber(String accountNumber);
 
-    @Query("SELECT a FROM Account a WHERE a.customer.ci = :ci AND a.accountType = :accountType")
-    List<Account> findByCustomerCiAndAccountType(@Param("ci") String ci, @Param("accountType") Integer accountType);
+    List<Account> findByCustomerCiAndAccountType(String ci, Integer accountType);
 }

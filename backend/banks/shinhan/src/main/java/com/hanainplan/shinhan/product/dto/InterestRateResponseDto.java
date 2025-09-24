@@ -43,3 +43,4 @@ public class InterestRateResponseDto {
         return new InterestRateResponseDto(interestRate);
     }
 }
+

@@ -1,6 +1,5 @@
 package com.hanainplan.kookmin.account.entity;
 
-import com.hanainplan.kookmin.user.entity.Customer;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,25 +31,14 @@ public class Account {
     @Column(name = "opening_date")
     private LocalDate openingDate; // 계좌개설일
 
-    @Column(name = "maturity_date")
-    private LocalDate maturityDate; // 만기일
-
-    @Column(name = "third_party_consent")
-    private Boolean thirdPartyConsent; // 제3자정보제공동의여부
-
-    @Column(name = "withdrawal_consent")
-    private Boolean withdrawalConsent; // 출금동의여부
+    @Column(name = "customer_ci", nullable = false, length = 100)
+    private String customerCi; // 고객 CI (본인확인정보)
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    // 고객과의 관계 (다대일)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private Customer customer;
 
     @PrePersist
     protected void onCreate() {

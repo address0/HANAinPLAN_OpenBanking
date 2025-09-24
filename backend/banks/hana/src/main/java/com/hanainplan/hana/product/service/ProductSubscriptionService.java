@@ -58,7 +58,7 @@ public class ProductSubscriptionService {
             .orElseThrow(() -> new IllegalArgumentException("계좌를 찾을 수 없습니다: " + request.getAccountNumber()));
 
         // 3. 계좌 소유자 확인
-        if (!account.getCustomer().getCi().equals(request.getCustomerCi())) {
+        if (!account.getCustomerCi().equals(request.getCustomerCi())) {
             throw new IllegalArgumentException("계좌 소유자가 일치하지 않습니다.");
         }
 
@@ -133,7 +133,7 @@ public class ProductSubscriptionService {
             .orElseThrow(() -> new IllegalArgumentException("계좌를 찾을 수 없습니다: " + request.getAccountNumber()));
 
         // 3. 계좌 소유자 확인
-        if (!account.getCustomer().getCi().equals(request.getCustomerCi())) {
+        if (!account.getCustomerCi().equals(request.getCustomerCi())) {
             throw new IllegalArgumentException("계좌 소유자가 일치하지 않습니다.");
         }
 

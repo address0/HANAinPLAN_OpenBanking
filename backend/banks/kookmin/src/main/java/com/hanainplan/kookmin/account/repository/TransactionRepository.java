@@ -14,7 +14,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
 
     List<Transaction> findByAccountAccountNumberOrderByTransactionDatetimeDesc(String accountNumber);
 
-    @Query("SELECT t FROM Transaction t WHERE t.account.customer.ci = :ci ORDER BY t.transactionDatetime DESC")
+    @Query("SELECT t FROM Transaction t WHERE t.account.customerCi = :ci ORDER BY t.transactionDatetime DESC")
     List<Transaction> findByCustomerCiOrderByTransactionDatetimeDesc(@Param("ci") String ci);
 
     @Query("SELECT t FROM Transaction t WHERE t.account.accountNumber = :accountNumber " +
@@ -26,7 +26,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
         @Param("endDate") LocalDateTime endDate
     );
 
-    @Query("SELECT t FROM Transaction t WHERE t.account.customer.ci = :ci " +
+    @Query("SELECT t FROM Transaction t WHERE t.account.customerCi = :ci " +
            "AND t.transactionDatetime BETWEEN :startDate AND :endDate " +
            "ORDER BY t.transactionDatetime DESC")
     List<Transaction> findByCustomerCiAndDateRange(

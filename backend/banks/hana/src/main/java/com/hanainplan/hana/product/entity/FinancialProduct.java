@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -43,8 +44,8 @@ public class FinancialProduct {
     @Column(name = "subscription_target", length = 100)
     private String subscriptionTarget; // 가입대상
 
-    @Column(name = "subscription_amount", length = 50)
-    private String subscriptionAmount; // 가입금액 (varchar)
+    @Column(name = "subscription_amount")
+    private BigDecimal subscriptionAmount; // 가입금액
 
     @Column(name = "product_category", length = 50)
     private String productCategory; // 상품유형(선택)
@@ -58,33 +59,11 @@ public class FinancialProduct {
     @Column(name = "partial_withdrawal", length = 100)
     private String partialWithdrawal; // 일부해지
 
-    @Column(name = "depositor_protection", length = 10)
-    private String depositorProtection; // 예금자보호여부
-
-    @Column(name = "transaction_method", length = 200)
-    private String transactionMethod; // 거래방법
-
-    @Column(name = "precautions", length = 1000)
-    private String precautions; // 유의사항
-
-
-    @Column(name = "contract_cancellation_right", length = 200)
-    private String contractCancellationRight; // 위법계약해지권(선택)
-
     @Column(name = "cancellation_penalty", length = 200)
     private String cancellationPenalty; // 해지 시 불이익(선택)
 
-    @Column(name = "payment_restrictions", length = 200)
-    private String paymentRestrictions; // 지급관련제한(선택)
-
-    @Column(name = "is_active")
-    private Boolean isActive; // 활성화여부
-
-    @Column(name = "start_date")
-    private LocalDate startDate; // 판매시작일
-
-    @Column(name = "end_date")
-    private LocalDate endDate; // 판매종료일
+    @Column(name = "description", length = 1000)
+    private String description; // 상품 설명
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
