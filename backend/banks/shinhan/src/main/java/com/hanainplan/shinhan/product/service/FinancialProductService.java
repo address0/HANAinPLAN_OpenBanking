@@ -32,7 +32,6 @@ public class FinancialProductService {
             .productCode(request.getProductCode())
             .productName(request.getProductName())
             .depositType(request.getDepositType())
-            .subscriptionPeriod(request.getSubscriptionPeriod())
             .subscriptionTarget(request.getSubscriptionTarget())
             .subscriptionAmount(request.getSubscriptionAmount())
             .productCategory(request.getProductCategory())
@@ -132,7 +131,6 @@ public class FinancialProductService {
         product.setProductCode(request.getProductCode());
         product.setProductName(request.getProductName());
         product.setDepositType(request.getDepositType());
-        product.setSubscriptionPeriod(request.getSubscriptionPeriod());
         product.setSubscriptionTarget(request.getSubscriptionTarget());
         product.setSubscriptionAmount(request.getSubscriptionAmount());
         product.setProductCategory(request.getProductCategory());
