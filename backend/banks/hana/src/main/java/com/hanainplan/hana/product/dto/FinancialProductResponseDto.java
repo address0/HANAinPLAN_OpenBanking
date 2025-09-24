@@ -4,6 +4,7 @@ import com.hanainplan.hana.product.entity.FinancialProduct;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -19,20 +20,13 @@ public class FinancialProductResponseDto {
     private Integer maxContractPeriod;
     private String contractPeriodUnit;
     private String subscriptionTarget;
-    private String subscriptionAmount;
+    private BigDecimal subscriptionAmount;
     private String productCategory;
     private String interestPayment;
     private String taxBenefit;
     private String partialWithdrawal;
-    private String depositorProtection;
-    private String transactionMethod;
-    private String precautions;
-    private String contractCancellationRight;
     private String cancellationPenalty;
-    private String paymentRestrictions;
-    private Boolean isActive;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -54,15 +48,8 @@ public class FinancialProductResponseDto {
         this.interestPayment = product.getInterestPayment();
         this.taxBenefit = product.getTaxBenefit();
         this.partialWithdrawal = product.getPartialWithdrawal();
-        this.depositorProtection = product.getDepositorProtection();
-        this.transactionMethod = product.getTransactionMethod();
-        this.precautions = product.getPrecautions();
-        this.contractCancellationRight = product.getContractCancellationRight();
         this.cancellationPenalty = product.getCancellationPenalty();
-        this.paymentRestrictions = product.getPaymentRestrictions();
-        this.isActive = product.getIsActive();
-        this.startDate = product.getStartDate();
-        this.endDate = product.getEndDate();
+        this.description = product.getDescription();
         this.createdAt = product.getCreatedAt();
         this.updatedAt = product.getUpdatedAt();
     }

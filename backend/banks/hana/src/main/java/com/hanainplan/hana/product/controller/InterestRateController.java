@@ -174,3 +174,4 @@ public class InterestRateController {
         return ResponseEntity.noContent().build();
     }
 }
+

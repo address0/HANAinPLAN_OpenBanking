@@ -178,3 +178,4 @@ public class InterestRateService {
         interestRateRepository.deleteAll(interestRates);
     }
 }
+

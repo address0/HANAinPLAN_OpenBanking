@@ -62,14 +62,7 @@ public class FinancialProductController {
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * 활성화된 금융상품 조회
-     */
-    @GetMapping("/active")
-    public ResponseEntity<List<FinancialProductResponseDto>> getActiveProducts() {
-        List<FinancialProductResponseDto> products = financialProductService.getActiveProducts();
-        return ResponseEntity.ok(products);
-    }
+    // isActive 필드가 삭제되어 활성화된 상품 조회 엔드포인트 제거됨
 
     /**
      * 상품명으로 검색
@@ -104,18 +97,7 @@ public class FinancialProductController {
         }
     }
 
-    /**
-     * 금융상품 활성화/비활성화
-     */
-    @PatchMapping("/{productId}/toggle-status")
-    public ResponseEntity<FinancialProductResponseDto> toggleProductStatus(@PathVariable Long productId) {
-        try {
-            FinancialProductResponseDto response = financialProductService.toggleProductStatus(productId);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+    // isActive 필드가 삭제되어 활성화/비활성화 엔드포인트 제거됨
 
     /**
      * 금융상품 삭제
@@ -130,3 +112,4 @@ public class FinancialProductController {
         }
     }
 }
+

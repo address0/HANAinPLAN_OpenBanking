@@ -32,3 +32,4 @@ public class InterestRateRequestDto {
     @NotNull(message = "적용일자는 필수입니다.")
     private LocalDate effectiveDate; // 적용일자
 }
+

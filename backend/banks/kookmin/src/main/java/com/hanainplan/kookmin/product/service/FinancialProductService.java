@@ -175,3 +175,4 @@ public class FinancialProductService {
         financialProductRepository.deleteById(productId);
     }
 }
+
