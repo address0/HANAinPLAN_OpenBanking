@@ -34,7 +34,7 @@ public class User {
     @Column(name = "user_name", length = 50, nullable = false)
     private String userName;
 
-    @Column(name = "social_number", length = 8, nullable = false, unique = true)
+    @Column(name = "social_number", length = 13, nullable = false, unique = true)
     private String socialNumber;
 
     @Column(name = "phone_number", length = 13, nullable = false, unique = true)
@@ -135,12 +135,12 @@ public class User {
      * 주민번호에서 생년월일과 성별 추출
      */
     public static LocalDate extractBirthDateFromSocialNumber(String socialNumber) {
-        if (socialNumber == null || socialNumber.length() != 8) {
+        if (socialNumber == null || socialNumber.length() != 13) {
             throw new IllegalArgumentException("주민번호 형식이 올바르지 않습니다.");
         }
         
         String birthPart = socialNumber.substring(0, 6);
-        String genderPart = socialNumber.substring(7, 8);
+        String genderPart = socialNumber.substring(6, 7);
         
         int year = Integer.parseInt(birthPart.substring(0, 2));
         int month = Integer.parseInt(birthPart.substring(2, 4));
@@ -163,11 +163,11 @@ public class User {
      * 주민번호에서 성별 추출
      */
     public static Gender extractGenderFromSocialNumber(String socialNumber) {
-        if (socialNumber == null || socialNumber.length() != 8) {
+        if (socialNumber == null || socialNumber.length() != 13) {
             throw new IllegalArgumentException("주민번호 형식이 올바르지 않습니다.");
         }
         
-        int genderCode = Integer.parseInt(socialNumber.substring(7, 8));
+        int genderCode = Integer.parseInt(socialNumber.substring(6, 7));
         return (genderCode % 2 == 1) ? Gender.M : Gender.F;
     }
 

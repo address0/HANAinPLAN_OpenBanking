@@ -20,7 +20,8 @@ public class MyDataConsentController {
      * 마이데이터 수집 동의 및 은행사별 계좌 정보 조회
      */
     @PostMapping("/consent")
-    public ResponseEntity<MyDataConsentResponseDto> processMyDataConsent(@Valid @RequestBody MyDataConsentRequestDto request) {
+    public ResponseEntity<MyDataConsentResponseDto> processMyDataConsent(
+            @Valid @RequestBody MyDataConsentRequestDto request) {
         try {
             MyDataConsentResponseDto response = myDataConsentService.processMyDataConsent(request);
             return ResponseEntity.ok(response);

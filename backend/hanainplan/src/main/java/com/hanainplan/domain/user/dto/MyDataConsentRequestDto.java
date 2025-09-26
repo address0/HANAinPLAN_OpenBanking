@@ -27,4 +27,7 @@ public class MyDataConsentRequestDto {
     // 주민등록번호에서 추출된 정보
     private String birthDate; // YYYYMMDD 형식
     private String gender;    // M 또는 F
+    
+    // 사용자 ID 추가
+    private Long userId;
 }

@@ -1,34 +1,30 @@
 package com.hanainplan.domain.user.dto;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter
+@Setter
 public class CustomerAccountInfoDto {
-    
     private String bankName;
     private String bankCode;
     private String customerName;
     private String customerCi;
     private List<AccountInfoDto> accounts;
     private boolean isCustomer;
-    
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
+
+    @Getter
+    @Setter
     public static class AccountInfoDto {
         private String accountNumber;
-        private int accountType;
-        private long balance;
-        private String openingDate;
-        private String createdAt;
-        private String updatedAt;
+        private Integer accountType;
+        private Object balance; // 다양한 타입을 받을 수 있도록 Object로 변경
+        private LocalDateTime openingDate;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
     }
 }

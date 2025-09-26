@@ -33,3 +33,5 @@ public class InterestRateRequestDto {
     private LocalDate effectiveDate; // 적용일자
 }
 
+
+

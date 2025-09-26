@@ -30,18 +30,21 @@ public class BankingAccount {
     @Column(name = "user_id", nullable = false)
     private Long userId;
     
-    // 계좌번호 (하나은행 계좌번호 형식: 123-456-789012)
-    @Column(name = "account_number", nullable = false, unique = true, length = 14)
+    // 고객 CI (각 은행사와 호환)
+    @Column(name = "customer_ci", nullable = false, length = 100)
+    private String customerCi;
+    
+    // 계좌번호 (각 은행사 계좌번호 형식에 맞춤: 최대 20자)
+    @Column(name = "account_number", nullable = false, unique = true, length = 20)
     private String accountNumber;
     
     // 계좌명
     @Column(name = "account_name", nullable = false, length = 50)
     private String accountName;
     
-    // 계좌 유형
-    @Enumerated(EnumType.STRING)
+    // 계좌 유형 (각 은행사와 호환: Integer 타입)
     @Column(name = "account_type", nullable = false)
-    private AccountType accountType;
+    private Integer accountType;
     
     // 계좌 상태
     @Enumerated(EnumType.STRING)
@@ -110,23 +113,21 @@ public class BankingAccount {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // 계좌 유형 열거형
-    public enum AccountType {
-        CHECKING("입출금통장"),
-        SAVINGS("저축예금"),
-        TIME_DEPOSIT("정기예금"),
-        FIXED_DEPOSIT("정기적금"),
-        LOAN("대출계좌"),
-        CREDIT("신용계좌");
+    // 계좌 유형 상수 (각 은행사와 호환)
+    public static class AccountType {
+        public static final int CHECKING = 1;        // 수시입출금
+        public static final int SAVINGS = 2;         // 예적금
+        public static final int SECURITIES = 6;      // 수익증권
+        public static final int INTEGRATED = 0;      // 통합계좌
         
-        private final String description;
-        
-        AccountType(String description) {
-            this.description = description;
-        }
-        
-        public String getDescription() {
-            return description;
+        public static String getDescription(int accountType) {
+            switch (accountType) {
+                case CHECKING: return "수시입출금";
+                case SAVINGS: return "예적금";
+                case SECURITIES: return "수익증권";
+                case INTEGRATED: return "통합계좌";
+                default: return "기타";
+            }
         }
     }
     
@@ -149,13 +150,12 @@ public class BankingAccount {
         }
     }
     
-    // 계좌번호 생성 메서드
+    // 계좌번호 생성 메서드 (각 은행사와 호환)
     public static String generateAccountNumber() {
-        // 하나은행 계좌번호 형식: 123-456-789012
-        int first = (int) (Math.random() * 900) + 100; // 100-999
-        int second = (int) (Math.random() * 900) + 100; // 100-999
-        int third = (int) (Math.random() * 900000) + 100000; // 100000-999999
-        return String.format("%03d-%03d-%06d", first, second, third);
+        // 각 은행사 계좌번호 형식에 맞춤: 최대 20자
+        long timestamp = System.currentTimeMillis();
+        int random = (int) (Math.random() * 10000);
+        return String.format("%d%04d", timestamp % 10000000000L, random);
     }
     
     // 잔액 충분 여부 확인

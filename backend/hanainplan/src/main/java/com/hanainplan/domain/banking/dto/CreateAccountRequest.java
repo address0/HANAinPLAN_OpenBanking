@@ -23,7 +23,7 @@ public class CreateAccountRequest {
     private Long userId;
     
     @NotNull(message = "계좌 유형은 필수입니다")
-    private BankingAccount.AccountType accountType;
+    private Integer accountType;
     
     @NotBlank(message = "계좌명은 필수입니다")
     private String accountName;

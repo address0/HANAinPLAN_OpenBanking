@@ -82,3 +82,5 @@ public interface InterestRateRepository extends JpaRepository<InterestRate, Long
     List<InterestRate> findByProductCodeAndIsIrp(String productCode, Boolean isIrp);
 }
 
+
+

@@ -27,7 +27,7 @@ public class SignUpRequestDto {
     private String name;
 
     @NotBlank(message = "주민번호는 필수입니다.")
-    @Pattern(regexp = "^\\d{6}-\\d{1}$", message = "주민번호 형식이 올바르지 않습니다. (000000-0)")
+    @Pattern(regexp = "^\\d{13}$", message = "주민번호 형식이 올바르지 않습니다. (13자리 숫자)")
     private String socialNumber;
 
     @NotBlank(message = "전화번호는 필수입니다.")
