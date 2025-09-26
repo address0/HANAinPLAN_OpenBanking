@@ -19,7 +19,7 @@ public class AccountDto {
     private Long userId;
     private String accountNumber;
     private String accountName;
-    private BankingAccount.AccountType accountType;
+    private Integer accountType;
     private String accountTypeDescription;
     private BankingAccount.AccountStatus accountStatus;
     private String accountStatusDescription;
@@ -46,7 +46,7 @@ public class AccountDto {
                 .accountNumber(account.getAccountNumber())
                 .accountName(account.getAccountName())
                 .accountType(account.getAccountType())
-                .accountTypeDescription(account.getAccountType().getDescription())
+                .accountTypeDescription(BankingAccount.AccountType.getDescription(account.getAccountType()))
                 .accountStatus(account.getAccountStatus())
                 .accountStatusDescription(account.getAccountStatus().getDescription())
                 .balance(account.getBalance())

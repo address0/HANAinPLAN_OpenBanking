@@ -38,8 +38,7 @@ public class AccountService {
         // 만료일 계산 (적금/정기예금의 경우)
         LocalDateTime expiryDate = null;
         if (request.getDepositPeriod() != null && 
-            (request.getAccountType() == BankingAccount.AccountType.FIXED_DEPOSIT || 
-             request.getAccountType() == BankingAccount.AccountType.TIME_DEPOSIT)) {
+            (request.getAccountType() == BankingAccount.AccountType.SAVINGS)) {
             expiryDate = LocalDateTime.now().plusMonths(request.getDepositPeriod());
         }
         
@@ -69,7 +68,7 @@ public class AccountService {
     
     // 계좌 생성 (기존 방식 - 호환성을 위해 유지)
     @Transactional
-    public AccountDto createAccount(Long userId, BankingAccount.AccountType accountType, String accountName, 
+    public AccountDto createAccount(Long userId, Integer accountType, String accountName, 
                                    BigDecimal initialBalance, String description) {
         log.info("계좌 생성 요청 - 사용자 ID: {}, 계좌 유형: {}, 계좌명: {}", userId, accountType, accountName);
         

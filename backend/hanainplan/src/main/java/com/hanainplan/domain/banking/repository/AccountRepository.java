@@ -25,7 +25,7 @@ public interface AccountRepository extends JpaRepository<BankingAccount, Long> {
     Optional<BankingAccount> findByUserIdAndAccountNumber(Long userId, String accountNumber);
     
     // 사용자 ID와 계좌 유형으로 계좌 목록 조회
-    List<BankingAccount> findByUserIdAndAccountTypeOrderByCreatedAtDesc(Long userId, BankingAccount.AccountType accountType);
+    List<BankingAccount> findByUserIdAndAccountTypeOrderByCreatedAtDesc(Long userId, Integer accountType);
     
     // 활성 계좌만 조회
     @Query("SELECT a FROM BankingAccount a WHERE a.userId = :userId AND a.accountStatus = 'ACTIVE' ORDER BY a.createdAt DESC")
@@ -38,7 +38,7 @@ public interface AccountRepository extends JpaRepository<BankingAccount, Long> {
     long countByUserId(Long userId);
     
     // 사용자의 특정 유형 계좌 개수 조회
-    long countByUserIdAndAccountType(Long userId, BankingAccount.AccountType accountType);
+    long countByUserIdAndAccountType(Long userId, Integer accountType);
     
     // 잔액이 특정 금액 이상인 계좌 조회
     @Query("SELECT a FROM BankingAccount a WHERE a.userId = :userId AND a.balance >= :minBalance ORDER BY a.balance DESC")

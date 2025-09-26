@@ -3,7 +3,9 @@ package com.hanainplan.domain.user.service;
 import com.hanainplan.domain.user.dto.CustomerAccountInfoDto;
 import com.hanainplan.domain.user.dto.MyDataConsentRequestDto;
 import com.hanainplan.domain.user.dto.MyDataConsentResponseDto;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hanainplan.domain.user.service.UserAccountTransactionService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -11,10 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class MyDataConsentService {
     
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
+    private final UserAccountTransactionService userAccountTransactionService;
     
     private static final String CI_SERVER_MYDATA_URL = "http://localhost:8084/api/user/mydata/consent";
     
@@ -39,11 +43,19 @@ public class MyDataConsentService {
                 .build();
             
             // 실명인증 서버(8084)에 마이데이터 수집 동의 요청 전달
-            MyDataConsentResponseDto response = restTemplate.postForObject(
-                CI_SERVER_MYDATA_URL, 
-                enhancedRequest, 
-                MyDataConsentResponseDto.class
-            );
+            String url = CI_SERVER_MYDATA_URL;
+            
+            MyDataConsentResponseDto response = null;
+            try {
+                response = restTemplate.postForObject(
+                    url, 
+                    enhancedRequest, 
+                    MyDataConsentResponseDto.class
+                );
+                
+            } catch (Exception e) {
+                throw e;
+            }
             
             if (response != null) {
                 return response;
@@ -52,7 +64,6 @@ public class MyDataConsentService {
             }
             
         } catch (Exception e) {
-            e.printStackTrace();
             return MyDataConsentResponseDto.success("마이데이터 수집 서버 연결 실패: " + e.getMessage(), new ArrayList<>(), 0, 0);
         }
     }

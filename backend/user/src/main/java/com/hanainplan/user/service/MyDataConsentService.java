@@ -4,11 +4,17 @@ import com.hanainplan.user.dto.CustomerAccountInfoDto;
 import com.hanainplan.user.dto.MyDataConsentRequestDto;
 import com.hanainplan.user.dto.MyDataConsentResponseDto;
 import com.hanainplan.user.dto.CiConversionRequestDto;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,13 +23,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class MyDataConsentService {
 
-    @Autowired
-    private RestTemplate restTemplate;
-    
-    @Autowired
-    private CiConversionService ciConversionService;
+    private final RestTemplate restTemplate;
+    private final CiConversionService ciConversionService;
 
     @Value("${bank.hana.url:http://localhost:8081}")
     private String hanaBankUrl;
@@ -33,6 +38,9 @@ public class MyDataConsentService {
 
     @Value("${bank.kookmin.url:http://localhost:8083}")
     private String kookminBankUrl;
+
+    @Value("${hanainplan.url:http://localhost:8080}")
+    private String hanainplanUrl;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(3);
 
@@ -45,7 +53,7 @@ public class MyDataConsentService {
         }
 
         // 기존 CI 변환 API 사용
-        String ci = convertToCiUsingApi(request.getName(), request.getBirthDate(), request.getGender(), request.getSocialNumber());
+        String ci = ciConversionService.convertToCi(request.getName(), request.getBirthDate(), request.getGender(), request.getSocialNumber());
         System.out.println("=== CI 변환 결과 ===");
         System.out.println("이름: " + request.getName());
         System.out.println("생년월일: " + request.getBirthDate());
@@ -203,10 +211,58 @@ public class MyDataConsentService {
                             CustomerAccountInfoDto.AccountInfoDto accountDto = new CustomerAccountInfoDto.AccountInfoDto();
                             accountDto.setAccountNumber((String) accountMap.get("accountNumber"));
                             accountDto.setAccountType((Integer) accountMap.get("accountType"));
-                            accountDto.setBalance(new java.math.BigDecimal(((Number) accountMap.get("balance")).doubleValue()));
-                            accountDto.setOpeningDate(java.time.LocalDate.parse((String) accountMap.get("openingDate")));
-                            accountDto.setCreatedAt(java.time.LocalDateTime.parse((String) accountMap.get("createdAt")));
-                            accountDto.setUpdatedAt(java.time.LocalDateTime.parse((String) accountMap.get("updatedAt")));
+                            
+                            // balance를 안전하게 처리
+                            Object balanceObj = accountMap.get("balance");
+                            if (balanceObj != null) {
+                                accountDto.setBalance(balanceObj);
+                            } else {
+                                accountDto.setBalance(0);
+                            }
+                            // 모든 날짜 필드를 안전하게 처리
+                            Object openingDateObj = accountMap.get("openingDate");
+                            if (openingDateObj instanceof java.time.LocalDate) {
+                                accountDto.setOpeningDate(((java.time.LocalDate) openingDateObj).atStartOfDay());
+                            } else if (openingDateObj instanceof java.time.LocalDateTime) {
+                                accountDto.setOpeningDate((java.time.LocalDateTime) openingDateObj);
+                            } else if (openingDateObj instanceof String) {
+                                try {
+                                    java.time.LocalDate openingDate = java.time.LocalDate.parse((String) openingDateObj);
+                                    accountDto.setOpeningDate(openingDate.atStartOfDay());
+                                } catch (Exception e) {
+                                    accountDto.setOpeningDate(java.time.LocalDateTime.now());
+                                }
+                            } else {
+                                accountDto.setOpeningDate(java.time.LocalDateTime.now());
+                            }
+                            
+                            // createdAt 처리
+                            Object createdAtObj = accountMap.get("createdAt");
+                            if (createdAtObj instanceof java.time.LocalDateTime) {
+                                accountDto.setCreatedAt((java.time.LocalDateTime) createdAtObj);
+                            } else if (createdAtObj instanceof String) {
+                                try {
+                                    accountDto.setCreatedAt(java.time.LocalDateTime.parse((String) createdAtObj));
+                                } catch (Exception e) {
+                                    accountDto.setCreatedAt(java.time.LocalDateTime.now());
+                                }
+                            } else {
+                                accountDto.setCreatedAt(java.time.LocalDateTime.now());
+                            }
+                            
+                            // updatedAt 처리
+                            Object updatedAtObj = accountMap.get("updatedAt");
+                            if (updatedAtObj instanceof java.time.LocalDateTime) {
+                                accountDto.setUpdatedAt((java.time.LocalDateTime) updatedAtObj);
+                            } else if (updatedAtObj instanceof String) {
+                                try {
+                                    accountDto.setUpdatedAt(java.time.LocalDateTime.parse((String) updatedAtObj));
+                                } catch (Exception e) {
+                                    accountDto.setUpdatedAt(java.time.LocalDateTime.now());
+                                }
+                            } else {
+                                accountDto.setUpdatedAt(java.time.LocalDateTime.now());
+                            }
                             
                             accounts.add(accountDto);
                         }
@@ -256,19 +312,111 @@ public class MyDataConsentService {
     }
 
     /**
-     * 기존 CI 변환 API를 사용하여 CI 생성
+     * 계좌 정보를 hanainplan 서버에 저장
      */
-    private String convertToCiUsingApi(String name, String birthDate, String gender, String residentNumber) {
+    private void saveAccountsToHanainplan(Long userId, String ci, List<CustomerAccountInfoDto> bankAccountInfo) {
         try {
-            // CI 변환 API 호출을 위한 요청 객체 생성
-            CiConversionRequestDto ciRequest = new CiConversionRequestDto(name, birthDate, gender, residentNumber);
+            // 모든 계좌 정보를 하나의 리스트로 변환
+            List<MyDataAccountInfo> allAccounts = new ArrayList<>();
             
-            // 내부 CI 변환 서비스 호출
-            return ciConversionService.convertToCi(name, birthDate, gender, residentNumber);
+            for (CustomerAccountInfoDto bankInfo : bankAccountInfo) {
+                if (bankInfo.getAccounts() != null) {
+                    for (CustomerAccountInfoDto.AccountInfoDto account : bankInfo.getAccounts()) {
+                        // balance를 안전하게 BigDecimal로 변환
+                        java.math.BigDecimal balance;
+                        Object balanceObj = account.getBalance();
+                        if (balanceObj == null) {
+                            balance = java.math.BigDecimal.ZERO;
+                        } else if (balanceObj instanceof java.math.BigDecimal) {
+                            balance = (java.math.BigDecimal) balanceObj;
+                        } else if (balanceObj instanceof Number) {
+                            balance = new java.math.BigDecimal(((Number) balanceObj).toString());
+                        } else {
+                            balance = new java.math.BigDecimal(balanceObj.toString());
+                        }
+                        
+                        MyDataAccountInfo myDataAccount = new MyDataAccountInfo(
+                            account.getAccountNumber(),
+                            account.getAccountType(),
+                            balance,
+                            account.getOpeningDate()
+                        );
+                        allAccounts.add(myDataAccount);
+                    }
+                }
+            }
+            
+            if (!allAccounts.isEmpty()) {
+                // hanainplan 서버에 계좌 정보 저장 요청
+                String url = hanainplanUrl + "/api/banking/mydata/accounts/save";
                 
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                
+                MultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
+                params.add("userId", userId);
+                params.add("customerCi", ci);
+                
+                HttpEntity<List<MyDataAccountInfo>> requestEntity = new HttpEntity<>(allAccounts, headers);
+                
+                System.out.println("=== hanainplan 서버 계좌 저장 요청 ===");
+                System.out.println("URL: " + url);
+                System.out.println("사용자 ID: " + userId);
+                System.out.println("CI: " + ci);
+                System.out.println("계좌 수: " + allAccounts.size());
+                System.out.println("=====================================");
+                
+                ResponseEntity<Object> response = restTemplate.postForEntity(url, requestEntity, Object.class, params);
+                
+                System.out.println("=== hanainplan 서버 응답 ===");
+                System.out.println("응답 상태: " + response.getStatusCode());
+                System.out.println("응답 본문: " + response.getBody());
+                System.out.println("==========================");
+                
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    System.out.println("계좌 정보가 hanainplan 서버에 성공적으로 저장되었습니다.");
+                } else {
+                    System.out.println("계좌 정보 저장 실패: " + response.getStatusCode());
+                }
+            }
+            
         } catch (Exception e) {
+            System.out.println("=== hanainplan 서버 계좌 저장 오류 ===");
+            System.out.println("오류: " + e.getMessage());
+            System.out.println("=====================================");
             e.printStackTrace();
-            return null;
         }
+    }
+    
+    /**
+     * 마이데이터 계좌 정보 DTO
+     */
+    public static class MyDataAccountInfo {
+        private String accountNumber;
+        private Integer accountType;
+        private java.math.BigDecimal balance;
+        private java.time.LocalDateTime openingDate;
+        
+        public MyDataAccountInfo() {}
+        
+        public MyDataAccountInfo(String accountNumber, Integer accountType, java.math.BigDecimal balance, java.time.LocalDateTime openingDate) {
+            this.accountNumber = accountNumber;
+            this.accountType = accountType;
+            this.balance = balance;
+            this.openingDate = openingDate;
+        }
+        
+        // Getters and Setters
+        public String getAccountNumber() { return accountNumber; }
+        public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+        
+        public Integer getAccountType() { return accountType; }
+        public void setAccountType(Integer accountType) { this.accountType = accountType; }
+        
+        public java.math.BigDecimal getBalance() { return balance; }
+        public void setBalance(java.math.BigDecimal balance) { this.balance = balance; }
+        
+        public java.time.LocalDateTime getOpeningDate() { return openingDate; }
+        public void setOpeningDate(java.time.LocalDateTime openingDate) { this.openingDate = openingDate; }
     }
 }
