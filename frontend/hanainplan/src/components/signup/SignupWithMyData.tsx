@@ -16,6 +16,8 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [ci, setCi] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [socialNumber, setSocialNumber] = useState('');
+  const [name, setName] = useState('');
 
   const handleSendVerificationCode = async () => {
     if (!phoneNumber) {
@@ -116,16 +118,17 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
     }
   };
 
-  const handleMyDataConsent = (consent: boolean) => {
+  const handleMyDataConsent = (consent: boolean, bankAccountInfo?: any[]) => {
     setShowMyDataModal(false);
     
     if (consent) {
       // 마이데이터 동의 완료
       setSignupStep('complete');
-      // 부모 컴포넌트에 회원가입 완료 알림
+      // 부모 컴포넌트에 회원가입 완료 알림 (계좌 정보 포함)
       onSignupComplete({
         ci: ci,
         myDataConsent: true,
+        bankAccountInfo: bankAccountInfo || [],
         timestamp: new Date().toISOString()
       });
     } else {
@@ -134,6 +137,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
       onSignupComplete({
         ci: ci,
         myDataConsent: false,
+        bankAccountInfo: [],
         timestamp: new Date().toISOString()
       });
     }
@@ -256,8 +260,9 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         onConsent={handleMyDataConsent}
         personalInfo={{
           phoneNumber: phoneNumber,
-          socialNumber: '', // Add socialNumber state if needed
-          name: '' // Add name state if needed
+          socialNumber: socialNumber,
+          name: name,
+          ci: ci
         }}
       />
     </div>

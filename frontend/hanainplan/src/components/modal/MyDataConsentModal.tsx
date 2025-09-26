@@ -5,11 +5,12 @@ import type { MyDataConsentRequest, BankAccountInfo } from '../../api/userApi';
 interface MyDataConsentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConsent: (consent: boolean) => void;
+  onConsent: (consent: boolean, bankAccountInfo?: BankAccountInfo[]) => void;
   personalInfo: {
     phoneNumber: string;
     socialNumber: string;
     name: string;
+    ci?: string;
   };
 }
 
@@ -36,6 +37,23 @@ const MyDataConsentModal: React.FC<MyDataConsentModalProps> = ({
       };
 
       const data = await processMyDataConsent(request);
+      console.log("=== 마이데이터 응답 데이터 ===");
+      console.log("전체 응답:", data);
+      console.log("계좌 정보:", data.bankAccountInfo);
+      if (data.bankAccountInfo && data.bankAccountInfo.length > 0) {
+        data.bankAccountInfo.forEach((bank, bankIndex) => {
+          console.log(`은행 ${bankIndex + 1} (${bank.bankName}):`, bank);
+          if (bank.accounts) {
+            bank.accounts.forEach((account, accountIndex) => {
+              console.log(`  계좌 ${accountIndex + 1}:`, account);
+              console.log(`    openingDate:`, account.openingDate, typeof account.openingDate);
+              console.log(`    createdAt:`, account.createdAt, typeof account.createdAt);
+              console.log(`    updatedAt:`, account.updatedAt, typeof account.updatedAt);
+            });
+          }
+        });
+      }
+      console.log("================================");
       setBankAccountInfo(data.bankAccountInfo || []);
       setTotalAccounts(data.totalAccounts || 0);
       setHasSearched(true);
@@ -48,8 +66,8 @@ const MyDataConsentModal: React.FC<MyDataConsentModalProps> = ({
   };
 
   const handleFinalConsent = () => {
-    // 최종 동의 처리 - HANAinPLAN 서버에 저장
-    onConsent(true);
+    // 최종 동의 처리 - 계좌 정보와 함께 전달
+    onConsent(true, bankAccountInfo);
   };
 
   const getAccountTypeText = (type: number) => {
@@ -64,6 +82,28 @@ const MyDataConsentModal: React.FC<MyDataConsentModalProps> = ({
 
   const formatBalance = (balance: number) => {
     return new Intl.NumberFormat('ko-KR').format(balance) + '원';
+  };
+
+  const formatDate = (dateInput: number[] | string) => {
+    if (Array.isArray(dateInput) && dateInput.length >= 3) {
+      // 배열: [년, 월, 일, 시, 분, 초, 나노초]
+      const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+      const date = new Date(year, month - 1, day, hour, minute, second); // month는 0부터 시작
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } else if (typeof dateInput === 'string') {
+      // 문자열인 경우 기존 방식
+      const date = new Date(dateInput);
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
+    return '날짜 정보 없음';
   };
 
   const formatAccountNumber = (accountNumber: string) => {
@@ -185,7 +225,7 @@ const MyDataConsentModal: React.FC<MyDataConsentModalProps> = ({
                               {formatBalance(account.balance)}
                             </p>
                             <p className="text-xs text-gray-500">
-                              개설일: {new Date(account.openingDate).toLocaleDateString('ko-KR')}
+                              개설일: {formatDate(account.openingDate)}
                             </p>
                           </div>
                         </div>
