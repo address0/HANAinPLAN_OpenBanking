@@ -6,13 +6,13 @@ export interface BankingAccount {
   userId: number;
   accountNumber: string;
   accountName: string;
-  accountType: 'CHECKING' | 'SAVINGS' | 'TIME_DEPOSIT' | 'FIXED_DEPOSIT' | 'LOAN' | 'CREDIT';
+  accountType: number;
   accountTypeDescription: string;
   accountStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'CLOSED' | 'FROZEN';
   accountStatusDescription: string;
   balance: number;
   currencyCode: string;
-  openedDate: string;
+  openedDate: string; // LocalDate는 문자열로 전송됨
   expiryDate?: string;
   interestRate?: number;
   minimumBalance?: number;
@@ -24,7 +24,7 @@ export interface BankingAccount {
 
 export interface CreateAccountRequest {
   userId: number;
-  accountType: 'CHECKING' | 'SAVINGS' | 'TIME_DEPOSIT' | 'FIXED_DEPOSIT' | 'LOAN' | 'CREDIT';
+  accountType: number;
   accountName: string;
   initialBalance?: number;
   description?: string;

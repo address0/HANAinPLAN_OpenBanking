@@ -62,7 +62,9 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
 
   // MyDataConsentModal 상태
   const [myDataModal, setMyDataModal] = useState({
-    isOpen: false
+    isOpen: false,
+    consent: false,
+    bankAccountInfo: [] as any[]
   })
   const [signUpData, setSignUpData] = useState<SignUpData>({
     name: '',
@@ -202,6 +204,31 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
           message: '하나인플랜에 가입해주셔서 감사합니다!',
           type: 'success'
         })
+        
+        // 마이데이터 동의가 있었다면 계좌 정보 저장
+        if (myDataModal.consent && myDataModal.bankAccountInfo.length > 0) {
+          try {
+            // 프론트엔드에서 받은 계좌 정보를 직접 저장
+            const accountResponse = await fetch(`/api/user/account/${response.userId}/save-accounts`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                userId: response.userId,
+                bankAccountInfo: myDataModal.bankAccountInfo
+              }),
+            });
+
+            if (accountResponse.ok) {
+              console.log('계좌 정보 저장 완료');
+            } else {
+              console.error('계좌 정보 저장 실패');
+            }
+          } catch (error) {
+            console.error('계좌 정보 저장 오류:', error);
+          }
+        }
       } else {
         // 회원가입 실패
         setAlertModal({
@@ -314,8 +341,13 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
   }
 
   // 마이데이터 동의 처리
-  const handleMyDataConsent = async (consent: boolean) => {
-    setMyDataModal(prev => ({ ...prev, isOpen: false }))
+  const handleMyDataConsent = async (consent: boolean, bankAccountInfo?: any[]) => {
+    setMyDataModal(prev => ({ 
+      ...prev, 
+      isOpen: false, 
+      consent: consent,
+      bankAccountInfo: bankAccountInfo || []
+    }))
     
     // 동의 여부와 관계없이 다음 단계로 진행
     setCurrentStep(3)
