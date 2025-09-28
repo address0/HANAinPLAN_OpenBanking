@@ -4,8 +4,9 @@ import { useUserStore } from '../../store/userStore';
 
 function Nav() {
   const navigate = useNavigate();
-  const { user } = useUserStore();
+  const { user, clearUser } = useUserStore();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   // 메뉴 데이터 정의
   const menuItems = [
@@ -19,9 +20,9 @@ function Nav() {
     {
       label: '상품 보기',
       submenu: [
+        { label: 'IRP', path: '/products/irp' },
         { label: '정기예금', path: '/products/deposit' },
         { label: '정기적금', path: '/products/savings' },
-        { label: 'IRP', path: '/products/irp' },
         { label: '보험', path: '/products/insurance' }
       ]
     },
@@ -56,12 +57,37 @@ function Nav() {
 
   const handleMouseLeave = () => {
     setActiveDropdown(null);
+    setIsUserMenuOpen(false);
   };
 
 
   const handleSubmenuClick = (path: string) => {
     navigate(path);
     setActiveDropdown(null);
+  };
+
+  const handleUserMenuToggle = () => {
+    setIsUserMenuOpen(!isUserMenuOpen);
+    setActiveDropdown(null); // 다른 드롭다운이 열려있으면 닫기
+  };
+
+  const handleUserMenuClick = (path: string) => {
+    navigate(path);
+    setIsUserMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    // 로컬 스토리지에서 사용자 데이터 제거
+    localStorage.removeItem('user-storage');
+    
+    // 사용자 스토어 비우기
+    clearUser();
+    
+    // 사용자 메뉴 닫기
+    setIsUserMenuOpen(false);
+    
+    // 메인 페이지로 이동
+    navigate('/main');
   };
 
   return (
@@ -109,21 +135,47 @@ function Nav() {
 
         {/* User Profile Section */}
       {user ? (
-        <div 
-          className="flex justify-center items-center gap-[10px] w-[180px] h-[60px] bg-white cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
-          onClick={() => navigate('/user-profile')}
-        >
-          <div className="w-[40px] h-[40px] rounded-full bg-gray-200 flex items-center justify-center">
-            <img className="w-[40px] h-[40px]" src="/images/profile.png" alt="프로필 이미지" />
+        <div className="relative flex justify-center items-center w-[180px] h-[60px]">
+          <div 
+            className="flex items-center gap-[10px] bg-white cursor-pointer hover:bg-gray-50 rounded-lg transition-colors px-2 py-1"
+            onClick={handleUserMenuToggle}
+          >
+            <div className="w-[40px] h-[40px] rounded-full bg-gray-200 flex items-center justify-center">
+              <img className="w-[40px] h-[40px]" src="/images/profile.png" alt="프로필 이미지" />
+            </div>
+            <div className="flex flex-col justify-center">
+              <span className="font-hana-medium text-[14px] leading-[18px] text-black">
+                {user.name}님
+              </span>
+              <span className="font-hana-medium text-[12px] leading-[14px] text-gray-600 hover:text-hana-green transition-colors">
+                내 정보 보기
+              </span>
+            </div>
+            <div className={`transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`}>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
-          <div className="flex flex-col justify-center">
-            <span className="font-hana-medium text-[14px] leading-[18px] text-black">
-              {user.name}님
-            </span>
-            <span className="font-hana-medium text-[12px] leading-[14px] text-gray-600 hover:text-hana-green transition-colors">
-              내 정보 보기
-            </span>
-          </div>
+
+          {/* 사용자 드롭다운 메뉴 */}
+          {isUserMenuOpen && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <button
+                className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-hana-green transition-colors font-hana-medium"
+                onClick={() => handleUserMenuClick('/user-profile')}
+              >
+                내 정보 보기
+              </button>
+              <div className="border-t border-gray-100 my-1"></div>
+              <button
+                className="w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition-colors font-hana-medium"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex justify-center items-center w-[180px] h-[60px]">

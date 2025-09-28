@@ -89,11 +89,11 @@ function MainSection() {
           isVisible.intro ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
         }`}>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-hana-bold text-gray-900 text-left">
-            보험 상담, 이제 집에서 편하게
+            전문가와의 상담, 이제 집에서 편하게
           </h2>
           <div className="mt-8 text-gray-600 font-hana-medium text-base sm:text-lg leading-6 flex flex-col gap-2 text-left max-w-md">
             <p>전문 상담사와 실시간 화상 상담을 통해,</p>
-            <p>내 상황에 맞춘 보험 솔루션을 편리하게 받아보세요.</p>
+            <p>내 상황에 맞춘 자산관리 솔루션을 편리하게 받아보세요.</p>
           </div>
           <div className="mt-6">
             <CTAButton label="상담 신청하러 가기 →" href="#consult" className="w-full sm:w-[320px] h-[56px]" />
