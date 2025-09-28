@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f7eb13e0-ae56-4691-91c1-323e7827accb" name="변경" comment="" />
+    <list default="true" id="f7eb13e0-ae56-4691-91c1-323e7827accb" name="변경" comment="">
+      <change beforePath="$PROJECT_DIR$/../banks/hana/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../banks/hana/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../banks/kookmin/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../banks/kookmin/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../banks/kookmin/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../banks/kookmin/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -158,6 +162,7 @@
       <workItem from="1758160904801" duration="8518000" />
       <workItem from="1758241546243" duration="4149000" />
       <workItem from="1758676126496" duration="9199000" />
+      <workItem from="1758845011718" duration="9749000" />
     </task>
     <servers />
   </component>

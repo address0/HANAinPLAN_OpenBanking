@@ -5,8 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2c70a737-bb15-40d7-8620-f4cb2cca7f85" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/../../user/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../user/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../user/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../user/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../kookmin/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../kookmin/.idea/dataSources.local.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../kookmin/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../kookmin/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -163,6 +163,7 @@
       <workItem from="1758430937392" duration="1509000" />
       <workItem from="1758508324095" duration="1581000" />
       <workItem from="1758586491441" duration="11960000" />
+      <workItem from="1758845040529" duration="3005000" />
     </task>
     <servers />
   </component>

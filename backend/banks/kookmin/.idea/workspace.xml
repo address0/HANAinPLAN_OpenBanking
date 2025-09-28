@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="636dad76-991d-4f9e-9a0d-ef448d4ce3aa" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/../hana/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../hana/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../shinhan/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../shinhan/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../user/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../user/.idea/dataSources.local.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../user/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../user/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="636dad76-991d-4f9e-9a0d-ef448d4ce3aa" name="변경" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -100,6 +95,7 @@
       <updated>1758088902277</updated>
       <workItem from="1758088903362" duration="2093000" />
       <workItem from="1758678190904" duration="6918000" />
+      <workItem from="1758845080166" duration="1229000" />
     </task>
     <servers />
   </component>
