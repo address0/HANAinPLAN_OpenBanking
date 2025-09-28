@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { type BankingAccount } from '../../api/bankingApi';
 import { useAccountStore } from '../../store/accountStore';
+import { useBankStore, getBankPatternByPattern } from '../../store/bankStore';
 
 interface AccountInfoProps {
   onTransferClick: () => void;
@@ -15,6 +16,25 @@ function AccountInfo({ onTransferClick, userId }: AccountInfoProps) {
   } = useAccountStore();
   
   const [selectedAccount, setLocalSelectedAccount] = useState<BankingAccount | null>(null);
+
+  // 계좌번호에서 은행 정보 가져오기
+  const getBankInfo = (accountNumber: string) => {
+    if (accountNumber.length >= 3) {
+      const pattern = accountNumber.substring(0, 3);
+      return getBankPatternByPattern(pattern);
+    }
+    return null;
+  };
+
+  // 은행별 색상 매핑 (하나, 국민, 신한만)
+  const getBankColor = (bankCode: string) => {
+    const colorMap: { [key: string]: string } = {
+      '081': 'bg-[#008485]',      // 하나은행 - 청록색
+      '004': 'bg-[#ffbc00]',      // 국민은행 - 노란색
+      '088': 'bg-[#0046ff]',      // 신한은행 - 파란색
+    };
+    return colorMap[bankCode] || 'bg-gray-500';
+  };
 
   useEffect(() => {
     if (accounts.length > 0) {
@@ -32,16 +52,18 @@ function AccountInfo({ onTransferClick, userId }: AccountInfoProps) {
     return new Intl.NumberFormat('ko-KR').format(amount);
   };
 
-  const getAccountTypeDisplay = (accountType: string) => {
-    const typeMap: { [key: string]: string } = {
-      'CHECKING': '입출금통장',
-      'SAVINGS': '저축예금',
-      'TIME_DEPOSIT': '정기예금',
-      'FIXED_DEPOSIT': '정기적금',
-      'LOAN': '대출계좌',
-      'CREDIT': '신용계좌'
+  const getAccountTypeDisplay = (accountType: number) => {
+    const typeMap: { [key: number]: string } = {
+      1: '입출금통장',
+      2: '저축예금',
+      3: '정기예금',
+      4: '정기적금',
+      5: '대출계좌',
+      6: '신용계좌',
+      7: '수익증권',
+      0: '통합계좌'
     };
-    return typeMap[accountType] || accountType;
+    return typeMap[accountType] || '기타';
   };
 
   if (accounts.length === 0) {
@@ -50,48 +72,67 @@ function AccountInfo({ onTransferClick, userId }: AccountInfoProps) {
 
   return (
     <div className="space-y-4">
-      {/* 계좌 선택 드롭다운 */}
-      {accounts.length > 1 && (
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <label className="block text-sm font-hana-medium text-gray-700 mb-2">계좌 선택</label>
-          <select
-            value={selectedAccount?.accountId || ''}
-            onChange={(e) => {
-              const accountId = parseInt(e.target.value);
-              setSelectedAccount(accountId);
-            }}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-hana-green font-hana-medium"
-          >
-            {accounts.map((account) => (
-              <option key={account.accountId} value={account.accountId}>
-                {getAccountTypeDisplay(account.accountType)} - {account.accountNumber}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* 계좌 목록 헤더 */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-hana-bold text-gray-900">내 계좌</h3>
+        <span className="text-sm text-gray-500 font-hana-medium">{accounts.length}개 계좌</span>
+      </div>
 
-      {/* 선택된 계좌 정보 */}
-      {selectedAccount && (
-        <div 
-          className="bg-hana-green w-full h-[240px] rounded-lg relative cursor-pointer flex flex-col justify-center items-center">
-          <div className="flex items-center mb-6 text-white text-lg font-hana-regular absolute top-6 left-6">
-            <img src="/bank/081.png" alt="bank_logo" className="w-8 h-8 mr-2" />
-            하나은행 {selectedAccount.accountNumber}
-            <img src="/icons/info.png" alt="info" className="w-5 h-5 ml-2" />
-          </div>
-          <div className="text-center">
-            <p className="text-white text-xl font-hana-medium mb-2">{selectedAccount.accountName + ' (' + getAccountTypeDisplay(selectedAccount.accountType) + ')'}</p>
-            <p className="text-white text-4xl font-hana-medium">{formatCurrency(selectedAccount.balance)} 원</p>
-          </div>
-          <button 
-            className="text-white text-lg font-hana-regular absolute bottom-6 right-6 bg-black/20 px-4 py-2 rounded-lg hover:bg-black/30 transition-colors" 
-            onClick={onTransferClick}
-          >
-            송금
-          </button>
-        </div>
-      )}
+      {/* 계좌 목록 */}
+      <div className="space-y-3">
+        {accounts.map((account) => {
+          const bankInfo = getBankInfo(account.accountNumber);
+          const bankColor = bankInfo ? getBankColor(bankInfo.code) : 'bg-gray-500';
+          
+          return (
+            <div 
+              key={account.accountId}
+              className={`${bankColor} w-full h-[140px] rounded-xl relative cursor-pointer flex flex-col justify-between p-6 text-white hover:opacity-90 transition-opacity shadow-lg`}
+              onClick={() => setSelectedAccount(account.accountId)}
+            >
+              {/* 상단: 은행 정보 */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <img 
+                      src={bankInfo ? `/bank/${bankInfo.code}.png` : '/bank/081.png'} 
+                      alt={bankInfo?.name || '은행'} 
+                      className="w-6 h-6 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-lg font-hana-bold">{bankInfo?.name || '은행'} {getAccountTypeDisplay(account.accountType)}</p>
+                    <p className="text-sm opacity-80">{account.accountNumber}</p>
+                  </div>
+                </div>
+                <button 
+                  className="bg-white/20 px-4 py-2 rounded-lg text-sm font-hana-medium hover:bg-white/30 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedAccount(account.accountId);
+                    onTransferClick();
+                  }}
+                >
+                  송금
+                </button>
+              </div>
+
+              {/* 하단: 계좌 잔액 */}
+              <div className="text-right">
+                <p className="text-3xl font-hana-bold">{formatCurrency(account.balance)}원</p>
+                <p className="text-sm opacity-80">{account.accountName}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 계좌 추가 버튼 */}
+      <div className="flex justify-center pt-4">
+        <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-hana-green hover:text-hana-green transition-colors font-hana-medium">
+          + 계좌 추가하기
+        </button>
+      </div>
     </div>
   );
 }
