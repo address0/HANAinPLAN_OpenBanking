@@ -2,8 +2,12 @@ package com.hanainplan.domain.banking.controller;
 
 import com.hanainplan.domain.banking.dto.AccountDto;
 import com.hanainplan.domain.banking.dto.CreateAccountRequest;
+import com.hanainplan.domain.banking.dto.IrpAccountOpenRequestDto;
+import com.hanainplan.domain.banking.dto.IrpAccountOpenResponseDto;
+import com.hanainplan.domain.banking.dto.IrpAccountStatusResponseDto;
 import com.hanainplan.domain.banking.entity.BankingAccount;
 import com.hanainplan.domain.banking.service.AccountService;
+import com.hanainplan.domain.banking.service.IrpIntegrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,13 +22,14 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/banking/accounts")
+@RequestMapping("/api/banking")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "계좌 관리", description = "계좌 생성, 조회, 수정 API")
+@Tag(name = "계좌 및 IRP 관리", description = "계좌 생성, 조회, 수정 및 IRP 관리 API")
 public class AccountController {
-    
+
     private final AccountService accountService;
+    private final IrpIntegrationService irpIntegrationService;
     
     @PostMapping
     @Operation(summary = "계좌 생성", description = "새로운 계좌를 생성합니다")
@@ -136,10 +141,70 @@ public class AccountController {
     @Operation(summary = "계좌 통계 조회", description = "사용자의 계좌 유형별 잔액 통계를 조회합니다")
     public ResponseEntity<List<Object[]>> getAccountStats(
             @Parameter(description = "사용자 ID") @PathVariable Long userId) {
-        
+
         log.info("계좌 통계 조회 API 호출 - 사용자 ID: {}", userId);
-        
+
         List<Object[]> stats = accountService.getAccountStats(userId);
         return ResponseEntity.ok(stats);
+    }
+
+    // ===== IRP 관련 API =====
+
+    @PostMapping("/irp/open")
+    @Operation(summary = "IRP 계좌 개설", description = "새로운 IRP 계좌를 개설합니다")
+    public ResponseEntity<IrpAccountOpenResponseDto> openIrpAccount(
+            @Parameter(description = "IRP 계좌 개설 요청") @Valid @RequestBody IrpAccountOpenRequestDto request) {
+
+        log.info("IRP 계좌 개설 API 호출 - 고객 CI: {}", request.getCustomerCi());
+
+        try {
+            // IRP 계좌 개설 처리
+            IrpAccountOpenResponseDto response = irpIntegrationService.openIrpAccount(request);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("IRP 계좌 개설 실패 - 고객 CI: {}", request.getCustomerCi(), e);
+            return ResponseEntity.internalServerError()
+                    .body(IrpAccountOpenResponseDto.failure("IRP 계좌 개설에 실패했습니다.", "SYSTEM_ERROR"));
+        }
+    }
+
+    @GetMapping("/irp/status/{customerCi}")
+    @Operation(summary = "IRP 계좌 보유 여부 확인", description = "특정 고객의 IRP 계좌 보유 여부를 확인합니다")
+    public ResponseEntity<IrpAccountStatusResponseDto> checkIrpAccountStatus(
+            @Parameter(description = "고객 CI") @PathVariable String customerCi) {
+
+        log.info("IRP 계좌 보유 여부 확인 API 호출 - 고객 CI: {}", customerCi);
+
+        try {
+            IrpAccountStatusResponseDto response = irpIntegrationService.checkIrpAccountStatus(customerCi);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("IRP 계좌 보유 여부 확인 실패 - 고객 CI: {}", customerCi, e);
+            return ResponseEntity.internalServerError()
+                    .body(IrpAccountStatusResponseDto.success(customerCi, false));
+        }
+    }
+
+    @GetMapping("/irp/account/{customerCi}")
+    @Operation(summary = "IRP 계좌 정보 조회", description = "특정 고객의 IRP 계좌 정보를 조회합니다")
+    public ResponseEntity<?> getIrpAccount(
+            @Parameter(description = "고객 CI") @PathVariable String customerCi) {
+
+        log.info("IRP 계좌 정보 조회 API 호출 - 고객 CI: {}", customerCi);
+
+        try {
+            var account = irpIntegrationService.getCustomerIrpAccount(customerCi);
+            if (account != null) {
+                return ResponseEntity.ok(account);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            log.error("IRP 계좌 정보 조회 실패 - 고객 CI: {}", customerCi, e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

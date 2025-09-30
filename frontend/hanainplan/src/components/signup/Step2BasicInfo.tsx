@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import AlertModal from '../modal/AlertModal'
-import { sendVerificationCode, verifyCode } from '../../api/userApi'
+import { sendVerificationCode, verifyCode, verifyCi } from '../../api/userApi'
 
 interface SignUpData {
   name: string;
   socialNumber: string;
   phoneNumber: string;
   verificationCode: string;
+  ci?: string;
 }
 
 interface Step2Props {
@@ -23,6 +24,8 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   const [isSocialFocused, setIsSocialFocused] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const [isVerified, setIsVerified] = useState(false)
+  const [isCiVerified, setIsCiVerified] = useState(false)
+  const [isCiVerificationLoading, setIsCiVerificationLoading] = useState(false)
   
   // 주민번호 분리된 입력 필드들
   const [socialFront, setSocialFront] = useState('') // 앞자리 6자리
@@ -56,6 +59,12 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   // 입력 핸들러들
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onDataChange({ name: e.target.value })
+
+    // 이름이 변경되면 실명인증 상태 초기화
+    if (isCiVerified) {
+      setIsCiVerified(false)
+      onDataChange({ ci: undefined })
+    }
   }
 
   // 주민번호 앞자리 입력 핸들러
@@ -101,6 +110,12 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   const updateSocialNumber = (front: string, backFirst: string, backRest: string) => {
     const fullNumber = front + backFirst + backRest
     onDataChange({ socialNumber: fullNumber })
+
+    // 주민번호가 변경되면 실명인증 상태 초기화
+    if (isCiVerified) {
+      setIsCiVerified(false)
+      onDataChange({ ci: undefined })
+    }
   }
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,11 +172,11 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     if (signUpData.verificationCode.trim()) {
       try {
         const response = await verifyCode(signUpData.phoneNumber, signUpData.verificationCode)
-        
+
         if (response.success) {
           setIsVerified(true)
           setTimeLeft(0) // 타이머 중지
-          
+
           setAlertModal({
             isOpen: true,
             title: '인증 완료',
@@ -185,6 +200,57 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
           type: 'error'
         })
       }
+    }
+  }
+
+  // 실명인증 (CI 검증)
+  const handleCiVerification = async () => {
+    if (!signUpData.name.trim() || !isSocialNumberValid()) {
+      setAlertModal({
+        isOpen: true,
+        title: '입력 오류',
+        message: '이름과 주민번호를 모두 입력해주세요.',
+        type: 'error'
+      })
+      return
+    }
+
+    setIsCiVerificationLoading(true)
+
+    try {
+      const response = await verifyCi({
+        name: signUpData.name,
+        residentNumber: signUpData.socialNumber
+      })
+
+      if (response.success && response.ci) {
+        setIsCiVerified(true)
+        onDataChange({ ci: response.ci })
+
+        setAlertModal({
+          isOpen: true,
+          title: '실명인증 완료',
+          message: '실명인증이 성공적으로 완료되었습니다.',
+          type: 'success'
+        })
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: '실명인증 실패',
+          message: response.message || '실명인증에 실패했습니다.',
+          type: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('실명인증 오류:', error)
+      setAlertModal({
+        isOpen: true,
+        title: '실명인증 실패',
+        message: '실명인증 중 오류가 발생했습니다.',
+        type: 'error'
+      })
+    } finally {
+      setIsCiVerificationLoading(false)
     }
   }
 
@@ -314,6 +380,38 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
               </svg>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 실명인증 버튼 */}
+      <div className="w-[400px] flex items-center gap-4">
+        <div className="w-[100px] flex-shrink-0"></div>
+        <div className="w-[280px] flex items-center gap-3">
+          <button
+            onClick={handleCiVerification}
+            disabled={!isSocialNumberValid() || !signUpData.name.trim() || isCiVerified || isCiVerificationLoading}
+            className={`flex-1 h-[50px] rounded-[15px] font-['Hana2.0_M'] text-[14px] transition-all duration-200 shadow-sm ${
+              isSocialNumberValid() && signUpData.name.trim() && !isCiVerified && !isCiVerificationLoading
+                ? 'bg-[#008485] text-white hover:bg-[#006666] hover:shadow-md cursor-pointer'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {isCiVerificationLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>실명인증 중...</span>
+              </div>
+            ) : isCiVerified ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>실명인증 완료</span>
+              </div>
+            ) : (
+              '실명인증'
+            )}
+          </button>
         </div>
       </div>
 

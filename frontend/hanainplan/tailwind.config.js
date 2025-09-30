@@ -15,7 +15,7 @@ export default {
         'hana-cm': ['Hana2-CM', 'sans-serif'],
       },
       colors: {
-        'hana-green': '#00857A',
+        'hana-green': '#008485',
         'hana-light-green': '#E8F5F4',
       },
     },

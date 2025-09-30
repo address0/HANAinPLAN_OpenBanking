@@ -110,6 +110,7 @@ public class SignUpService {
                 .phoneNumber(request.getPhoneNumber())
                 .birthDate(birthDate)
                 .gender(gender)
+                .ci(request.getCi()) // CI값 저장
                 .isPhoneVerified(true); // 인증번호 확인 완료 가정
 
         // 로그인 타입에 따른 처리

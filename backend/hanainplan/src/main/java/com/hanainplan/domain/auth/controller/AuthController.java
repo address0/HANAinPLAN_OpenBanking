@@ -1,5 +1,7 @@
 package com.hanainplan.domain.auth.controller;
 
+import com.hanainplan.domain.auth.dto.CiVerificationRequestDto;
+import com.hanainplan.domain.auth.dto.CiVerificationResponseDto;
 import com.hanainplan.domain.auth.dto.LoginRequestDto;
 import com.hanainplan.domain.auth.dto.LoginResponseDto;
 import com.hanainplan.domain.auth.dto.KakaoUserInfoDto;
@@ -205,7 +207,7 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "사용자 로그아웃 처리")
     @ApiResponses(value = {
         @ApiResponse(
-            responseCode = "200", 
+            responseCode = "200",
             description = "로그아웃 성공"
         )
     })
@@ -214,5 +216,38 @@ public class AuthController {
         // 추후 세션 관리나 JWT 토큰 관리 시 해당 로직 추가
         LoginResponseDto response = new LoginResponseDto(true, "로그아웃이 완료되었습니다.");
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/ci/verify")
+    @Operation(summary = "CI 검증", description = "이름과 주민번호를 이용한 CI 실명인증")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "CI 검증 성공/실패",
+            content = @Content(schema = @Schema(implementation = CiVerificationResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 데이터"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "서버 내부 오류"
+        )
+    })
+    public ResponseEntity<CiVerificationResponseDto> verifyCi(
+        @Parameter(description = "CI 검증 요청 정보", required = true)
+        @Valid @RequestBody CiVerificationRequestDto request
+    ) {
+        try {
+            CiVerificationResponseDto response = authService.verifyCi(request);
+
+            // CI 검증 성공 시 200, 실패 시에도 200으로 응답 (프론트엔드에서 success 필드로 판단)
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            CiVerificationResponseDto errorResponse = CiVerificationResponseDto.failure("CI 검증 처리 중 오류가 발생했습니다.", "SYSTEM_ERROR");
+            return ResponseEntity.ok(errorResponse);
+        }
     }
 }

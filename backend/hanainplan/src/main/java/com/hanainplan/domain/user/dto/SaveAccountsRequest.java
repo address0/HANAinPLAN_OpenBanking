@@ -14,3 +14,4 @@ public class SaveAccountsRequest {
     private List<Object> bankAccountInfo; // 프론트엔드에서 받은 계좌 정보
 }
 
+

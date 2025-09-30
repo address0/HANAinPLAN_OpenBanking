@@ -56,6 +56,9 @@ public class User {
     @Column(name = "kakao_id", length = 100, unique = true)
     private String kakaoId; // 카카오 OAuth ID
 
+    @Column(name = "ci", length = 100)
+    private String ci; // 실명인증 CI값
+
     @Enumerated(EnumType.STRING)
     @Column(name = "login_type", nullable = false)
     @Builder.Default

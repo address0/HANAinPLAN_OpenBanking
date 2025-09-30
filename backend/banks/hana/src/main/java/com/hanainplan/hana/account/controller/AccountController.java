@@ -1,107 +1,96 @@
 package com.hanainplan.hana.account.controller;
 
-import com.hanainplan.hana.account.dto.AccountRequestDto;
-import com.hanainplan.hana.account.dto.AccountResponseDto;
 import com.hanainplan.hana.account.service.AccountService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * 하나은행 계좌 관련 API 컨트롤러
+ */
 @RestController
 @RequestMapping("/api/hana/accounts")
-@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@Slf4j
 public class AccountController {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
 
     /**
-     * 계좌 생성
+     * 계좌 출금 API
      */
-    @PostMapping
-    public ResponseEntity<AccountResponseDto> createAccount(@Valid @RequestBody AccountRequestDto request) {
+    @PostMapping("/withdrawal")
+    public ResponseEntity<Map<String, Object>> withdrawal(@RequestBody WithdrawalRequest request) {
+        log.info("하나은행 계좌 출금 요청 - 계좌번호: {}, 금액: {}원", request.getAccountNumber(), request.getAmount());
+        
+        Map<String, Object> response = new HashMap<>();
+        
         try {
-            AccountResponseDto response = accountService.createAccount(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    /**
-     * 계좌 조회 (계좌번호)
-     */
-    @GetMapping("/{accountNumber}")
-    public ResponseEntity<AccountResponseDto> getAccountByNumber(@PathVariable String accountNumber) {
-        Optional<AccountResponseDto> account = accountService.getAccountByNumber(accountNumber);
-        return account.map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * CI로 계좌 조회
-     */
-    @GetMapping("/ci/{ci}")
-    public ResponseEntity<List<AccountResponseDto>> getAccountsByCi(@PathVariable String ci) {
-        List<AccountResponseDto> accounts = accountService.getAccountsByCi(ci);
-        return ResponseEntity.ok(accounts);
-    }
-
-    /**
-     * 모든 계좌 조회
-     */
-    @GetMapping
-    public ResponseEntity<List<AccountResponseDto>> getAllAccounts() {
-        List<AccountResponseDto> accounts = accountService.getAllAccounts();
-        return ResponseEntity.ok(accounts);
-    }
-
-    /**
-     * 계좌 수정
-     */
-    @PutMapping("/{accountNumber}")
-    public ResponseEntity<AccountResponseDto> updateAccount(
-            @PathVariable String accountNumber,
-            @Valid @RequestBody AccountRequestDto request) {
-        try {
-            AccountResponseDto response = accountService.updateAccount(accountNumber, request);
+            // 출금 처리 및 거래내역 저장
+            String transactionId = accountService.processWithdrawal(
+                request.getAccountNumber(),
+                request.getAmount(),
+                request.getDescription() != null ? request.getDescription() : "출금"
+            );
+            
+            response.put("success", true);
+            response.put("message", "출금이 완료되었습니다");
+            response.put("transactionId", transactionId);
+            response.put("accountNumber", request.getAccountNumber());
+            response.put("amount", request.getAmount());
+            
+            log.info("하나은행 계좌 출금 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
+                    transactionId, request.getAccountNumber(), request.getAmount());
+            
             return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            
+        } catch (Exception e) {
+            log.error("하나은행 계좌 출금 실패 - 계좌번호: {}, 오류: {}", request.getAccountNumber(), e.getMessage());
+            
+            response.put("success", false);
+            response.put("message", "출금 처리 중 오류가 발생했습니다: " + e.getMessage());
+            response.put("accountNumber", request.getAccountNumber());
+            response.put("amount", request.getAmount());
+            
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
     /**
-     * 계좌 잔액 업데이트
+     * 출금 요청 DTO
      */
-    @PatchMapping("/{accountNumber}/balance")
-    public ResponseEntity<AccountResponseDto> updateBalance(
-            @PathVariable String accountNumber, 
-            @RequestParam BigDecimal balance) {
-        try {
-            AccountResponseDto response = accountService.updateBalance(accountNumber, balance);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
+    public static class WithdrawalRequest {
+        private String accountNumber;
+        private BigDecimal amount;
+        private String description;
 
-    /**
-     * 계좌 삭제
-     */
-    @DeleteMapping("/{accountNumber}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable String accountNumber) {
-        try {
-            accountService.deleteAccount(accountNumber);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+        public String getAccountNumber() {
+            return accountNumber;
+        }
+
+        public void setAccountNumber(String accountNumber) {
+            this.accountNumber = accountNumber;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
         }
     }
 }

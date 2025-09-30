@@ -10,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -106,6 +108,37 @@ public class AccountController {
     }
 
     /**
+     * 계좌 출금 처리 (타행 요청용)
+     */
+    @PostMapping("/withdrawal")
+    public ResponseEntity<Object> processWithdrawal(@RequestBody WithdrawalRequest request) {
+        try {
+            String transactionId = accountService.processWithdrawal(
+                    request.getAccountNumber(),
+                    request.getAmount(),
+                    request.getDescription()
+            );
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "출금 처리 완료");
+            response.put("transactionId", transactionId);
+            response.put("accountNumber", request.getAccountNumber());
+            response.put("amount", request.getAmount());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "출금 처리 실패: " + e.getMessage());
+            errorResponse.put("accountNumber", request.getAccountNumber());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
      * 잔액 업데이트 요청 DTO
      */
     public static class BalanceUpdateRequest {
@@ -118,5 +151,28 @@ public class AccountController {
         public void setBalance(BigDecimal balance) {
             this.balance = balance;
         }
+    }
+    
+    /**
+     * 출금 요청 DTO
+     */
+    public static class WithdrawalRequest {
+        private String accountNumber;
+        private BigDecimal amount;
+        private String description;
+        private String memo;
+        
+        // Getters and Setters
+        public String getAccountNumber() { return accountNumber; }
+        public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+        
+        public BigDecimal getAmount() { return amount; }
+        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        
+        public String getMemo() { return memo; }
+        public void setMemo(String memo) { this.memo = memo; }
     }
 }

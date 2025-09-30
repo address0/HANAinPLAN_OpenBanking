@@ -74,7 +74,7 @@ const mockCounselors: Counselor[] = [
   {
     id: 1,
     name: "김하나",
-    profileImage: "/images/profile.png",
+    profileImage: "/images/img-hana-symbol.png",
     department: "자산관리팀",
     specialties: ["정기예금", "정기적금", "IRP", "투자상담"],
     rating: 4.8,
@@ -84,7 +84,7 @@ const mockCounselors: Counselor[] = [
   {
     id: 2,
     name: "이보험",
-    profileImage: "/images/profile.png",
+    profileImage: "/images/img-hana-symbol.png",
     department: "보험상품팀",
     specialties: ["건강보험", "연금보험", "생명보험", "자동차보험"],
     rating: 4.7,
@@ -94,7 +94,7 @@ const mockCounselors: Counselor[] = [
   {
     id: 3,
     name: "박투자",
-    profileImage: "/images/profile.png",
+    profileImage: "/images/img-hana-symbol.png",
     department: "투자상담팀",
     specialties: ["주식투자", "펀드투자", "IRP", "자산배분"],
     rating: 4.9,
@@ -104,7 +104,7 @@ const mockCounselors: Counselor[] = [
   {
     id: 4,
     name: "최연금",
-    profileImage: "/images/profile.png",
+    profileImage: "/images/img-hana-symbol.png",
     department: "연금상품팀",
     specialties: ["연금보험", "IRP", "노후설계", "세제혜택"],
     rating: 4.6,
@@ -114,7 +114,7 @@ const mockCounselors: Counselor[] = [
   {
     id: 5,
     name: "정대출",
-    profileImage: "/images/profile.png",
+    profileImage: "/images/img-hana-symbol.png",
     department: "대출상품팀",
     specialties: ["주택담보대출", "신용대출", "전세자금대출", "자금계획"],
     rating: 4.8,
@@ -124,7 +124,7 @@ const mockCounselors: Counselor[] = [
   {
     id: 6,
     name: "강종합",
-    profileImage: "/images/profile.png",
+    profileImage: "/images/img-hana-symbol.png",
     department: "종합금융팀",
     specialties: ["자산관리", "보험", "투자", "대출", "연금"],
     rating: 4.9,
