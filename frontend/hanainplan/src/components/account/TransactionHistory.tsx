@@ -106,11 +106,11 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
       // 프론트엔드에서 추가 필터링
       if (currentFilters.type === 'DEPOSIT') {
         filteredTransactions = filteredTransactions.filter(transaction => 
-          transaction.transactionType === 'DEPOSIT' || transaction.amount > 0
+          transaction.transactionDirection === 'CREDIT'
         );
       } else if (currentFilters.type === 'WITHDRAWAL') {
         filteredTransactions = filteredTransactions.filter(transaction => 
-          transaction.transactionType === 'WITHDRAWAL' || transaction.amount < 0
+          transaction.transactionDirection === 'DEBIT'
         );
       }
       
@@ -135,22 +135,72 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     return new Intl.NumberFormat('ko-KR').format(Math.abs(amount));
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+  const formatDate = (dateValue: string | string[] | number[]) => {
+    try {
+      if (!dateValue) return '날짜 없음';
+
+      let date: Date;
+
+    // 배열 형태로 오는 경우 [year, month, day, hour, minute, second, millisecond]
+    if (Array.isArray(dateValue) && dateValue.length >= 3) {
+      const [year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0] = dateValue;
+      // 백엔드에서 월을 1부터 시작하는 값으로 보내고 있으므로 그대로 사용
+      date = new Date(year, month - 1, day, hour, minute, second, millisecond);
+    }
+      // 문자열이나 숫자인 경우
+      else {
+        date = new Date(dateValue as any);
+      }
+
+      // 날짜가 유효하지 않은 경우
+      if (isNaN(date.getTime())) {
+        console.warn('유효하지 않은 날짜:', dateValue);
+        return '날짜 오류';
+      }
+
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch (error) {
+      console.error('날짜 파싱 오류:', error, '입력값:', dateValue);
+      return '날짜 오류';
+    }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
+  const formatTime = (dateValue: string | string[] | number[]) => {
+    try {
+      if (!dateValue) return '';
+
+      let date: Date;
+
+    // 배열 형태로 오는 경우 [year, month, day, hour, minute, second, millisecond]
+    if (Array.isArray(dateValue) && dateValue.length >= 3) {
+      const [year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0] = dateValue;
+      // 백엔드에서 월을 1부터 시작하는 값으로 보내고 있으므로 그대로 사용
+      date = new Date(year, month - 1, day, hour, minute, second, millisecond);
+    }
+      // 문자열이나 숫자인 경우
+      else {
+        date = new Date(dateValue as any);
+      }
+
+      // 날짜가 유효하지 않은 경우
+      if (isNaN(date.getTime())) {
+        console.warn('유효하지 않은 시간:', dateValue);
+        return '';
+      }
+
+      return date.toLocaleTimeString('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch (error) {
+      console.error('시간 파싱 오류:', error, '입력값:', dateValue);
+      return '';
+    }
   };
 
   // 필터 변경 핸들러
@@ -260,7 +310,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
                 {getTransactionTypeDisplay(transaction.transactionType)}
               </div>
               <div className="text-sm text-gray-500 font-hana-regular">
-                {formatDate(transaction.transactionDate)} {formatTime(transaction.transactionDate)}
+                {formatDate(transaction.transactionDate as any)} {formatTime(transaction.transactionDate as any)}
               </div>
               {transaction.memo && (
                 <div className="text-xs text-gray-400 font-hana-regular mt-1">
@@ -270,10 +320,10 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
             </div>
             <div className="text-right">
               <div className={`font-hana-bold text-lg mb-1 ${
-                transaction.amount > 0 ? 'text-blue-600' : transaction.amount < 0 ? 'text-red-600' : 'text-gray-600'
+                transaction.transactionDirection === 'CREDIT' ? 'text-red-600' : 'text-blue-600'
               }`}>
-                {transaction.amount > 0 ? '+' : transaction.amount < 0 ? '-' : ''}
-                {transaction.amount !== 0 && formatCurrency(transaction.amount)} 원
+                {transaction.transactionDirectionSymbol}
+                {formatCurrency(transaction.amount)} 원
               </div>
               <div className="text-sm text-gray-500 font-hana-regular">
                 잔액: {formatCurrency(transaction.balanceAfter)}원

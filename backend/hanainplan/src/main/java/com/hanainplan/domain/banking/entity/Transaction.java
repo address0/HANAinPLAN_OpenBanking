@@ -55,21 +55,14 @@ public class Transaction {
     @Column(name = "balance_after", nullable = false, precision = 15, scale = 2)
     private BigDecimal balanceAfter;
     
-    // 거래 수수료
-    @Column(name = "fee", precision = 15, scale = 2)
-    private BigDecimal fee;
+    // 거래 방향 (CREDIT: 입금/+, DEBIT: 출금/-)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_direction", nullable = false)
+    private TransactionDirection transactionDirection;
     
     // 거래 설명
     @Column(name = "description", length = 200)
     private String description;
-    
-    // 상대방 계좌번호 (외부 계좌인 경우)
-    @Column(name = "counterpart_account_number", length = 20)
-    private String counterpartAccountNumber;
-    
-    // 상대방 이름
-    @Column(name = "counterpart_name", length = 50)
-    private String counterpartName;
     
     // 거래 상태
     @Enumerated(EnumType.STRING)
@@ -83,10 +76,6 @@ public class Transaction {
     // 처리 일시
     @Column(name = "processed_date")
     private LocalDateTime processedDate;
-    
-    // 실패 사유
-    @Column(name = "failure_reason", length = 500)
-    private String failureReason;
     
     // 참조 번호 (외부 시스템 연동 시)
     @Column(name = "reference_number", length = 50)
@@ -185,7 +174,6 @@ public class Transaction {
     // 거래 실패 처리
     public void fail(String reason) {
         this.transactionStatus = TransactionStatus.FAILED;
-        this.failureReason = reason;
         this.processedDate = LocalDateTime.now();
     }
     
@@ -193,5 +181,45 @@ public class Transaction {
     public void cancel() {
         this.transactionStatus = TransactionStatus.CANCELLED;
         this.processedDate = LocalDateTime.now();
+    }
+    
+    // 거래 방향 열거형
+    public enum TransactionDirection {
+        CREDIT("입금", "+"),
+        DEBIT("출금", "-");
+        
+        private final String description;
+        private final String symbol;
+        
+        TransactionDirection(String description, String symbol) {
+            this.description = description;
+            this.symbol = symbol;
+        }
+        
+        public String getDescription() {
+            return description;
+        }
+        
+        public String getSymbol() {
+            return symbol;
+        }
+        
+        // 거래 유형에 따른 방향 결정
+        public static TransactionDirection fromTransactionType(TransactionType type, boolean isFromAccount) {
+            switch (type) {
+                case DEPOSIT:
+                case INTEREST:
+                case REFUND:
+                    return CREDIT;
+                case WITHDRAWAL:
+                case FEE:
+                    return DEBIT;
+                case TRANSFER:
+                case AUTO_TRANSFER:
+                    return isFromAccount ? DEBIT : CREDIT;
+                default:
+                    return DEBIT;
+            }
+        }
     }
 }

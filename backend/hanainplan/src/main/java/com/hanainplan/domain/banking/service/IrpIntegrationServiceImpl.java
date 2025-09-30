@@ -50,12 +50,6 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
     @Value("${external.api.hana-bank.base-url:http://localhost:8081}")
     private String hanaBankBaseUrl;
 
-    @Value("${external.api.kookmin-bank.base-url:http://localhost:8082}")
-    private String kookminBankBaseUrl;
-
-    @Value("${external.api.shinhan-bank.base-url:http://localhost:8083}")
-    private String shinhanBankBaseUrl;
-
     // ===== 계좌 관리 =====
 
     @Override
@@ -329,10 +323,8 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         syncLog.startSync();
 
         try {
-            // 각 은행 동기화
+            // 하나은행 IRP 데이터 동기화
             syncHanaBankIrpData();
-            syncKookminBankIrpData();
-            syncShinhanBankIrpData();
 
             syncLog.completeSync();
             log.info("전체 IRP 데이터 동기화 완료");
@@ -363,18 +355,10 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         syncLog.startSync();
 
         try {
-            switch (bankCode.toUpperCase()) {
-                case "HANA":
-                    syncHanaBankIrpData();
-                    break;
-                case "KOOKMIN":
-                    syncKookminBankIrpData();
-                    break;
-                case "SHINHAN":
-                    syncShinhanBankIrpData();
-                    break;
-                default:
-                    throw new IllegalArgumentException("지원하지 않는 은행 코드: " + bankCode);
+            if ("HANA".equalsIgnoreCase(bankCode)) {
+                syncHanaBankIrpData();
+            } else {
+                throw new IllegalArgumentException("지원하지 않는 은행 코드: " + bankCode + ". 현재 HANA 은행만 지원됩니다.");
             }
 
             syncLog.completeSync();
@@ -406,10 +390,8 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         syncLog.startSync();
 
         try {
-            // 각 은행에서 해당 고객의 IRP 계좌 정보 조회
+            // 하나은행에서 해당 고객의 IRP 계좌 정보 조회
             syncCustomerFromHanaBank(customerCi);
-            syncCustomerFromKookminBank(customerCi);
-            syncCustomerFromShinhanBank(customerCi);
 
             syncLog.completeSync();
             log.info("고객 {} IRP 데이터 동기화 완료", customerCi);
@@ -440,10 +422,8 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         syncLog.startSync();
 
         try {
-            // 각 은행에서 해당 고객의 IRP 계좌 정보 조회
+            // 하나은행에서 해당 고객의 IRP 계좌 정보 조회
             syncCustomerFromHanaBankByCustomerId(customerId);
-            syncCustomerFromKookminBankByCustomerId(customerId);
-            syncCustomerFromShinhanBankByCustomerId(customerId);
 
             syncLog.completeSync();
             log.info("고객 {} IRP 데이터 동기화 완료", customerId);
@@ -495,13 +475,11 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         failedSync.startSync();
 
         try {
-            // 실패한 동기화 재시도
+            // 실패한 동기화 재시도 (하나은행만 지원)
             if ("HANA".equals(failedSync.getBankCode())) {
                 syncHanaBankIrpData();
-            } else if ("KOOKMIN".equals(failedSync.getBankCode())) {
-                syncKookminBankIrpData();
-            } else if ("SHINHAN".equals(failedSync.getBankCode())) {
-                syncShinhanBankIrpData();
+            } else {
+                throw new IllegalArgumentException("지원하지 않는 은행 코드: " + failedSync.getBankCode());
             }
 
             failedSync.completeSync();
@@ -665,55 +643,6 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         }
     }
 
-    @Override
-    @Transactional
-    public void syncKookminBankIrpData() {
-        log.info("국민은행 IRP 데이터 동기화 시작");
-
-        try {
-            // 국민은행 API 호출
-            String url = kookminBankBaseUrl + "/api/v1/irp/products";
-            ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), List.class);
-
-            if (response.getBody() != null) {
-                // 상품 정보 처리 로직
-                for (Object productData : response.getBody()) {
-                    log.debug("국민은행 상품 동기화: {}", productData);
-                }
-            }
-
-            log.info("국민은행 IRP 데이터 동기화 완료");
-
-        } catch (Exception e) {
-            log.error("국민은행 IRP 데이터 동기화 실패", e);
-            throw e;
-        }
-    }
-
-    @Override
-    @Transactional
-    public void syncShinhanBankIrpData() {
-        log.info("신한은행 IRP 데이터 동기화 시작");
-
-        try {
-            // 신한은행 API 호출
-            String url = shinhanBankBaseUrl + "/api/v1/irp/products";
-            ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), List.class);
-
-            if (response.getBody() != null) {
-                // 상품 정보 처리 로직
-                for (Object productData : response.getBody()) {
-                    log.debug("신한은행 상품 동기화: {}", productData);
-                }
-            }
-
-            log.info("신한은행 IRP 데이터 동기화 완료");
-
-        } catch (Exception e) {
-            log.error("신한은행 IRP 데이터 동기화 실패", e);
-            throw e;
-        }
-    }
 
     // ===== 배치 작업 =====
 
@@ -865,53 +794,6 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         }
     }
 
-    private void syncCustomerFromKookminBank(String customerCi) {
-        // 국민은행에서 특정 고객의 IRP 계좌 정보 조회 및 동기화
-        try {
-            String url = kookminBankBaseUrl + "/api/v1/irp/account/" + customerCi;
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), Object.class);
-
-            if (response.getBody() != null) {
-                log.debug("국민은행 고객 {} 계좌 동기화: {}", customerCi, response.getBody());
-            }
-
-        } catch (Exception e) {
-            log.error("국민은행 고객 {} 계좌 동기화 실패", customerCi, e);
-        }
-    }
-
-    private void syncCustomerFromKookminBankByCustomerId(Long customerId) {
-        try {
-            String customerCi = customerId.toString();
-            syncCustomerFromKookminBank(customerCi);
-        } catch (Exception e) {
-            log.error("국민은행 고객 {} 계좌 동기화 실패", customerId, e);
-        }
-    }
-
-    private void syncCustomerFromShinhanBank(String customerCi) {
-        // 신한은행에서 특정 고객의 IRP 계좌 정보 조회 및 동기화
-        try {
-            String url = shinhanBankBaseUrl + "/api/v1/irp/account/" + customerCi;
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), Object.class);
-
-            if (response.getBody() != null) {
-                log.debug("신한은행 고객 {} 계좌 동기화: {}", customerCi, response.getBody());
-            }
-
-        } catch (Exception e) {
-            log.error("신한은행 고객 {} 계좌 동기화 실패", customerCi, e);
-        }
-    }
-
-    private void syncCustomerFromShinhanBankByCustomerId(Long customerId) {
-        try {
-            String customerCi = customerId.toString();
-            syncCustomerFromShinhanBank(customerCi);
-        } catch (Exception e) {
-            log.error("신한은행 고객 {} 계좌 동기화 실패", customerId, e);
-        }
-    }
 
     /**
      * 하나은행 서버에 IRP 계좌 개설 요청

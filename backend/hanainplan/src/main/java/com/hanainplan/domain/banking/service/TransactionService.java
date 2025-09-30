@@ -287,6 +287,10 @@ public class TransactionService {
                                         Transaction.TransactionType type, Transaction.TransactionCategory category,
                                         BigDecimal amount, String description, String memo, String referenceNumber) {
         
+        // 거래 방향 결정 (fromAccountId가 null이 아니면 출금 계좌 관점)
+        Transaction.TransactionDirection direction = Transaction.TransactionDirection
+                .fromTransactionType(type, fromAccountId != null);
+        
         return Transaction.builder()
                 .transactionNumber(Transaction.generateTransactionNumber())
                 .fromAccountId(fromAccountId)
@@ -294,6 +298,7 @@ public class TransactionService {
                 .transactionType(type)
                 .transactionCategory(category)
                 .amount(amount)
+                .transactionDirection(direction)
                 .description(description)
                 .memo(memo)
                 .referenceNumber(referenceNumber)
