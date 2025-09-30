@@ -27,15 +27,14 @@ public class TransactionDto {
     private String transactionCategoryDescription;
     private BigDecimal amount;
     private BigDecimal balanceAfter;
-    private BigDecimal fee;
+    private Transaction.TransactionDirection transactionDirection;
+    private String transactionDirectionDescription;
+    private String transactionDirectionSymbol;
     private String description;
-    private String counterpartAccountNumber;
-    private String counterpartName;
     private Transaction.TransactionStatus transactionStatus;
     private String transactionStatusDescription;
     private LocalDateTime transactionDate;
     private LocalDateTime processedDate;
-    private String failureReason;
     private String referenceNumber;
     private String memo;
     private LocalDateTime createdAt;
@@ -53,15 +52,14 @@ public class TransactionDto {
                 .transactionCategoryDescription(transaction.getTransactionCategory().getDescription())
                 .amount(transaction.getAmount())
                 .balanceAfter(transaction.getBalanceAfter())
-                .fee(transaction.getFee())
+                .transactionDirection(transaction.getTransactionDirection())
+                .transactionDirectionDescription(transaction.getTransactionDirection().getDescription())
+                .transactionDirectionSymbol(transaction.getTransactionDirection().getSymbol())
                 .description(transaction.getDescription())
-                .counterpartAccountNumber(transaction.getCounterpartAccountNumber())
-                .counterpartName(transaction.getCounterpartName())
                 .transactionStatus(transaction.getTransactionStatus())
                 .transactionStatusDescription(transaction.getTransactionStatus().getDescription())
                 .transactionDate(transaction.getTransactionDate())
                 .processedDate(transaction.getProcessedDate())
-                .failureReason(transaction.getFailureReason())
                 .referenceNumber(transaction.getReferenceNumber())
                 .memo(transaction.getMemo())
                 .createdAt(transaction.getCreatedAt())
@@ -79,14 +77,11 @@ public class TransactionDto {
                 .transactionCategory(this.transactionCategory)
                 .amount(this.amount)
                 .balanceAfter(this.balanceAfter)
-                .fee(this.fee)
+                .transactionDirection(this.transactionDirection)
                 .description(this.description)
-                .counterpartAccountNumber(this.counterpartAccountNumber)
-                .counterpartName(this.counterpartName)
                 .transactionStatus(this.transactionStatus)
                 .transactionDate(this.transactionDate)
                 .processedDate(this.processedDate)
-                .failureReason(this.failureReason)
                 .referenceNumber(this.referenceNumber)
                 .memo(this.memo)
                 .build();

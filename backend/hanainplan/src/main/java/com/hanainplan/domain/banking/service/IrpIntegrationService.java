@@ -194,16 +194,6 @@ public interface IrpIntegrationService {
      */
     void syncHanaBankIrpData();
 
-    /**
-     * 국민은행 IRP 서비스 연동
-     */
-    void syncKookminBankIrpData();
-
-    /**
-     * 신한은행 IRP 서비스 연동
-     */
-    void syncShinhanBankIrpData();
-
     // ===== 배치 작업 =====
 
     /**
