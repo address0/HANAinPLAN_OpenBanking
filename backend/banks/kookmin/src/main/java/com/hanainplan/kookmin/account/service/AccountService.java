@@ -152,4 +152,38 @@ public class AccountService {
         Account updatedAccount = accountRepository.save(account);
         return AccountResponseDto.from(updatedAccount);
     }
+    
+    /**
+     * 계좌 출금 처리 (타행 요청용)
+     */
+    public String processWithdrawal(String accountNumber, BigDecimal amount, String description) throws Exception {
+        // 1. 계좌 조회
+        Account account = accountRepository.findById(accountNumber)
+                .orElseThrow(() -> new Exception("국민은행 계좌를 찾을 수 없습니다: " + accountNumber));
+        
+        // 2. 잔액 확인
+        if (account.getBalance() == null || account.getBalance().compareTo(amount) < 0) {
+            throw new Exception("국민은행 계좌 잔액이 부족합니다. 현재 잔액: " + 
+                    (account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO) + "원");
+        }
+        
+        // 3. 출금 처리
+        BigDecimal newBalance = account.getBalance().subtract(amount);
+        account.setBalance(newBalance);
+        accountRepository.save(account);
+        
+        // 4. 거래 ID 생성 (간단한 형태)
+        String transactionId = "KB-WD-" + System.currentTimeMillis() + "-" + 
+                String.format("%04d", (int)(Math.random() * 10000));
+        
+        // TODO: 실제로는 거래내역 테이블에 저장해야 함
+        // 지금은 로그만 남김
+        System.out.println("국민은행 출금 거래 - 거래ID: " + transactionId + 
+                ", 계좌번호: " + accountNumber + 
+                ", 금액: " + amount + "원" +
+                ", 새 잔액: " + newBalance + "원" +
+                ", 설명: " + description);
+        
+        return transactionId;
+    }
 }

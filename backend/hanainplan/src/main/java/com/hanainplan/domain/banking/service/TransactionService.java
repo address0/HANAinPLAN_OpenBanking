@@ -29,6 +29,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final AccountService accountService;
+    private final BankWithdrawalService bankWithdrawalService;
     
     // 입금 처리
     public TransactionResponseDto deposit(DepositRequestDto request) {
@@ -84,7 +85,7 @@ public class TransactionService {
         }
     }
     
-    // 출금 처리
+    // 출금 처리 (HANAinPLAN + 실제 은행 서버)
     public TransactionResponseDto withdrawal(WithdrawalRequestDto request) {
         log.info("출금 처리 요청 - 계좌 ID: {}, 금액: {}", request.getAccountId(), request.getAmount());
         
@@ -104,7 +105,7 @@ public class TransactionService {
                         "현재 잔액: " + account.getBalance() + ", 요청 금액: " + request.getAmount());
             }
             
-            // 거래 생성
+            // 거래 생성 (아직 PENDING 상태)
             Transaction transaction = createTransaction(
                     request.getAccountId(), // 출금 계좌
                     null, // 입금 계좌 없음
@@ -116,17 +117,36 @@ public class TransactionService {
                     request.getReferenceNumber()
             );
             
-            // 잔액 업데이트
+            // 1. 실제 은행 서버에 출금 요청 (먼저 실행)
+            BankWithdrawalService.BankWithdrawalResult bankResult = 
+                    bankWithdrawalService.processWithdrawal(
+                            account.getAccountNumber(), 
+                            request.getAmount(), 
+                            request.getDescription()
+                    );
+            
+            if (!bankResult.isSuccess()) {
+                // 은행 출금 실패 시 거래 취소
+                transaction.fail("은행 서버 출금 실패: " + bankResult.getMessage());
+                transactionRepository.save(transaction);
+                
+                log.error("은행 출금 실패 - 계좌번호: {}, 메시지: {}", account.getAccountNumber(), bankResult.getMessage());
+                return TransactionResponseDto.failure("출금 실패", bankResult.getMessage());
+            }
+            
+            // 2. 은행 출금 성공 시 HANAinPLAN 잔액 업데이트
             account.updateBalance(request.getAmount().negate());
             accountRepository.save(account);
             
             // 거래 완료 처리
             transaction.complete();
             transaction.setBalanceAfter(account.getBalance());
+            transaction.setReferenceNumber(bankResult.getTransactionId()); // 은행 거래 ID를 참조번호로 저장
             Transaction savedTransaction = transactionRepository.save(transaction);
             
-            log.info("출금 처리 완료 - 거래 ID: {}, 거래번호: {}, 새 잔액: {}", 
-                    savedTransaction.getTransactionId(), savedTransaction.getTransactionNumber(), account.getBalance());
+            log.info("출금 처리 완료 - 거래 ID: {}, 거래번호: {}, 은행 거래 ID: {}, 새 잔액: {}",
+                    savedTransaction.getTransactionId(), savedTransaction.getTransactionNumber(), 
+                    bankResult.getTransactionId(), account.getBalance());
             
             return TransactionResponseDto.success(
                     "출금이 완료되었습니다",

@@ -37,6 +37,9 @@ public class SignUpRequestDto {
     @NotBlank(message = "인증번호는 필수입니다.")
     private String verificationCode;
 
+    @NotBlank(message = "CI값은 필수입니다.")
+    private String ci; // 실명인증 CI값
+
     private String password; // 카카오 로그인시 null 가능
 
     private String confirmPassword;

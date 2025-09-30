@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -59,13 +60,25 @@ public class Customer {
     @Column(name = "asset_level")
     private AssetLevel assetLevel; // 자산 수준
 
+    @Column(name = "has_irp_account")
+    private Boolean hasIrpAccount; // IRP 계좌 보유 여부 (default: false)
+
+    @Column(name = "irp_bank_code", length = 10)
+    private String irpBankCode; // IRP 계좌 보유 은행 코드 (하나, 국민, 신한)
+
+    @Column(name = "irp_account_number", length = 50)
+    private String irpAccountNumber; // IRP 계좌번호 (보유한 경우)
+
     @Column(name = "created_date", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdDate = LocalDateTime.now();
 
-    @Column(name = "updated_date")
-    @Builder.Default
-    private LocalDateTime updatedDate = LocalDateTime.now();
+    /**
+     * IRP 계좌 보유 여부 확인
+     */
+    public boolean hasIrpAccount() {
+        return Boolean.TRUE.equals(hasIrpAccount);
+    }
 
     // 외래 키 제약조건 제거 - 단순히 ID로만 연결
     // @OneToOne
@@ -127,11 +140,4 @@ public class Customer {
                Boolean.TRUE.equals(disabilityRegistered);
     }
 
-    /**
-     * 업데이트 시간 갱신
-     */
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedDate = LocalDateTime.now();
-    }
 }

@@ -169,7 +169,13 @@ function LoginForm({ onSignUp }: LoginFormProps) {
   }
 
   return (
-    <div className="w-[450px] h-full backdrop-blur-sm p-[10px] flex flex-col items-center justify-center gap-4 rounded-r-[20px] animate-slide-in border-y-2 border-r-2 border-white overflow-hidden">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleLogin();
+      }}
+      className="w-[450px] h-full backdrop-blur-sm p-[10px] flex flex-col items-center justify-center gap-4 rounded-r-[20px] animate-slide-in border-y-2 border-r-2 border-white overflow-hidden"
+    >
       {/* 로고 헤더 */}
       <div className="h-[38px] relative flex items-center">
         <img 
@@ -267,7 +273,7 @@ function LoginForm({ onSignUp }: LoginFormProps) {
         autoClose={true}
         autoCloseDelay={2000}
       />
-    </div>
+    </form>
   )
 }
 

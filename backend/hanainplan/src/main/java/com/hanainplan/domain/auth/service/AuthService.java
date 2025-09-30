@@ -1,28 +1,43 @@
 package com.hanainplan.domain.auth.service;
 
+import com.hanainplan.domain.auth.dto.CiVerificationRequestDto;
+import com.hanainplan.domain.auth.dto.CiVerificationResponseDto;
 import com.hanainplan.domain.auth.dto.LoginRequestDto;
 import com.hanainplan.domain.auth.dto.LoginResponseDto;
 import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 @Transactional
 public class AuthService {
-    
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    
+    private final RestTemplate restTemplate;
+
+    @Value("${external.api.identity-verification.base-url:http://localhost:8084}")
+    private String identityVerificationBaseUrl;
+
     @Autowired
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, RestTemplate restTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.restTemplate = restTemplate;
     }
     
     /**
@@ -129,16 +144,92 @@ public class AuthService {
         if (phoneNumber == null) {
             return null;
         }
-        
+
         // 하이픈 제거
         String numbers = phoneNumber.replaceAll("-", "");
-        
+
         // 11자리 숫자가 아니면 원본 반환
         if (numbers.length() != 11) {
             return phoneNumber;
         }
-        
+
         // 하이픈 추가: 010-1234-5678 형식
         return numbers.substring(0, 3) + "-" + numbers.substring(3, 7) + "-" + numbers.substring(7);
+    }
+
+    /**
+     * CI 검증 (실명인증 서버 연동)
+     */
+    @Transactional(readOnly = true)
+    public CiVerificationResponseDto verifyCi(CiVerificationRequestDto request) {
+        try {
+            // 주민번호에서 생년월일과 성별 추출
+            Map<String, String> extractedInfo = extractBirthDateAndGender(request.getResidentNumber());
+
+            // 실명인증 서버 요청 데이터 구성
+            Map<String, Object> verificationRequest = new HashMap<>();
+            verificationRequest.put("name", request.getName());
+            verificationRequest.put("birthDate", extractedInfo.get("birthDate"));
+            verificationRequest.put("gender", extractedInfo.get("gender"));
+            verificationRequest.put("residentNumber", request.getResidentNumber());
+
+            // 실명인증 서버에 요청
+            String url = identityVerificationBaseUrl + "/api/user/ci/verify";
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Content-Type", "application/json");
+
+            HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(verificationRequest, headers);
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, Map.class);
+
+            if (response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+
+                // 실명인증 서버 응답에서 CI 추출
+                String ci = (String) responseBody.get("ci");
+
+                if (ci != null && !ci.trim().isEmpty()) {
+                    return CiVerificationResponseDto.success(ci);
+                } else {
+                    return CiVerificationResponseDto.failure("실명인증 서버에서 CI 값을 반환받지 못했습니다.");
+                }
+            } else {
+                return CiVerificationResponseDto.failure("실명인증 서버 응답이 없습니다.");
+            }
+
+        } catch (Exception e) {
+            return CiVerificationResponseDto.failure("CI 검증 중 오류가 발생했습니다: " + e.getMessage(), "SYSTEM_ERROR");
+        }
+    }
+
+    /**
+     * 주민번호에서 생년월일과 성별 추출
+     * @param residentNumber 13자리 주민번호
+     * @return 생년월일(8자리)과 성별 정보
+     */
+    private Map<String, String> extractBirthDateAndGender(String residentNumber) {
+        Map<String, String> result = new HashMap<>();
+
+        if (residentNumber == null || residentNumber.length() != 13) {
+            throw new IllegalArgumentException("주민번호는 13자리여야 합니다.");
+        }
+
+        // 뒷자리 첫 번째 숫자로 성별과 출생년도 결정
+        char genderDigit = residentNumber.charAt(6);
+
+        // 성별 결정 (1, 3: 남성, 2, 4: 여성)
+        String gender = (genderDigit == '1' || genderDigit == '3') ? "M" : "F";
+        result.put("gender", gender);
+
+        // 출생년도 결정 (1, 2: 1900년대, 3, 4: 2000년대)
+        String yearPrefix = (genderDigit == '1' || genderDigit == '2') ? "19" : "20";
+
+        // 생년월일 추출 (YYMMDD 형식의 앞 6자리)
+        String birthDatePart = residentNumber.substring(0, 6);
+
+        // 8자리 생년월일 생성
+        String birthDate = yearPrefix + birthDatePart;
+        result.put("birthDate", birthDate);
+
+        return result;
     }
 }

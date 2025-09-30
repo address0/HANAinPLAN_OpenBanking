@@ -83,7 +83,35 @@ public class CiController {
     }
 
     @PostMapping("/verify")
-    @Operation(summary = "CI 검증", description = "입력된 개인정보를 CI로 변환하여 실명인증 사용자 데이터에 존재하는지 검증합니다.")
+    @Operation(
+        summary = "CI 검증",
+        description = "입력된 개인정보를 CI로 변환하여 실명인증 사용자 데이터에 존재하는지 검증합니다.",
+        operationId = "verifyCi"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "CI 검증 성공",
+            content = @Content(
+                schema = @Schema(implementation = CiVerificationResponseDto.class),
+                examples = @ExampleObject(
+                    name = "성공 예시",
+                    value = "{\"success\": true, \"message\": \"실명인증 사용자가 확인되었습니다.\", \"verified\": true, \"ci\": \"ABC123DEF456GHI789\", \"timestamp\": \"2024-01-15T10:30:00\"}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "입력 데이터 오류",
+            content = @Content(
+                schema = @Schema(implementation = CiVerificationResponseDto.class),
+                examples = @ExampleObject(
+                    name = "오류 예시",
+                    value = "{\"success\": false, \"message\": \"입력 데이터 오류: 이름은 필수입니다.\", \"verified\": false, \"ci\": null, \"timestamp\": \"2024-01-15T10:30:00\"}"
+                )
+            )
+        )
+    })
     public ResponseEntity<CiVerificationResponseDto> verifyCi(@Valid @RequestBody CiVerificationRequestDto request) {
         try {
             // 입력된 개인정보를 CI로 변환
@@ -93,18 +121,19 @@ public class CiController {
                 request.getGender(),
                 request.getResidentNumber()
             );
-            
+
             // CI로 사용자 존재 여부 확인
             boolean userExists = userService.getUserByCi(ci).isPresent();
-            
+
             String message = userExists ? "실명인증 사용자가 확인되었습니다." : "실명인증 사용자를 찾을 수 없습니다.";
-            
-            return ResponseEntity.ok(CiVerificationResponseDto.success(userExists, message));
-            
+
+            // CI값을 포함한 응답 반환
+            return ResponseEntity.ok(CiVerificationResponseDto.success(userExists, message, ci));
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                 .body(CiVerificationResponseDto.error("입력 데이터 오류: " + e.getMessage()));
-                
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                 .body(CiVerificationResponseDto.error("서버 오류: " + e.getMessage()));

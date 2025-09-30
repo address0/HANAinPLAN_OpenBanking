@@ -57,6 +57,7 @@ export interface SignUpRequest {
   socialNumber: string;
   phoneNumber: string;
   verificationCode: string;
+  ci: string; // 실명인증 CI값 (필수)
   password?: string;
   confirmPassword?: string;
   kakaoId?: string;
@@ -124,11 +125,34 @@ export const sendVerificationCode = async (phoneNumber: string): Promise<{
 };
 
 // 인증번호 확인
-export const verifyCode = async (phoneNumber: string, verificationCode: string): Promise<{ 
-  success: boolean; 
-  message: string 
+export const verifyCode = async (phoneNumber: string, verificationCode: string): Promise<{
+  success: boolean;
+  message: string
 }> => {
   return await httpPost<{ success: boolean; message: string }>('auth/verify-code', { phoneNumber, verificationCode });
+};
+
+// ================================
+// CI 검증 관련 API
+// ================================
+
+// CI 검증 요청 타입
+export interface CiVerificationRequest {
+  name: string;
+  residentNumber: string;
+}
+
+// CI 검증 응답 타입
+export interface CiVerificationResponse {
+  success: boolean;
+  message: string;
+  ci?: string;
+  errorCode?: string;
+}
+
+// CI 검증 (실명인증 서버 연동)
+export const verifyCi = async (request: CiVerificationRequest): Promise<CiVerificationResponse> => {
+  return await httpPost<CiVerificationResponse>('auth/ci/verify', request);
 };
 
 // ================================

@@ -123,27 +123,70 @@ export interface TransactionHistoryResponse {
 
 // 계좌 API 함수들
 export const getBankingAccounts = async (userId: number): Promise<BankingAccount[]> => {
-  const response = await httpGet<BankingAccount[]>(`/banking/accounts/user/${userId}`);
+  const response = await httpGet<BankingAccount[]>(`/banking/user/${userId}`);
   return response;
 };
 
 export const getActiveBankingAccounts = async (userId: number): Promise<BankingAccount[]> => {
-  const response = await httpGet<BankingAccount[]>(`/banking/accounts/user/${userId}/active`);
+  const response = await httpGet<BankingAccount[]>(`/banking/user/${userId}/active`);
   return response;
 };
 
+// 통합 계좌 조회 (일반 계좌 + IRP 계좌)
+export interface AllAccountsResponse {
+  bankingAccounts: BankingAccount[];
+  irpAccount?: IrpAccountInfo;
+  totalBankingBalance: number;
+  totalIrpBalance: number;
+  totalBalance: number;
+}
+
+export const getAllAccounts = async (userId: number): Promise<AllAccountsResponse> => {
+  try {
+    // 일반 은행 계좌 조회
+    const bankingAccounts = await getActiveBankingAccounts(userId);
+    const totalBankingBalance = bankingAccounts.reduce((total, account) => total + (account.balance || 0), 0);
+
+    // IRP 계좌 조회 시도
+    let irpAccount: IrpAccountInfo | undefined;
+    let totalIrpBalance = 0;
+
+    try {
+      // IRP 관련 import가 필요함
+      const { getIrpAccount } = await import('./productApi');
+      const irpResponse = await getIrpAccount(userId);
+      irpAccount = irpResponse;
+      totalIrpBalance = irpResponse.currentBalance || 0;
+    } catch (error) {
+      // IRP 계좌가 없는 경우는 정상 상황이므로 무시
+      console.log('IRP 계좌 없음 또는 조회 실패:', error);
+    }
+
+    return {
+      bankingAccounts,
+      irpAccount,
+      totalBankingBalance,
+      totalIrpBalance,
+      totalBalance: totalBankingBalance + totalIrpBalance
+    };
+  } catch (error) {
+    console.error('통합 계좌 조회 실패:', error);
+    throw error;
+  }
+};
+
 export const getBankingAccount = async (accountId: number): Promise<BankingAccount> => {
-  const response = await httpGet<BankingAccount>(`/banking/accounts/${accountId}`);
+  const response = await httpGet<BankingAccount>(`/banking/${accountId}`);
   return response;
 };
 
 export const createBankingAccount = async (request: CreateAccountRequest): Promise<BankingAccount> => {
-  const response = await httpPost<BankingAccount>('/banking/accounts', request);
+  const response = await httpPost<BankingAccount>('/banking', request);
   return response;
 };
 
 export const updateBankingAccount = async (accountId: number, accountName?: string, description?: string): Promise<BankingAccount> => {
-  const response = await httpPut<BankingAccount>(`/banking/accounts/${accountId}`, null, {
+  const response = await httpPut<BankingAccount>(`/banking/${accountId}`, null, {
     params: {
       accountName,
       description
@@ -153,7 +196,7 @@ export const updateBankingAccount = async (accountId: number, accountName?: stri
 };
 
 export const updateBankingAccountStatus = async (accountId: number, status: string): Promise<BankingAccount> => {
-  const response = await httpPut<BankingAccount>(`/banking/accounts/${accountId}/status`, null, {
+  const response = await httpPut<BankingAccount>(`/banking/${accountId}/status`, null, {
     params: {
       status
     }
@@ -162,7 +205,7 @@ export const updateBankingAccountStatus = async (accountId: number, status: stri
 };
 
 export const getBankingAccountBalance = async (accountId: number): Promise<number> => {
-  const response = await httpGet<number>(`/banking/accounts/${accountId}/balance`);
+  const response = await httpGet<number>(`/banking/${accountId}/balance`);
   return response;
 };
 
