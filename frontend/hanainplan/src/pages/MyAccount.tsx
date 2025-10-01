@@ -8,7 +8,7 @@ import TransferModal from '../components/account/TransferModal';
 import CreateAccountModal from '../components/account/CreateAccountModal';
 import { useUserStore } from '../store/userStore';
 import { useAccountStore } from '../store/accountStore';
-import { getBankingAccounts } from '../api/bankingApi';
+import { getAllAccounts } from '../api/bankingApi';
 
 function MyAccount() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -18,7 +18,7 @@ function MyAccount() {
   const [isLoading, setIsLoading] = useState(true);
   
   const { user } = useUserStore();
-  const { accounts, setAccounts, setLoading, clearAccounts } = useAccountStore();
+  const { accounts, setAllAccountsData, setLoading, clearAccounts } = useAccountStore();
 
   // 사용자 계좌 조회
   useEffect(() => {
@@ -30,11 +30,16 @@ function MyAccount() {
 
       try {
         setLoading(true);
-        const userAccounts = await getBankingAccounts(user.userId);
-        setAccounts(userAccounts);
+        const allAccountsResponse = await getAllAccounts(user.userId);
+        setAllAccountsData(allAccountsResponse);
       } catch (error) {
         console.error('계좌 조회 오류:', error);
-        setAccounts([]);
+        setAllAccountsData({
+          bankingAccounts: [],
+          totalBankingBalance: 0,
+          totalIrpBalance: 0,
+          totalBalance: 0
+        });
       } finally {
         setLoading(false);
         setIsLoading(false);
@@ -42,7 +47,7 @@ function MyAccount() {
     };
 
     loadAccounts();
-  }, [user, setAccounts, setLoading]);
+  }, [user, setAllAccountsData, setLoading]);
 
   useEffect(() => {
     // 컴포넌트 언마운트 시 계좌 정보 초기화
@@ -56,8 +61,8 @@ function MyAccount() {
     
     try {
       setLoading(true);
-      const userAccounts = await getBankingAccounts(user.userId);
-      setAccounts(userAccounts);
+      const allAccountsResponse = await getAllAccounts(user.userId);
+      setAllAccountsData(allAccountsResponse);
       setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('계좌 조회 오류:', error);
@@ -139,7 +144,6 @@ function MyAccount() {
               {user ? (
                 <AccountInfo 
                   onTransferClick={() => setIsTransferModalOpen(true)}
-                  userId={user.userId}
                   key={refreshTrigger}
                 />
               ) : (
@@ -164,7 +168,6 @@ function MyAccount() {
             {user ? (
               <AccountInfo 
                 onTransferClick={() => setIsTransferModalOpen(true)}
-                userId={user.userId}
                 key={refreshTrigger}
               />
             ) : (

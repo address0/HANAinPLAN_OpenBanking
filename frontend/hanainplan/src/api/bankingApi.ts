@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpPut, httpDelete } from '../lib/http';
+import { httpGet, httpPost, httpPut } from '../lib/http';
 
 // 계좌 관련 타입 정의
 export interface BankingAccount {
@@ -132,6 +132,21 @@ export const getActiveBankingAccounts = async (userId: number): Promise<BankingA
 };
 
 // 통합 계좌 조회 (일반 계좌 + IRP 계좌)
+export interface IrpAccountInfo {
+  accountNumber: string;
+  currentBalance: number;
+  accountName?: string;
+  totalContribution?: number;
+  returnRate?: number;
+  investmentStyle?: string;
+  openDate?: string;
+  maturityDate?: string;
+  monthlyDeposit?: number;
+  isAutoDeposit?: boolean;
+  depositDay?: number;
+  linkedMainAccount?: string;
+}
+
 export interface AllAccountsResponse {
   bankingAccounts: BankingAccount[];
   irpAccount?: IrpAccountInfo;
@@ -143,9 +158,8 @@ export interface AllAccountsResponse {
 export const getAllAccounts = async (userId: number): Promise<AllAccountsResponse> => {
   try {
     // 일반 은행 계좌 조회
-    const bankingAccounts = await getActiveBankingAccounts(userId);
-    const totalBankingBalance = bankingAccounts.reduce((total, account) => total + (account.balance || 0), 0);
-
+    const allBankingAccounts = await getActiveBankingAccounts(userId);
+    
     // IRP 계좌 조회 시도
     let irpAccount: IrpAccountInfo | undefined;
     let totalIrpBalance = 0;
@@ -160,6 +174,18 @@ export const getAllAccounts = async (userId: number): Promise<AllAccountsRespons
       // IRP 계좌가 없는 경우는 정상 상황이므로 무시
       console.log('IRP 계좌 없음 또는 조회 실패:', error);
     }
+
+    // IRP 계좌를 일반 계좌에서 제외 (중복 방지)
+    const bankingAccounts = allBankingAccounts.filter(account => {
+      // IRP 계좌는 accountType이 SECURITIES이고 accountName에 "IRP"가 포함된 경우
+      const isIrpAccount = account.accountType === 6 && // SECURITIES
+                          (account.accountName?.includes('IRP') || 
+                           account.description?.includes('IRP') ||
+                           (irpAccount && account.accountNumber === irpAccount.accountNumber));
+      return !isIrpAccount;
+    });
+    
+    const totalBankingBalance = bankingAccounts.reduce((total, account) => total + (account.balance || 0), 0);
 
     return {
       bankingAccounts,

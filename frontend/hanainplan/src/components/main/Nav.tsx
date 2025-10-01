@@ -18,19 +18,25 @@ function Nav() {
       ]
     },
     {
-      label: '상품 보기',
+      label: 'IRP',
       submenu: [
-        { label: 'IRP', path: '/products/irp' },
-        { label: '정기예금', path: '/products/deposit' },
-        { label: '정기적금', path: '/products/savings' },
-        { label: '보험', path: '/products/insurance' }
+        { label: 'IRP 상품소개', path: '/products/irp' },
+        { label: 'IRP 정기예금', path: '/products/deposit' },
+        { label: '나의 퇴직연금', path: '/products/insurance' }
+      ]
+    },
+    {
+      label: '보험',
+      submenu: [
+        { label: '보험상품 목록', path: '/my-account' },
+        { label: '나의 보험', path: '/portfolio' }
       ]
     },
     {
       label: '자산 관리',
       submenu: [
-        { label: '내 계좌', path: '/my-account' },
-        { label: '포트폴리오', path: '/portfolio' },
+        { label: '내 계좌', path: '/life/travel' },
+        { label: '포트폴리오', path: '/life/real-estate' },
         { label: '연금 계산기', path: '/pension-calculator' }
       ]
     },
@@ -40,13 +46,6 @@ function Nav() {
         { label: '상담직원 보기', path: '/consultation/staff' },
         { label: '상담 신청하기', path: '/consultation/request' },
         { label: '내 상담', path: '/consultation/my' }
-      ]
-    },
-    {
-      label: '라이프',
-      submenu: [
-        { label: '여행', path: '/life/travel' },
-        { label: '부동산', path: '/life/real-estate' }
       ]
     }
   ];
