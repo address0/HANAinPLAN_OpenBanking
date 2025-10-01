@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import Nav from '../main/Nav';
 import Footer from '../main/Footer';
 import FloatingButtons from '../main/FloatingButtons';

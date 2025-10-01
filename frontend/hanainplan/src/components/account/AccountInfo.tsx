@@ -1,24 +1,21 @@
 import { useState, useEffect } from 'react';
-import { type BankingAccount, getAllAccounts } from '../../api/bankingApi';
+import { type BankingAccount } from '../../api/bankingApi';
 import { useAccountStore } from '../../store/accountStore';
-import { useBankStore, getBankPatternByPattern } from '../../store/bankStore';
-import type { IrpAccountInfo } from '../../api/productApi';
+import { getBankPatternByPattern } from '../../store/bankStore';
 
 interface AccountInfoProps {
   onTransferClick: () => void;
-  userId: number;
 }
 
-function AccountInfo({ onTransferClick, userId }: AccountInfoProps) {
+function AccountInfo({ onTransferClick }: AccountInfoProps) {
   const {
     accounts,
     selectedAccountId,
     setSelectedAccount,
-    allAccountsData,
-    setAllAccountsData
+    allAccountsData
   } = useAccountStore();
 
-  const [selectedAccount, setLocalSelectedAccount] = useState<BankingAccount | null>(null);
+  const [, setLocalSelectedAccount] = useState<BankingAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // 계좌번호에서 은행 정보 가져오기
@@ -40,22 +37,13 @@ function AccountInfo({ onTransferClick, userId }: AccountInfoProps) {
     return colorMap[bankCode] || 'bg-gray-500';
   };
 
-  // 모든 계좌 조회 함수
-  const fetchAllAccounts = async () => {
-    try {
-      setIsLoading(true);
-      const response = await getAllAccounts(userId);
-      setAllAccountsData(response);
-    } catch (error) {
-      console.error('모든 계좌 조회 실패:', error);
-    } finally {
+  useEffect(() => {
+    // 이미 MyAccount에서 getAllAccounts를 호출하므로 별도 호출 불필요
+    // allAccountsData가 있으면 로딩 완료
+    if (allAccountsData) {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchAllAccounts();
-  }, [userId]);
+  }, [allAccountsData]);
 
   useEffect(() => {
     if (accounts.length > 0) {

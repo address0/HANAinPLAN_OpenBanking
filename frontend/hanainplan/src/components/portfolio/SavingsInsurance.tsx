@@ -65,29 +65,41 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
               <h3 className="text-lg font-hana-bold text-gray-900">IRP 계좌</h3>
               <span className="text-sm text-hana-green font-hana-medium">세제혜택</span>
             </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 font-hana-medium">현재 잔액</span>
-                <span className="text-2xl font-hana-bold text-gray-900">
-                  {formatCurrency(savings.irp)}
-                </span>
+            {savings.irp > 0 ? (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-hana-medium">현재 잔액</span>
+                  <span className="text-2xl font-hana-bold text-gray-900">
+                    {formatCurrency(savings.irp)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-hana-medium">세제 혜택</span>
+                  <span className="text-hana-green font-hana-bold">₩450,000/년</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-hana-medium">예상 수익률</span>
+                  <span className="text-hana-green font-hana-bold">+₩480,000</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-hana-green h-2 rounded-full" 
+                    style={{ width: '60%' }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500">목표 달성률: 60%</p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 font-hana-medium">세제 혜택</span>
-                <span className="text-hana-green font-hana-bold">₩450,000/년</span>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500 font-hana-medium mb-3">개설된 IRP 계좌가 없습니다</p>
+                <button 
+                  onClick={() => window.location.href = '/products/irp'}
+                  className="bg-hana-green text-white px-4 py-2 rounded-lg font-hana-medium hover:bg-hana-green/90 transition-colors"
+                >
+                  IRP 계좌 개설하기
+                </button>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 font-hana-medium">예상 수익률</span>
-                <span className="text-hana-green font-hana-bold">+₩480,000</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-hana-green h-2 rounded-full" 
-                  style={{ width: '60%' }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-500">목표 달성률: 60%</p>
-            </div>
+            )}
           </div>
         </div>
 
