@@ -19,12 +19,12 @@ public class IrpAccountRequest {
     private String customerCi;
 
     @NotNull(message = "초기 납입금액은 필수입니다")
-    @DecimalMin(value = "50.00", message = "초기 납입금액은 최소 50만원 이상이어야 합니다")
-    @DecimalMax(value = "1000.00", message = "초기 납입금액은 최대 1,000만원 이하여야 합니다")
+    @DecimalMin(value = "500000", message = "초기 납입금액은 최소 50만원 이상이어야 합니다")
+    @DecimalMax(value = "10000000", message = "초기 납입금액은 최대 1,000만원 이하여야 합니다")
     private BigDecimal initialDeposit;
 
-    @DecimalMin(value = "0.00", message = "월 납입금액은 0원 이상이어야 합니다")
-    @DecimalMax(value = "1000.00", message = "월 납입금액은 최대 1,000만원 이하여야 합니다")
+    @DecimalMin(value = "0", message = "월 납입금액은 0원 이상이어야 합니다")
+    @DecimalMax(value = "10000000", message = "월 납입금액은 최대 1,000만원 이하여야 합니다")
     private BigDecimal monthlyDeposit;
 
     @NotNull(message = "자동납입 여부는 필수입니다")

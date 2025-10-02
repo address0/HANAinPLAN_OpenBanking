@@ -4,10 +4,7 @@ import com.hanainplan.domain.banking.dto.IrpAccountDto;
 import com.hanainplan.domain.banking.dto.IrpAccountOpenRequestDto;
 import com.hanainplan.domain.banking.dto.IrpAccountOpenResponseDto;
 import com.hanainplan.domain.banking.dto.IrpAccountStatusResponseDto;
-import com.hanainplan.domain.banking.dto.IrpProductDto;
 import com.hanainplan.domain.banking.entity.IrpAccount;
-import com.hanainplan.domain.banking.entity.IrpProduct;
-import com.hanainplan.domain.banking.entity.IrpSyncLog;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -91,86 +88,12 @@ public interface IrpIntegrationService {
      */
     long getActiveIrpAccountCountByCustomerId(Long customerId);
 
-    // ===== 상품 관리 =====
-
-    /**
-     * 모든 은행의 IRP 상품 조회
-     */
-    List<IrpProductDto> getAllIrpProducts();
-
-    /**
-     * 특정 은행의 IRP 상품 조회
-     */
-    List<IrpProductDto> getBankIrpProducts(String bankCode);
-
-    /**
-     * 판매 중인 IRP 상품 조회
-     */
-    List<IrpProductDto> getAvailableIrpProducts();
-
-    /**
-     * IRP 상품 상세 조회
-     */
-    IrpProductDto getIrpProductDetail(Long irpProductId);
-
-    /**
-     * 상품명으로 IRP 상품 검색
-     */
-    List<IrpProductDto> searchIrpProducts(String keyword);
-
-    // ===== 동기화 관리 =====
-
-    /**
-     * 모든 은행 IRP 데이터 전체 동기화
-     */
-    IrpSyncLog syncAllIrpData();
-
-    /**
-     * 특정 은행 IRP 데이터 동기화
-     */
-    IrpSyncLog syncBankIrpData(String bankCode);
-
-    /**
-     * 특정 고객 IRP 데이터 동기화 (CI 기반)
-     */
-    IrpSyncLog syncCustomerIrpData(String customerCi);
-
-    /**
-     * 특정 고객 IRP 데이터 동기화 (고객 ID 기반)
-     */
-    IrpSyncLog syncCustomerIrpDataByCustomerId(Long customerId);
-
-    /**
-     * 특정 동기화 로그 조회
-     */
-    IrpSyncLog getSyncLog(Long syncLogId);
-
-    /**
-     * 최근 동기화 로그 조회
-     */
-    List<IrpSyncLog> getRecentSyncLogs(int limit);
-
-    /**
-     * 은행별 동기화 통계 조회
-     */
-    Map<String, Object> getSyncStatistics();
-
-    /**
-     * 동기화 실패 로그 재시도
-     */
-    IrpSyncLog retryFailedSync(Long syncLogId);
-
     // ===== 통계 및 분석 =====
 
     /**
      * 은행별 IRP 계좌 통계
      */
     Map<String, Object> getIrpAccountStatistics();
-
-    /**
-     * 은행별 IRP 상품 통계
-     */
-    Map<String, Object> getIrpProductStatistics();
 
     /**
      * 고객별 IRP 포트폴리오 요약
@@ -187,19 +110,13 @@ public interface IrpIntegrationService {
      */
     Map<String, Object> getTotalIrpBalanceByBank();
 
-    // ===== 은행별 서비스 연동 =====
-
-    /**
-     * 하나은행 IRP 서비스 연동
-     */
-    void syncHanaBankIrpData();
-
     // ===== 배치 작업 =====
 
     /**
-     * 일일 IRP 동기화 배치 작업
+     * 주간 IRP 데이터 배치 동기화
+     * TODO: OpenFeign으로 마이그레이션 필요
      */
-    void dailyIrpSyncBatch();
+    // void weeklyIrpDataSyncBatch();
 
     /**
      * 월별 IRP 통계 생성 배치 작업

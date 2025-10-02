@@ -17,8 +17,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TransactionHistoryRequestDto {
     
-    @NotNull(message = "계좌 ID는 필수입니다")
-    private Long accountId;
+    private Long accountId; // 기존 호환성을 위해 유지
+
+    private String accountNumber; // 계좌번호 기반 조회용
     
     private Transaction.TransactionType transactionType;
     

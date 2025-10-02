@@ -32,6 +32,11 @@ public interface IrpAccountRepository extends JpaRepository<IrpAccount, Long> {
     Optional<IrpAccount> findByAccountNumber(String accountNumber);
 
     /**
+     * 고객 CI와 계좌번호로 IRP 계좌 조회
+     */
+    Optional<IrpAccount> findByCustomerCiAndAccountNumber(String customerCi, String accountNumber);
+
+    /**
      * 활성화된 IRP 계좌 조회
      */
     List<IrpAccount> findByAccountStatusOrderByCreatedDateDesc(String accountStatus);
@@ -98,4 +103,9 @@ public interface IrpAccountRepository extends JpaRepository<IrpAccount, Long> {
      */
     @Query("SELECT COUNT(ia) > 0 FROM IrpAccount ia WHERE ia.customerId = :customerId")
     boolean existsByCustomerId(@Param("customerId") Long customerId);
+
+    /**
+     * 고객 ID와 계좌 상태로 IRP 계좌 조회
+     */
+    Optional<IrpAccount> findByCustomerIdAndAccountStatus(Long customerId, String accountStatus);
 }

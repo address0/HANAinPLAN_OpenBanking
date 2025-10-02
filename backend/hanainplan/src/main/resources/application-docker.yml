@@ -27,15 +27,6 @@ spring:
       username: ${MONGO_ROOT_USERNAME}
       password: ${MONGO_ROOT_PASSWORD}
 
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    consumer:
-      group-id: hanainplan-service
-      auto-offset-reset: earliest
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
 server:
   port: 8080
 

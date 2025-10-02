@@ -42,15 +42,6 @@ spring:
       username: ${MONGO_ROOT_USERNAME}
       password: ${MONGO_ROOT_PASSWORD}
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: hanainplan-local
-      auto-offset-reset: earliest
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
 # 로컬 개발용 로깅 설정
 logging:
   level:

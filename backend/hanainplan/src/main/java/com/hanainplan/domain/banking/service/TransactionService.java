@@ -242,25 +242,40 @@ public class TransactionService {
     // 거래 내역 조회
     @Transactional(readOnly = true)
     public Page<TransactionDto> getTransactionHistory(TransactionHistoryRequestDto request) {
-        log.info("거래 내역 조회 - 계좌 ID: {}, 페이지: {}, 크기: {}", 
-                request.getAccountId(), request.getPage(), request.getSize());
-        
+        log.info("거래 내역 조회 - 계좌 ID: {}, 계좌번호: {}, 페이지: {}, 크기: {}",
+                request.getAccountId(), request.getAccountNumber(), request.getPage(), request.getSize());
+
         // 정렬 설정
         Sort sort = Sort.by(Sort.Direction.fromString(request.getSortDirection()), request.getSortBy());
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
-        
+
         Page<Transaction> transactions;
-        
-        if (request.getStartDate() != null && request.getEndDate() != null) {
-            // 기간별 조회
-            transactions = transactionRepository.findTransactionsByAccountAndDateRange(
-                    request.getAccountId(), request.getStartDate(), request.getEndDate(), pageable);
+
+        // 계좌번호가 제공되면 계좌번호로 조회, 그렇지 않으면 계좌 ID로 조회
+        if (request.getAccountNumber() != null && !request.getAccountNumber().isEmpty()) {
+            // 계좌번호로 조회
+            if (request.getStartDate() != null && request.getEndDate() != null) {
+                // 기간별 조회
+                transactions = transactionRepository.findByAccountNumberAndDateRange(
+                        request.getAccountNumber(), request.getStartDate(), request.getEndDate(), pageable);
+            } else {
+                // 전체 조회
+                transactions = transactionRepository.findByAccountNumberOrderByTransactionDateDesc(
+                        request.getAccountNumber(), pageable);
+            }
         } else {
-            // 전체 조회
-            transactions = transactionRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(
-                    request.getAccountId(), request.getAccountId(), pageable);
+            // 기존 계좌 ID로 조회 (하위 호환성 유지)
+            if (request.getStartDate() != null && request.getEndDate() != null) {
+                // 기간별 조회
+                transactions = transactionRepository.findTransactionsByAccountAndDateRange(
+                        request.getAccountId(), request.getStartDate(), request.getEndDate(), pageable);
+            } else {
+                // 전체 조회
+                transactions = transactionRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(
+                        request.getAccountId(), request.getAccountId(), pageable);
+            }
         }
-        
+
         return transactions.map(TransactionDto::fromEntity);
     }
     
