@@ -99,7 +99,8 @@ export interface TransactionResponse {
 }
 
 export interface TransactionHistoryRequest {
-  accountId: number;
+  accountNumber?: string; // 계좌번호 기반 조회용 (주요 사용)
+  accountId?: number; // 기존 호환성을 위해 유지
   transactionType?: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'AUTO_TRANSFER' | 'INTEREST' | 'FEE' | 'REFUND' | 'REVERSAL';
   transactionCategory?: 'SALARY' | 'PENSION' | 'SAVINGS' | 'INVESTMENT' | 'LOAN' | 'INSURANCE' | 'UTILITY' | 'SHOPPING' | 'FOOD' | 'TRANSPORT' | 'MEDICAL' | 'EDUCATION' | 'ENTERTAINMENT' | 'OTHER';
   startDate?: string;

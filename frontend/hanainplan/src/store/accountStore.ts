@@ -4,6 +4,7 @@ import type { BankingAccount, AllAccountsResponse } from '../api/bankingApi';
 interface AccountStore {
   accounts: BankingAccount[];
   selectedAccountId: number | null;
+  selectedAccountType: 'BANKING' | 'IRP' | null;
   isLoading: boolean;
   error: string | null;
   // 모든 계좌 관련 상태
@@ -14,7 +15,7 @@ interface AccountStore {
   addAccount: (account: BankingAccount) => void;
   updateAccount: (accountId: number, updates: Partial<BankingAccount>) => void;
   removeAccount: (accountId: number) => void;
-  setSelectedAccount: (accountId: number | null) => void;
+  setSelectedAccount: (accountId: number | null, accountType?: 'BANKING' | 'IRP') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearAccounts: () => void;
@@ -28,6 +29,7 @@ interface AccountStore {
 export const useAccountStore = create<AccountStore>((set) => ({
   accounts: [],
   selectedAccountId: null,
+  selectedAccountType: null,
   isLoading: false,
   error: null,
   allAccountsData: null,
@@ -51,10 +53,13 @@ export const useAccountStore = create<AccountStore>((set) => ({
       accounts: state.accounts.filter((account) => account.accountId !== accountId),
       selectedAccountId: state.selectedAccountId === accountId ? null : state.selectedAccountId,
     })),
-  setSelectedAccount: (accountId: number | null) => set({ selectedAccountId: accountId }),
+  setSelectedAccount: (accountId: number | null, accountType?: 'BANKING' | 'IRP') => set({
+    selectedAccountId: accountId,
+    selectedAccountType: accountType || null
+  }),
   setLoading: (loading: boolean) => set({ isLoading: loading }),
   setError: (error: string | null) => set({ error }),
-  clearAccounts: () => set({ accounts: [], selectedAccountId: null, error: null }),
+  clearAccounts: () => set({ accounts: [], selectedAccountId: null, selectedAccountType: null, error: null }),
 
   // 모든 계좌 관련 함수들
   setAllAccountsData: (data: AllAccountsResponse) => set({
@@ -68,6 +73,7 @@ export const useAccountStore = create<AccountStore>((set) => ({
     allAccountsData: null,
     hasIrpAccount: false,
     accounts: [],
-    selectedAccountId: null
+    selectedAccountId: null,
+    selectedAccountType: null
   }),
 }));

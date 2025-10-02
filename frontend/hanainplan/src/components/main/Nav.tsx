@@ -28,15 +28,15 @@ function Nav() {
     {
       label: '보험',
       submenu: [
-        { label: '보험상품 목록', path: '/my-account' },
-        { label: '나의 보험', path: '/portfolio' }
+        { label: '보험상품 목록', path: '/products/insurance' },
+        { label: '나의 보험', path: '/products/insurance' }
       ]
     },
     {
       label: '자산 관리',
       submenu: [
-        { label: '내 계좌', path: '/life/travel' },
-        { label: '포트폴리오', path: '/life/real-estate' },
+        { label: '내 계좌', path: '/my-account' },
+        { label: '포트폴리오', path: '/portfolio' },
         { label: '연금 계산기', path: '/pension-calculator' }
       ]
     },
