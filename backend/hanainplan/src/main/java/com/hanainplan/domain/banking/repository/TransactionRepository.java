@@ -104,4 +104,36 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t FROM Transaction t WHERE (t.fromAccountId = :accountId OR t.toAccountId = :accountId) " +
            "AND t.transactionStatus = 'FAILED' ORDER BY t.transactionDate DESC")
     List<Transaction> findFailedTransactions(@Param("accountId") Long accountId);
+    
+    // 계좌별 최근 거래 1건 조회 (거래내역 동기화용)
+    @Query("SELECT t FROM Transaction t JOIN BankingAccount a ON (t.fromAccountId = a.accountId OR t.toAccountId = a.accountId) " +
+           "WHERE a.accountNumber = :accountNumber ORDER BY t.transactionDate DESC")
+    List<Transaction> findTop1ByAccountAccountNumberOrderByTransactionDateDesc(@Param("accountNumber") String accountNumber);
+
+    // 계좌번호로 거래 내역 조회 (페이징)
+    @Query("SELECT t FROM Transaction t JOIN BankingAccount a ON (t.fromAccountId = a.accountId OR t.toAccountId = a.accountId) " +
+           "WHERE a.accountNumber = :accountNumber ORDER BY t.transactionDate DESC")
+    Page<Transaction> findByAccountNumberOrderByTransactionDateDesc(@Param("accountNumber") String accountNumber, Pageable pageable);
+
+    // 계좌번호로 거래 내역 조회 (전체)
+    @Query("SELECT t FROM Transaction t JOIN BankingAccount a ON (t.fromAccountId = a.accountId OR t.toAccountId = a.accountId) " +
+           "WHERE a.accountNumber = :accountNumber ORDER BY t.transactionDate DESC")
+    List<Transaction> findByAccountNumberOrderByTransactionDateDesc(@Param("accountNumber") String accountNumber);
+
+    // 계좌번호와 기간으로 거래 내역 조회 (페이징)
+    @Query("SELECT t FROM Transaction t JOIN BankingAccount a ON (t.fromAccountId = a.accountId OR t.toAccountId = a.accountId) " +
+           "WHERE a.accountNumber = :accountNumber AND t.transactionDate BETWEEN :startDate AND :endDate ORDER BY t.transactionDate DESC")
+    Page<Transaction> findByAccountNumberAndDateRange(
+        @Param("accountNumber") String accountNumber,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate,
+        Pageable pageable);
+
+    // 계좌번호와 기간으로 거래 내역 조회 (전체)
+    @Query("SELECT t FROM Transaction t JOIN BankingAccount a ON (t.fromAccountId = a.accountId OR t.toAccountId = a.accountId) " +
+           "WHERE a.accountNumber = :accountNumber AND t.transactionDate BETWEEN :startDate AND :endDate ORDER BY t.transactionDate DESC")
+    List<Transaction> findByAccountNumberAndDateRange(
+        @Param("accountNumber") String accountNumber,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 }

@@ -125,11 +125,6 @@ public class ProductSubscription {
     @JoinColumn(name = "account_number", referencedColumnName = "account_number", insertable = false, updatable = false)
     private Account account;
 
-    // 금융상품과의 관계 (다대일)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_code", referencedColumnName = "product_code", insertable = false, updatable = false)
-    private FinancialProduct financialProduct;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -60,9 +60,10 @@ public class TransactionController {
     }
     
     @GetMapping("/history")
-    @Operation(summary = "거래 내역 조회", description = "계좌의 거래 내역을 조회합니다")
+    @Operation(summary = "거래 내역 조회", description = "계좌의 거래 내역을 조회합니다 (계좌번호 또는 계좌 ID 사용)")
     public ResponseEntity<Page<TransactionDto>> getTransactionHistory(
-            @Parameter(description = "계좌 ID") @RequestParam Long accountId,
+            @Parameter(description = "계좌번호 (우선 사용)") @RequestParam(required = false) String accountNumber,
+            @Parameter(description = "계좌 ID (하위 호환성)") @RequestParam(required = false) Long accountId,
             @Parameter(description = "거래 유형") @RequestParam(required = false) Transaction.TransactionType transactionType,
             @Parameter(description = "거래 카테고리") @RequestParam(required = false) Transaction.TransactionCategory transactionCategory,
             @Parameter(description = "시작 날짜") @RequestParam(required = false) String startDate,
@@ -72,10 +73,16 @@ public class TransactionController {
             @Parameter(description = "정렬 기준") @RequestParam(defaultValue = "transactionDate") String sortBy,
             @Parameter(description = "정렬 방향") @RequestParam(defaultValue = "DESC") String sortDirection) {
         
-        log.info("거래 내역 조회 API 호출 - 계좌 ID: {}, 페이지: {}", accountId, page);
+        log.info("거래 내역 조회 API 호출 - 계좌번호: {}, 계좌 ID: {}, 페이지: {}", accountNumber, accountId, page);
+        
+        // 계좌번호와 계좌 ID 중 하나는 필수
+        if (accountNumber == null && accountId == null) {
+            throw new IllegalArgumentException("계좌번호 또는 계좌 ID 중 하나는 필수입니다");
+        }
         
         // DTO 생성
         TransactionHistoryRequestDto request = TransactionHistoryRequestDto.builder()
+                .accountNumber(accountNumber)
                 .accountId(accountId)
                 .transactionType(transactionType)
                 .transactionCategory(transactionCategory)

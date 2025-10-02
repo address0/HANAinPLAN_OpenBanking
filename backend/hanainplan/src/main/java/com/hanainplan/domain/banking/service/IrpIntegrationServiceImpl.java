@@ -4,26 +4,22 @@ import com.hanainplan.domain.banking.dto.IrpAccountDto;
 import com.hanainplan.domain.banking.dto.IrpAccountOpenRequestDto;
 import com.hanainplan.domain.banking.dto.IrpAccountOpenResponseDto;
 import com.hanainplan.domain.banking.dto.IrpAccountStatusResponseDto;
-import com.hanainplan.domain.banking.dto.IrpProductDto;
+import com.hanainplan.domain.banking.entity.BankingAccount;
 import com.hanainplan.domain.banking.entity.IrpAccount;
-import com.hanainplan.domain.banking.entity.IrpProduct;
-import com.hanainplan.domain.banking.entity.IrpSyncLog;
+import com.hanainplan.domain.banking.entity.Transaction;
+import com.hanainplan.domain.banking.client.HanaBankClient;
+import com.hanainplan.domain.banking.repository.AccountRepository;
 import com.hanainplan.domain.banking.repository.IrpAccountRepository;
-import com.hanainplan.domain.banking.repository.IrpProductRepository;
-import com.hanainplan.domain.banking.repository.IrpSyncLogRepository;
+import com.hanainplan.domain.banking.repository.TransactionRepository;
 import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -42,13 +38,10 @@ import java.util.stream.Collectors;
 public class IrpIntegrationServiceImpl implements IrpIntegrationService {
 
     private final IrpAccountRepository irpAccountRepository;
-    private final IrpProductRepository irpProductRepository;
-    private final IrpSyncLogRepository irpSyncLogRepository;
     private final UserRepository userRepository;
-    private final RestTemplate restTemplate;
-
-    @Value("${external.api.hana-bank.base-url:http://localhost:8081}")
-    private String hanaBankBaseUrl;
+    private final HanaBankClient hanaBankClient;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
 
     // ===== 계좌 관리 =====
 
@@ -167,36 +160,91 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         }
 
         try {
-            // 3. 하나은행 서버에 IRP 계좌 개설 요청
-            IrpAccountOpenResponseDto bankResponse = openIrpAccountAtHanaBank(request);
-
-            if (!bankResponse.isSuccess()) {
-                return bankResponse;
-            }
-
-            // 4. 하나은행 서버에서 성공적으로 계좌가 생성되었으므로 HANAinPLAN DB에 저장
+            // 3. 먼저 HANAinPLAN DB에 IRP 계좌 정보 저장 (계좌번호는 임시)
+            BigDecimal initialDepositAmount = BigDecimal.valueOf(request.getInitialDeposit());
+            String tempAccountNumber = "TEMP-" + System.currentTimeMillis();
+            
             IrpAccount account = IrpAccount.builder()
                     .customerId(request.getCustomerId())
                     .customerCi(customerCi)
-                    .bankCode("HANA") // 하나은행 계좌이므로 HANA로 설정
-                    .accountNumber(bankResponse.getAccountNumber())
-                    .accountStatus("ACTIVE")
-                    .initialDeposit(BigDecimal.valueOf(request.getInitialDeposit()))
+                    .bankCode("HANA")
+                    .accountNumber(tempAccountNumber) // 임시 계좌번호
+                    .accountStatus("PENDING") // 하나은행 생성 전이므로 PENDING
+                    .initialDeposit(initialDepositAmount)
+                    .currentBalance(initialDepositAmount)
+                    .totalContribution(initialDepositAmount)
                     .monthlyDeposit(request.getMonthlyDeposit() != null ? BigDecimal.valueOf(request.getMonthlyDeposit()) : BigDecimal.ZERO)
                     .isAutoDeposit(request.getIsAutoDeposit())
                     .depositDay(request.getDepositDay())
                     .investmentStyle(request.getInvestmentStyle())
                     .linkedMainAccount(request.getLinkedMainAccount())
-                    .productCode("IRP001") // 기본 상품 코드 설정
-                    .productName("하나은행 IRP") // 기본 상품명
+                    .productCode("IRP001")
+                    .productName("하나은행 IRP")
                     .openDate(LocalDate.now())
-                    .syncStatus("SUCCESS")
-                    .externalAccountId(bankResponse.getAccountNumber()) // 은행 계좌번호 저장
-                    .externalLastUpdated(LocalDateTime.now())
+                    .lastContributionDate(LocalDate.now())
+                    .syncStatus("PENDING")
                     .build();
 
-            // 5. HANAinPLAN 데이터베이스에 저장
-            irpAccountRepository.save(account);
+            // 4. HANAinPLAN 데이터베이스에 저장 (임시)
+            IrpAccount savedAccount = irpAccountRepository.save(account);
+            
+            log.info("하나인플랜 IRP 계좌 임시 저장 완료 - 임시 계좌번호: {}", tempAccountNumber);
+
+            // 5. 연결된 주계좌에서 출금 처리 (하나인플랜 DB)
+            BankingAccount linkedAccount = accountRepository.findByAccountNumber(request.getLinkedMainAccount())
+                    .orElseThrow(() -> new RuntimeException("연결 주계좌를 찾을 수 없습니다: " + request.getLinkedMainAccount()));
+            
+            BigDecimal newLinkedBalance = linkedAccount.getBalance().subtract(initialDepositAmount);
+            if (newLinkedBalance.compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("연결 주계좌 잔액이 부족합니다");
+            }
+            
+            linkedAccount.setBalance(newLinkedBalance);
+            accountRepository.save(linkedAccount);
+            
+            log.info("하나인플랜 연결 주계좌 출금 완료 - 계좌: {}, 출금액: {}원, 남은 잔액: {}원", 
+                    request.getLinkedMainAccount(), initialDepositAmount, newLinkedBalance);
+
+            // 6. 하나은행 서버에 IRP 계좌 개설 요청
+            IrpAccountOpenResponseDto bankResponse = openIrpAccountAtHanaBank(request);
+
+            if (!bankResponse.isSuccess()) {
+                // 하나은행 생성 실패 시 롤백
+                linkedAccount.setBalance(linkedAccount.getBalance().add(initialDepositAmount));
+                accountRepository.save(linkedAccount);
+                irpAccountRepository.delete(savedAccount);
+                return bankResponse;
+            }
+
+            // 7. 실제 계좌번호로 업데이트
+            savedAccount.setAccountNumber(bankResponse.getAccountNumber());
+            savedAccount.setAccountStatus("ACTIVE");
+            savedAccount.setSyncStatus("SUCCESS");
+            savedAccount.setExternalAccountId(bankResponse.getAccountNumber());
+            savedAccount.setExternalLastUpdated(LocalDateTime.now());
+            irpAccountRepository.save(savedAccount);
+            
+            log.info("하나인플랜 IRP 계좌번호 업데이트 완료 - 실제 계좌번호: {}", bankResponse.getAccountNumber());
+
+            // 8. IRP 계좌를 일반 계좌 테이블에도 등록 (account_type=6: IRP)
+            BankingAccount irpBankingAccount = BankingAccount.builder()
+                    .userId(request.getCustomerId())
+                    .customerCi(customerCi)
+                    .accountNumber(bankResponse.getAccountNumber())
+                    .accountName("IRP 연금저축")
+                    .accountType(6) // IRP 계좌
+                    .accountStatus(BankingAccount.AccountStatus.ACTIVE)
+                    .balance(initialDepositAmount)
+                    .currencyCode("KRW")
+                    .openedDate(LocalDateTime.now())
+                    .description("하나은행 IRP 계좌")
+                    .build();
+            accountRepository.save(irpBankingAccount);
+            
+            log.info("IRP 계좌를 일반 계좌 테이블에 등록 완료 - 계좌번호: {}, account_type: 6", bankResponse.getAccountNumber());
+
+            // 9. 거래내역 생성 - IRP 계좌에 입금(+), 연결 주계좌에 출금(-)
+            createIrpAccountOpenTransactions(request, customerCi, bankResponse.getAccountNumber(), irpBankingAccount, linkedAccount);
 
             log.info("IRP 계좌 개설 완료 - 계좌번호: {}, 고객 CI: {}", bankResponse.getAccountNumber(), customerCi);
 
@@ -264,234 +312,6 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         return irpAccountRepository.countActiveAccountsByCustomerCi(user.getCi());
     }
 
-    // ===== 상품 관리 =====
-
-    @Override
-    public List<IrpProductDto> getAllIrpProducts() {
-        List<IrpProduct> products = irpProductRepository.findByIsActiveTrueOrderByBankCodeAscProductNameAsc();
-        return products.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<IrpProductDto> getBankIrpProducts(String bankCode) {
-        List<IrpProduct> products = irpProductRepository.findByBankCodeAndIsActiveTrueOrderByCreatedDateDesc(bankCode);
-        return products.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<IrpProductDto> getAvailableIrpProducts() {
-        List<IrpProduct> products = irpProductRepository.findAvailableProducts();
-        return products.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public IrpProductDto getIrpProductDetail(Long irpProductId) {
-        Optional<IrpProduct> productOpt = irpProductRepository.findById(irpProductId);
-        return productOpt.map(this::convertToDto).orElse(null);
-    }
-
-    @Override
-    public List<IrpProductDto> searchIrpProducts(String keyword) {
-        List<IrpProduct> products = irpProductRepository.findByProductNameContainingIgnoreCaseOrderByBankCodeAscProductNameAsc(keyword);
-        return products.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-
-    // ===== 동기화 관리 =====
-
-    @Override
-    @Transactional
-    public IrpSyncLog syncAllIrpData() {
-        log.info("전체 IRP 데이터 동기화 시작");
-
-        IrpSyncLog syncLog = IrpSyncLog.builder()
-                .syncType("FULL")
-                .syncTarget("ALL")
-                .syncStatus("RUNNING")
-                .triggerSource("SCHEDULED")
-                .isManual(false)
-                .build();
-
-        syncLog = irpSyncLogRepository.save(syncLog);
-        syncLog.startSync();
-
-        try {
-            // 하나은행 IRP 데이터 동기화
-            syncHanaBankIrpData();
-
-            syncLog.completeSync();
-            log.info("전체 IRP 데이터 동기화 완료");
-
-        } catch (Exception e) {
-            log.error("전체 IRP 데이터 동기화 실패", e);
-            syncLog.failSync(e.getMessage(), e.getStackTrace().toString());
-        }
-
-        return irpSyncLogRepository.save(syncLog);
-    }
-
-    @Override
-    @Transactional
-    public IrpSyncLog syncBankIrpData(String bankCode) {
-        log.info("{} 은행 IRP 데이터 동기화 시작", bankCode);
-
-        IrpSyncLog syncLog = IrpSyncLog.builder()
-                .syncType("INCREMENTAL")
-                .bankCode(bankCode)
-                .syncTarget("ALL")
-                .syncStatus("RUNNING")
-                .triggerSource("API")
-                .isManual(true)
-                .build();
-
-        syncLog = irpSyncLogRepository.save(syncLog);
-        syncLog.startSync();
-
-        try {
-            if ("HANA".equalsIgnoreCase(bankCode)) {
-                syncHanaBankIrpData();
-            } else {
-                throw new IllegalArgumentException("지원하지 않는 은행 코드: " + bankCode + ". 현재 HANA 은행만 지원됩니다.");
-            }
-
-            syncLog.completeSync();
-            log.info("{} 은행 IRP 데이터 동기화 완료", bankCode);
-
-        } catch (Exception e) {
-            log.error("{} 은행 IRP 데이터 동기화 실패", bankCode, e);
-            syncLog.failSync(e.getMessage(), e.getStackTrace().toString());
-        }
-
-        return irpSyncLogRepository.save(syncLog);
-    }
-
-    @Override
-    @Transactional
-    public IrpSyncLog syncCustomerIrpData(String customerCi) {
-        log.info("고객 {} IRP 데이터 동기화 시작", customerCi);
-
-        IrpSyncLog syncLog = IrpSyncLog.builder()
-                .syncType("INCREMENTAL")
-                .customerCi(customerCi)
-                .syncTarget("ACCOUNT")
-                .syncStatus("RUNNING")
-                .triggerSource("API")
-                .isManual(true)
-                .build();
-
-        syncLog = irpSyncLogRepository.save(syncLog);
-        syncLog.startSync();
-
-        try {
-            // 하나은행에서 해당 고객의 IRP 계좌 정보 조회
-            syncCustomerFromHanaBank(customerCi);
-
-            syncLog.completeSync();
-            log.info("고객 {} IRP 데이터 동기화 완료", customerCi);
-
-        } catch (Exception e) {
-            log.error("고객 {} IRP 데이터 동기화 실패", customerCi, e);
-            syncLog.failSync(e.getMessage(), e.getStackTrace().toString());
-        }
-
-        return irpSyncLogRepository.save(syncLog);
-    }
-
-    @Override
-    @Transactional
-    public IrpSyncLog syncCustomerIrpDataByCustomerId(Long customerId) {
-        log.info("고객 {} IRP 데이터 동기화 시작", customerId);
-
-        IrpSyncLog syncLog = IrpSyncLog.builder()
-                .syncType("INCREMENTAL")
-                .customerId(customerId)
-                .syncTarget("ACCOUNT")
-                .syncStatus("RUNNING")
-                .triggerSource("API")
-                .isManual(true)
-                .build();
-
-        syncLog = irpSyncLogRepository.save(syncLog);
-        syncLog.startSync();
-
-        try {
-            // 하나은행에서 해당 고객의 IRP 계좌 정보 조회
-            syncCustomerFromHanaBankByCustomerId(customerId);
-
-            syncLog.completeSync();
-            log.info("고객 {} IRP 데이터 동기화 완료", customerId);
-
-        } catch (Exception e) {
-            log.error("고객 {} IRP 데이터 동기화 실패", customerId, e);
-            syncLog.failSync(e.getMessage(), e.getStackTrace().toString());
-        }
-
-        return irpSyncLogRepository.save(syncLog);
-    }
-
-    @Override
-    public IrpSyncLog getSyncLog(Long syncLogId) {
-        return irpSyncLogRepository.findById(syncLogId).orElse(null);
-    }
-
-    @Override
-    public List<IrpSyncLog> getRecentSyncLogs(int limit) {
-        return irpSyncLogRepository.findAll(org.springframework.data.domain.PageRequest.of(0, limit))
-                .getContent();
-    }
-
-    @Override
-    public Map<String, Object> getSyncStatistics() {
-        LocalDateTime since = LocalDateTime.now().minusDays(30);
-
-        List<Object[]> stats = irpSyncLogRepository.getSyncStatistics(since);
-        List<Object[]> successRates = irpSyncLogRepository.getSyncSuccessRateByBank(since);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("syncStatistics", stats);
-        result.put("successRates", successRates);
-
-        return result;
-    }
-
-    @Override
-    @Transactional
-    public IrpSyncLog retryFailedSync(Long syncLogId) {
-        IrpSyncLog failedSync = irpSyncLogRepository.findById(syncLogId)
-                .orElseThrow(() -> new IllegalArgumentException("동기화 로그를 찾을 수 없습니다: " + syncLogId));
-
-        if (!failedSync.canRetry()) {
-            throw new IllegalStateException("재시도 가능한 횟수를 초과했습니다");
-        }
-
-        failedSync.incrementRetry();
-        failedSync.startSync();
-
-        try {
-            // 실패한 동기화 재시도 (하나은행만 지원)
-            if ("HANA".equals(failedSync.getBankCode())) {
-                syncHanaBankIrpData();
-            } else {
-                throw new IllegalArgumentException("지원하지 않는 은행 코드: " + failedSync.getBankCode());
-            }
-
-            failedSync.completeSync();
-
-        } catch (Exception e) {
-            log.error("동기화 재시도 실패", e);
-            failedSync.failSync(e.getMessage(), e.getStackTrace().toString());
-        }
-
-        return irpSyncLogRepository.save(failedSync);
-    }
-
     // ===== 통계 및 분석 =====
 
     @Override
@@ -500,16 +320,6 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("accountStatistics", stats);
-
-        return result;
-    }
-
-    @Override
-    public Map<String, Object> getIrpProductStatistics() {
-        List<Object[]> stats = irpProductRepository.getIrpProductStatisticsByBank();
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("productStatistics", stats);
 
         return result;
     }
@@ -574,86 +384,19 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         return result;
     }
 
-    // ===== 은행별 서비스 연동 =====
-
-    @Override
-    @Transactional
-    public void syncHanaBankIrpData() {
-        log.info("하나은행 IRP 데이터 동기화 시작");
-
-        try {
-            // 1. 상품 정보 동기화
-            syncHanaBankIrpProducts();
-
-            // 2. 계좌 정보 동기화 (최근 변경된 계좌만)
-            syncHanaBankIrpAccounts();
-
-            log.info("하나은행 IRP 데이터 동기화 완료");
-
-        } catch (Exception e) {
-            log.error("하나은행 IRP 데이터 동기화 실패", e);
-            throw e;
-        }
-    }
-
-    /**
-     * 하나은행 IRP 상품 정보 동기화
-     */
-    private void syncHanaBankIrpProducts() {
-        try {
-            String url = hanaBankBaseUrl + "/api/v1/irp/products";
-            ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), List.class);
-
-            if (response.getBody() != null) {
-                for (Object productData : response.getBody()) {
-                    // 상품 정보 처리 로직 (실제 구현 시 IrpProduct 엔터티 업데이트)
-                    log.debug("하나은행 상품 동기화: {}", productData);
-                }
-            }
-        } catch (Exception e) {
-            log.error("하나은행 상품 동기화 실패", e);
-        }
-    }
-
-    /**
-     * 하나은행 IRP 계좌 정보 동기화
-     */
-    private void syncHanaBankIrpAccounts() {
-        try {
-            // 최근 동기화된 계좌들 조회 (동기화 체크포인트 사용)
-            String lastSyncTime = getLastSyncCheckpoint("HANA");
-
-            String url = hanaBankBaseUrl + "/api/v1/irp/accounts/changed";
-            Map<String, String> params = new HashMap<>();
-            if (lastSyncTime != null) {
-                params.put("since", lastSyncTime);
-            }
-
-            ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), List.class);
-
-            if (response.getBody() != null) {
-                for (Object accountData : response.getBody()) {
-                    // 계좌 정보 동기화 처리 로직
-                    log.debug("하나은행 계좌 동기화: {}", accountData);
-                    // 실제 구현 시 IrpAccount 엔터티 업데이트
-                }
-            }
-        } catch (Exception e) {
-            log.error("하나은행 계좌 동기화 실패", e);
-        }
-    }
-
-
     // ===== 배치 작업 =====
 
-    @Override
-    @Scheduled(cron = "0 0 2 * * *") // 매일 새벽 2시
-    @Transactional
-    public void dailyIrpSyncBatch() {
-        log.info("일일 IRP 동기화 배치 작업 시작");
-        syncAllIrpData();
-        log.info("일일 IRP 동기화 배치 작업 완료");
-    }
+    // @Override
+    // @Scheduled(cron = "0 0 2 * * SUN") // 매주 일요일 새벽 2시
+    // @Transactional
+    // public void weeklyIrpDataSyncBatch() {
+    //     log.info("주간 IRP 데이터 배치 동기화 시작");
+    //     
+    //     // TODO: OpenFeign으로 마이그레이션 필요
+    //     // RestTemplate 기반 코드를 Feign Client로 변경 필요
+    //     
+    //     log.info("주간 IRP 데이터 배치 동기화는 추후 구현 예정");
+    // }
 
     @Override
     @Scheduled(cron = "0 0 3 1 * *") // 매월 1일 새벽 3시
@@ -716,138 +459,51 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
                 .build();
     }
 
-    private IrpProductDto convertToDto(IrpProduct product) {
-        return IrpProductDto.builder()
-                .irpProductId(product.getIrpProductId())
-                .bankCode(product.getBankCode())
-                .productCode(product.getProductCode())
-                .productName(product.getProductName())
-                .productType(product.getProductType())
-                .managementCompany(product.getManagementCompany())
-                .trustCompany(product.getTrustCompany())
-                .minimumContribution(product.getMinimumContribution())
-                .maximumContribution(product.getMaximumContribution())
-                .annualContributionLimit(product.getAnnualContributionLimit())
-                .managementFeeRate(product.getManagementFeeRate())
-                .trustFeeRate(product.getTrustFeeRate())
-                .salesFeeRate(product.getSalesFeeRate())
-                .totalFeeRate(product.getTotalFeeRate())
-                .investmentOptions(product.getInvestmentOptions())
-                .riskLevel(product.getRiskLevel())
-                .expectedReturnRate(product.getExpectedReturnRate())
-                .guaranteeType(product.getGuaranteeType())
-                .guaranteeRate(product.getGuaranteeRate())
-                .maturityAge(product.getMaturityAge())
-                .earlyWithdrawalPenalty(product.getEarlyWithdrawalPenalty())
-                .taxBenefit(product.getTaxBenefit())
-                .contributionFrequency(product.getContributionFrequency())
-                .contributionMethod(product.getContributionMethod())
-                .minimumHoldingPeriod(product.getMinimumHoldingPeriod())
-                .autoRebalancing(product.getAutoRebalancing())
-                .rebalancingFrequency(product.getRebalancingFrequency())
-                .performanceFee(product.getPerformanceFee())
-                .performanceFeeThreshold(product.getPerformanceFeeThreshold())
-                .fundAllocation(product.getFundAllocation())
-                .benchmarkIndex(product.getBenchmarkIndex())
-                .description(product.getDescription())
-                .precautions(product.getPrecautions())
-                .isActive(product.getIsActive())
-                .startDate(product.getStartDate())
-                .endDate(product.getEndDate())
-                .lastSyncDate(product.getLastSyncDate())
-                .syncStatus(product.getSyncStatus())
-                .externalProductId(product.getExternalProductId())
-                .createdDate(product.getCreatedDate())
-                .build();
-    }
-
-    private HttpEntity<String> getHttpEntity() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type", "application/json");
-        return new HttpEntity<>(headers);
-    }
-
-    private void syncCustomerFromHanaBank(String customerCi) {
-        // 하나은행에서 특정 고객의 IRP 계좌 정보 조회 및 동기화
-        try {
-            String url = hanaBankBaseUrl + "/api/v1/irp/account/" + customerCi;
-            ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.GET, getHttpEntity(), Object.class);
-
-            if (response.getBody() != null) {
-                // 계좌 정보 처리 로직
-                log.debug("하나은행 고객 {} 계좌 동기화: {}", customerCi, response.getBody());
-            }
-
-        } catch (Exception e) {
-            log.error("하나은행 고객 {} 계좌 동기화 실패", customerCi, e);
-        }
-    }
-
-    private void syncCustomerFromHanaBankByCustomerId(Long customerId) {
-        // 먼저 customerId로 customerCi를 조회한 후 기존 메소드 호출
-        try {
-            // 여기서는 간단하게 customerId를 문자열로 변환하여 사용 (실제로는 DB에서 customerCi 조회 필요)
-            String customerCi = customerId.toString();
-            syncCustomerFromHanaBank(customerCi);
-        } catch (Exception e) {
-            log.error("하나은행 고객 {} 계좌 동기화 실패", customerId, e);
-        }
-    }
+    // 아래 메서드들은 RestTemplate 기반이므로 주석 처리 (Feign 마이그레이션 필요)
+    // private void syncCustomerFromHanaBank(String customerCi) {
+    //     // TODO: OpenFeign으로 마이그레이션 필요
+    // }
+    //
+    // private void syncCustomerFromHanaBankByCustomerId(Long customerId) {
+    //     // TODO: OpenFeign으로 마이그레이션 필요
+    // }
 
 
     /**
-     * 하나은행 서버에 IRP 계좌 개설 요청
+     * 하나은행 서버에 IRP 계좌 개설 요청 (OpenFeign 사용)
      */
     private IrpAccountOpenResponseDto openIrpAccountAtHanaBank(IrpAccountOpenRequestDto request) throws Exception {
         try {
             log.info("하나은행 서버에 IRP 계좌 개설 요청 - 고객 CI: {}", request.getCustomerCi());
 
-            // 하나은행 서버 요청 데이터 구성 (하나은행 서버의 IrpAccountRequest 형식에 맞춤)
-            // 금액을 만원 단위로 변환 (원 → 만원)
-            BigDecimal initialDepositInTenThousand = BigDecimal.valueOf(request.getInitialDeposit()).divide(BigDecimal.valueOf(10000), 2, RoundingMode.HALF_UP);
-            BigDecimal monthlyDepositInTenThousand = request.getMonthlyDeposit() != null ?
-                BigDecimal.valueOf(request.getMonthlyDeposit()).divide(BigDecimal.valueOf(10000), 2, RoundingMode.HALF_UP) :
-                BigDecimal.ZERO;
-
+            // 하나은행 서버 요청 데이터 구성
             Map<String, Object> hanaBankRequest = new HashMap<>();
             hanaBankRequest.put("customerCi", request.getCustomerCi());
-            hanaBankRequest.put("initialDeposit", initialDepositInTenThousand);
-            hanaBankRequest.put("monthlyDeposit", monthlyDepositInTenThousand);
+            hanaBankRequest.put("initialDeposit", request.getInitialDeposit());
+            hanaBankRequest.put("monthlyDeposit", request.getMonthlyDeposit() != null ? request.getMonthlyDeposit() : 0);
             hanaBankRequest.put("isAutoDeposit", request.getIsAutoDeposit());
             hanaBankRequest.put("depositDay", request.getDepositDay());
             hanaBankRequest.put("investmentStyle", request.getInvestmentStyle());
             hanaBankRequest.put("linkedMainAccount", request.getLinkedMainAccount());
-            hanaBankRequest.put("productCode", "IRP001"); // 기본 상품 코드 설정
+            hanaBankRequest.put("productCode", "IRP001");
 
             log.info("하나은행 IRP 계좌 개설 요청 데이터: {}", hanaBankRequest);
 
-            // 하나은행 서버에 HTTP 요청
-            String url = hanaBankBaseUrl + "/api/v1/irp/open";
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
+            // OpenFeign으로 하나은행 API 호출 (코드 간소화!)
+            Map<String, Object> responseBody = hanaBankClient.openIrpAccount(hanaBankRequest);
 
-            HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(hanaBankRequest, headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, Map.class);
+            // 응답 처리
+            String accountNumber = (String) responseBody.get("accountNumber");
+            String message = (String) responseBody.get("message");
+            Boolean success = (Boolean) responseBody.get("success");
 
-            if (response.getBody() != null) {
-                Map<String, Object> responseBody = response.getBody();
-
-                // 하나은행 서버 응답에서 계좌번호 추출
-                String accountNumber = (String) responseBody.get("accountNumber");
-                String message = (String) responseBody.get("message");
-                Boolean success = (Boolean) responseBody.get("success");
-
-                if (success != null && success) {
-                    log.info("하나은행 서버에서 IRP 계좌 개설 성공 - 계좌번호: {}", accountNumber);
-                    return IrpAccountOpenResponseDto.success(accountNumber, message != null ? message : "IRP 계좌가 성공적으로 개설되었습니다.");
-                } else {
-                    String errorMessage = message != null ? message : "하나은행 서버에서 계좌 개설에 실패했습니다.";
-                    log.error("하나은행 서버에서 IRP 계좌 개설 실패 - {}", errorMessage);
-                    return IrpAccountOpenResponseDto.failure(errorMessage, "BANK_ERROR");
-                }
+            if (success != null && success) {
+                log.info("하나은행 서버에서 IRP 계좌 개설 성공 - 계좌번호: {}", accountNumber);
+                return IrpAccountOpenResponseDto.success(accountNumber, message != null ? message : "IRP 계좌가 성공적으로 개설되었습니다.");
             } else {
-                log.error("하나은행 서버 응답이 없습니다");
-                return IrpAccountOpenResponseDto.failure("하나은행 서버 응답이 없습니다.", "NO_RESPONSE");
+                String errorMessage = message != null ? message : "하나은행 서버에서 계좌 개설에 실패했습니다.";
+                log.error("하나은행 서버에서 IRP 계좌 개설 실패 - {}", errorMessage);
+                return IrpAccountOpenResponseDto.failure(errorMessage, "BANK_ERROR");
             }
 
         } catch (Exception e) {
@@ -857,15 +513,65 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
     }
 
     /**
-     * 마지막 동기화 체크포인트 조회
+     * IRP 계좌 개설 시 거래내역 생성
      */
-    private String getLastSyncCheckpoint(String bankCode) {
+    private void createIrpAccountOpenTransactions(IrpAccountOpenRequestDto request, String customerCi, 
+                                                   String irpAccountNumber, BankingAccount irpBankingAccount,
+                                                   BankingAccount linkedAccount) {
         try {
-            Optional<IrpSyncLog> lastSync = irpSyncLogRepository.findFirstByBankCodeAndSyncStatusOrderByEndTimeDesc(bankCode, "SUCCESS");
-            return lastSync.map(syncLog -> syncLog.getEndTime().toString()).orElse(null);
+            BigDecimal initialDepositAmount = BigDecimal.valueOf(request.getInitialDeposit());
+            String transactionNumber = Transaction.generateTransactionNumber();
+            
+            // 1. 연결 주계좌에 출금(-) 거래내역 생성
+            // ⚠️ 주의: linkedAccount.getBalance()는 이미 차감된 잔액이므로 그대로 사용
+            Transaction withdrawalTransaction = Transaction.builder()
+                        .transactionNumber(transactionNumber + "_OUT")
+                        .fromAccountId(linkedAccount.getAccountId())
+                        .toAccountId(null) // IRP 계좌는 별도 시스템이므로 null
+                        .transactionType(Transaction.TransactionType.TRANSFER)
+                        .transactionCategory(Transaction.TransactionCategory.INVESTMENT)
+                        .amount(initialDepositAmount)
+                        .balanceAfter(linkedAccount.getBalance()) // 이미 차감된 잔액
+                        .transactionDirection(Transaction.TransactionDirection.DEBIT)
+                        .description("IRP 계좌 개설 초기 입금")
+                        .transactionStatus(Transaction.TransactionStatus.COMPLETED)
+                        .transactionDate(LocalDateTime.now())
+                        .processedDate(LocalDateTime.now())
+                        .referenceNumber("IRP_OPEN_" + irpAccountNumber)
+                        .memo("IRP 계좌(" + irpAccountNumber + ") 개설")
+                        .build();
+            
+            transactionRepository.save(withdrawalTransaction);
+            
+            log.info("연결 주계좌 출금 거래내역 생성 완료 - 계좌: {}, 금액: {}", 
+                    linkedAccount.getAccountNumber(), initialDepositAmount);
+            
+            // 2. IRP 계좌에 입금(+) 거래내역 생성 (일반 거래내역 테이블 사용)
+            Transaction irpDepositTransaction = Transaction.builder()
+                    .transactionNumber(transactionNumber + "_IN")
+                    .fromAccountId(null) // 외부 계좌에서 입금
+                    .toAccountId(irpBankingAccount.getAccountId())
+                    .transactionType(Transaction.TransactionType.TRANSFER)
+                    .transactionCategory(Transaction.TransactionCategory.INVESTMENT)
+                    .amount(initialDepositAmount)
+                    .balanceAfter(initialDepositAmount)
+                    .transactionDirection(Transaction.TransactionDirection.CREDIT)
+                    .description("IRP 계좌 초기 입금")
+                    .transactionStatus(Transaction.TransactionStatus.COMPLETED)
+                    .transactionDate(LocalDateTime.now())
+                    .processedDate(LocalDateTime.now())
+                    .referenceNumber("IRP_OPEN_" + irpAccountNumber)
+                    .memo("IRP 계좌 개설 초기 입금")
+                    .build();
+            
+            transactionRepository.save(irpDepositTransaction);
+            
+            log.info("IRP 계좌 입금 거래내역 생성 완료 - 계좌: {}, 금액: {}", irpAccountNumber, initialDepositAmount);
+            
         } catch (Exception e) {
-            log.error("동기화 체크포인트 조회 실패 - 은행 코드: {}", bankCode, e);
-            return null;
+            log.error("IRP 계좌 개설 거래내역 생성 실패", e);
+            // 거래내역 생성 실패는 계좌 개설 자체를 실패시키지 않음
         }
     }
+
 }

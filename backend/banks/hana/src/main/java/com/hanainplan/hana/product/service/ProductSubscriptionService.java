@@ -2,11 +2,7 @@ package com.hanainplan.hana.product.service;
 
 import com.hanainplan.hana.product.dto.ProductSubscriptionRequestDto;
 import com.hanainplan.hana.product.dto.ProductSubscriptionResponseDto;
-import com.hanainplan.hana.product.entity.FinancialProduct;
-import com.hanainplan.hana.product.entity.IrpProduct;
 import com.hanainplan.hana.product.entity.ProductSubscription;
-import com.hanainplan.hana.product.repository.FinancialProductRepository;
-import com.hanainplan.hana.product.repository.IrpProductRepository;
 import com.hanainplan.hana.product.repository.ProductSubscriptionRepository;
 import com.hanainplan.hana.product.repository.InterestRateRepository;
 import com.hanainplan.hana.product.entity.InterestRate;
@@ -29,12 +25,6 @@ public class ProductSubscriptionService {
 
     @Autowired
     private ProductSubscriptionRepository productSubscriptionRepository;
-
-    @Autowired
-    private FinancialProductRepository financialProductRepository;
-
-    @Autowired
-    private IrpProductRepository irpProductRepository;
 
     @Autowired
     private CustomerRepository customerRepository;
@@ -62,29 +52,25 @@ public class ProductSubscriptionService {
             throw new IllegalArgumentException("계좌 소유자가 일치하지 않습니다.");
         }
 
-        // 4. 금융상품 존재 확인
-        FinancialProduct product = financialProductRepository.findByProductCode(request.getProductCode())
-            .orElseThrow(() -> new IllegalArgumentException("금융상품을 찾을 수 없습니다: " + request.getProductCode()));
-
-        // 5. 중복 가입 확인
+        // 4. 중복 가입 확인
         if (productSubscriptionRepository.existsByCustomerCiAndProductCode(request.getCustomerCi(), request.getProductCode())) {
             throw new IllegalArgumentException("이미 해당 상품에 가입되어 있습니다.");
         }
 
-        // 6. 금리 정보 조회 (상품코드와 만기기간으로 기본금리 조회)
+        // 5. 금리 정보 조회 (상품코드와 만기기간으로 기본금리 조회)
         InterestRate basicRate = interestRateRepository
             .findLatestBasicRateByProductCodeAndMaturityPeriod(request.getProductCode(), request.getMaturityPeriod())
             .orElseThrow(() -> new IllegalArgumentException("해당 상품의 기본금리 정보를 찾을 수 없습니다: " + request.getProductCode() + ", " + request.getMaturityPeriod()));
 
-        // 7. 우대금리 조회 (선택사항)
+        // 6. 우대금리 조회 (선택사항)
         InterestRate preferentialRate = interestRateRepository
             .findLatestPreferentialRateByProductCodeAndMaturityPeriod(request.getProductCode(), request.getMaturityPeriod())
             .orElse(null);
 
-        // 8. 최종 적용금리 계산 (우대금리가 있으면 우대금리, 없으면 기본금리)
+        // 7. 최종 적용금리 계산 (우대금리가 있으면 우대금리, 없으면 기본금리)
         BigDecimal finalRate = (preferentialRate != null) ? preferentialRate.getInterestRate() : basicRate.getInterestRate();
 
-        // 9. 상품 가입 생성
+        // 8. 상품 가입 생성
         ProductSubscription subscription = ProductSubscription.builder()
             .customerCi(request.getCustomerCi())
             .productCode(request.getProductCode())
@@ -137,29 +123,25 @@ public class ProductSubscriptionService {
             throw new IllegalArgumentException("계좌 소유자가 일치하지 않습니다.");
         }
 
-        // 4. IRP 상품 존재 확인
-        IrpProduct irpProduct = irpProductRepository.findByProductCode(request.getProductCode())
-            .orElseThrow(() -> new IllegalArgumentException("IRP 상품을 찾을 수 없습니다: " + request.getProductCode()));
-
-        // 5. 중복 가입 확인
+        // 4. 중복 가입 확인
         if (productSubscriptionRepository.existsByCustomerCiAndProductCode(request.getCustomerCi(), request.getProductCode())) {
             throw new IllegalArgumentException("이미 해당 IRP 상품에 가입되어 있습니다.");
         }
 
-        // 6. IRP 금리 정보 조회 (IRP 상품의 경우 isIrp = true로 조회)
+        // 5. IRP 금리 정보 조회
         InterestRate irpRate = interestRateRepository
             .findLatestBasicRateByProductCodeAndMaturityPeriod(request.getProductCode(), request.getMaturityPeriod())
             .orElseThrow(() -> new IllegalArgumentException("해당 IRP 상품의 금리 정보를 찾을 수 없습니다: " + request.getProductCode() + ", " + request.getMaturityPeriod()));
 
-        // 7. IRP 우대금리 조회 (선택사항)
+        // 6. IRP 우대금리 조회 (선택사항)
         InterestRate irpPreferentialRate = interestRateRepository
             .findLatestPreferentialRateByProductCodeAndMaturityPeriod(request.getProductCode(), request.getMaturityPeriod())
             .orElse(null);
 
-        // 8. 최종 적용금리 계산 (우대금리가 있으면 우대금리, 없으면 기본금리)
+        // 7. 최종 적용금리 계산 (우대금리가 있으면 우대금리, 없으면 기본금리)
         BigDecimal finalIrpRate = (irpPreferentialRate != null) ? irpPreferentialRate.getInterestRate() : irpRate.getInterestRate();
 
-        // 9. IRP 상품 가입 생성
+        // 8. IRP 상품 가입 생성
         ProductSubscription subscription = ProductSubscription.builder()
             .customerCi(request.getCustomerCi())
             .productCode(request.getProductCode())

@@ -12,6 +12,7 @@ import com.hanainplan.hana.account.entity.Account;
 import com.hanainplan.hana.account.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -102,30 +103,73 @@ public class IrpAccountServiceImpl implements IrpAccountService {
             // 5. 데이터베이스에 저장
             IrpAccount savedAccount = irpAccountRepository.save(account);
 
-            // 6. 고객 정보 업데이트 (IRP 계좌 보유 여부)
+            // 6. IRP 계좌를 일반 계좌 테이블에도 등록 (account_type=6)
+            // 초기 입금이 있으면 그 금액으로, 없으면 0원으로 시작
+            Account irpGeneralAccount = Account.builder()
+                    .accountNumber(accountNumber)
+                    .accountType(6) // IRP 계좌
+                    .balance(request.getInitialDeposit()) // 초기 입금액 설정
+                    .openingDate(LocalDate.now())
+                    .customerCi(request.getCustomerCi())
+                    .build();
+            accountRepository.save(irpGeneralAccount);
+            
+            log.info("IRP 계좌를 일반 계좌 테이블에 등록 완료 - 계좌번호: {}, account_type: 6, 초기잔액: {}원", 
+                    accountNumber, request.getInitialDeposit());
+
+            // 7. 고객 정보 업데이트 (IRP 계좌 보유 여부)
             updateCustomerIrpStatus(request.getCustomerCi(), true, accountNumber);
 
-        // 7. 초기 입금 처리 (기존 계좌에서 출금 → IRP 계좌로 입금)
+        // 8. 초기 입금 처리 (기존 계좌에서 출금 → IRP 계좌로 입금)
         if (request.getInitialDeposit().compareTo(BigDecimal.ZERO) > 0) {
             try {
-                // 7-1. 연결된 주계좌에서 출금 처리
+                // 8-1. 연결된 주계좌에서 출금 처리
                 processWithdrawalFromLinkedAccount(request.getLinkedMainAccount(), request.getInitialDeposit(), 
                         "IRP 계좌(" + accountNumber + ") 초기 입금");
                 
-                // 7-2. IRP 계좌 잔액 업데이트
+                // 8-2. IRP 계좌 잔액 업데이트 (hana_irp_accounts)
                 savedAccount.setCurrentBalance(request.getInitialDeposit());
                 savedAccount.setTotalContribution(request.getInitialDeposit());
                 irpAccountRepository.save(savedAccount);
                 
-                // 7-3. IRP 계좌 입금 거래내역 저장
-                saveDepositTransaction(accountNumber, request.getInitialDeposit(), "IRP 계좌 초기 입금");
+                // 8-3. IRP 거래내역을 일반 거래내역 테이블에 저장
+                String transactionId = "HANA-IRP-" + System.currentTimeMillis() + "-" +
+                        String.format("%04d", (int)(Math.random() * 10000));
                 
+                log.info("=== IRP 거래내역 저장 시작 ===");
+                log.info("거래ID: {}", transactionId);
+                log.info("IRP 계좌번호: {}", accountNumber);
+                log.info("IRP 계좌 객체: {}", irpGeneralAccount);
+                log.info("금액: {}원", request.getInitialDeposit());
+                
+                Transaction transaction = Transaction.builder()
+                        .transactionId(transactionId)
+                        .account(irpGeneralAccount)
+                        .transactionDatetime(LocalDateTime.now())
+                        .transactionType("입금")
+                        .transactionCategory("IRP 초기 입금")
+                        .amount(request.getInitialDeposit())
+                        .balanceAfter(request.getInitialDeposit())
+                        .description("IRP 계좌 초기 입금")
+                        .referenceNumber(accountNumber)
+                        .branchName("하나은행 본점")
+                        .build();
+                
+                log.info("Transaction 객체 생성 완료: {}", transaction);
+                
+                Transaction savedTransaction = transactionRepository.save(transaction);
+                
+                log.info("=== IRP 거래내역 저장 완료 ===");
+                log.info("저장된 거래ID: {}", savedTransaction.getTransactionId());
                 log.info("하나은행 IRP 계좌 초기 입금 완료 - 출금계좌: {}, IRP계좌: {}, 금액: {}원",
                         request.getLinkedMainAccount(), accountNumber, request.getInitialDeposit());
                 
             } catch (Exception e) {
-                log.error("하나은행 IRP 계좌 초기 입금 실패 - 출금계좌: {}, IRP계좌: {}, 오류: {}", 
-                        request.getLinkedMainAccount(), accountNumber, e.getMessage());
+                log.error("=== 하나은행 IRP 계좌 초기 입금 실패 ===");
+                log.error("출금계좌: {}", request.getLinkedMainAccount());
+                log.error("IRP계좌: {}", accountNumber);
+                log.error("오류 메시지: {}", e.getMessage());
+                log.error("오류 상세:", e);
                 // 초기 입금 실패 시에도 계좌는 개설된 상태로 유지 (잔액 0원)
             }
         }
@@ -335,6 +379,7 @@ public class IrpAccountServiceImpl implements IrpAccountService {
         // 은행코드 매핑
         switch (prefix) {
             case "081": return "081"; // 하나은행
+            case "117": return "081"; // 하나은행 (다른 계좌번호 prefix)
             case "004": return "004"; // 국민은행  
             case "088": return "088"; // 신한은행
             case "020": return "020"; // 우리은행
@@ -508,44 +553,5 @@ public class IrpAccountServiceImpl implements IrpAccountService {
         }
     }
 
-    /**
-     * 입금 거래내역 저장
-     */
-    private void saveDepositTransaction(String accountNumber, BigDecimal amount, String description) {
-        try {
-            // 계좌 조회 (거래내역과 연결하기 위해)
-            Account account = accountRepository.findByAccountNumber(accountNumber)
-                    .orElse(null);
-
-            if (account == null) {
-                log.warn("거래내역 저장 실패 - 계좌를 찾을 수 없음: {}", accountNumber);
-                return;
-            }
-
-            // 거래 ID 생성 (HANA-TXN-{timestamp}-{random})
-            String transactionId = "HANA-TXN-" + System.currentTimeMillis() + "-" +
-                    String.format("%04d", (int)(Math.random() * 10000));
-
-            // 거래내역 생성
-            Transaction transaction = Transaction.builder()
-                    .transactionId(transactionId)
-                    .transactionDatetime(LocalDateTime.now())
-                    .transactionType("입금")
-                    .transactionCategory("기타")
-                    .amount(amount)
-                    .balanceAfter(account.getBalance() != null ? account.getBalance().add(amount) : amount)
-                    .branchName("하나은행 본점")
-                    .account(account)
-                    .build();
-
-            transactionRepository.save(transaction);
-
-            log.info("하나은행 입금 거래내역 저장 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원",
-                    transactionId, accountNumber, amount);
-
-        } catch (Exception e) {
-            log.error("하나은행 입금 거래내역 저장 실패 - 계좌번호: {}, 오류: {}", accountNumber, e.getMessage());
-            // 거래내역 저장 실패해도 계좌 개설은 계속 진행
-        }
-    }
 }
+

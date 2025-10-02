@@ -24,10 +24,10 @@ public class Transaction {
     @Column(name = "transaction_datetime", nullable = false)
     private LocalDateTime transactionDatetime; // 거래일시
 
-    @Column(name = "transaction_type", nullable = false, length = 10)
+    @Column(name = "transaction_type", nullable = false, length = 50)
     private String transactionType; // 입출금구분 (입금, 출금, 지급, 기타)
 
-    @Column(name = "transaction_category", length = 10)
+    @Column(name = "transaction_category", length = 50)
     private String transactionCategory; // 거래구분 (현금, 급여, 타행환)
 
     @Column(name = "amount", precision = 15, scale = 2, nullable = false)
@@ -38,6 +38,12 @@ public class Transaction {
 
     @Column(name = "branch_name", length = 100)
     private String branchName; // 거래점명
+
+    @Column(name = "description")
+    private String description; // 거래 설명
+
+    @Column(name = "reference_number", length = 50)
+    private String referenceNumber; // 참조 번호
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
