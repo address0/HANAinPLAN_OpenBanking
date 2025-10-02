@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getTransactionHistory, type Transaction } from '../../api/bankingApi';
 import { useAccountStore } from '../../store/accountStore';
 import { useUserStore } from '../../store/userStore';
+import { getBankPatternByPattern } from '../../store/bankStore';
 
 interface TransactionHistoryProps {
   refreshTrigger?: number;
@@ -23,8 +24,31 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     keyword: ''
   });
   
-  const { selectedAccountId } = useAccountStore();
+  const { selectedAccountId, selectedAccountType, accounts, allAccountsData } = useAccountStore();
   const { user } = useUserStore();
+
+  // 선택된 계좌 정보 가져오기 (useMemo로 메모이제이션)
+  const selectedAccount = useMemo(() => {
+    if (selectedAccountType === 'IRP' && allAccountsData?.irpAccount) {
+      return {
+        accountId: 0, // IRP는 별도 ID 체계
+        accountNumber: allAccountsData.irpAccount.accountNumber,
+        accountName: 'IRP 계좌',
+        accountType: 7, // IRP 타입
+        balance: allAccountsData.irpAccount.currentBalance,
+      } as any;
+    }
+    return accounts.find(acc => acc.accountId === selectedAccountId);
+  }, [selectedAccountId, selectedAccountType, accounts, allAccountsData]);
+
+  // 은행 정보 가져오기
+  const getBankInfo = (accountNumber: string) => {
+    if (accountNumber.length >= 3) {
+      const pattern = accountNumber.substring(0, 3);
+      return getBankPatternByPattern(pattern);
+    }
+    return null;
+  };
 
   // 필터 옵션들
   const filterOptions = [
@@ -73,26 +97,59 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
   };
 
   useEffect(() => {
-    if (selectedAccountId && user) {
+    console.log('TransactionHistory - useEffect triggered:', {
+      selectedAccountId,
+      selectedAccountType,
+      user: !!user,
+      refreshTrigger
+    });
+
+    if ((selectedAccountId || selectedAccountType === 'IRP') && user) {
+      // 계좌가 변경되면 이전 거래내역 초기화
+      setTransactions([]);
+      setError(null);
       loadTransactions();
     } else {
       // 계좌가 없으면 로딩 상태를 false로 설정
+      setTransactions([]);
       setIsLoading(false);
+      setError(null);
     }
-  }, [selectedAccountId, user, refreshTrigger]);
+  }, [selectedAccountId, selectedAccountType, user, refreshTrigger]);
 
   const loadTransactions = async (customFilters?: typeof filters) => {
-    if (!selectedAccountId || !user) return;
-    
+    // 선택된 계좌가 없거나 사용자가 없으면 리턴
+    if (!selectedAccount || !user) {
+      console.log('loadTransactions - early return:', {
+        selectedAccount: !!selectedAccount,
+        user: !!user
+      });
+      return;
+    }
+
+    console.log('loadTransactions - starting:', {
+      accountNumber: selectedAccount.accountNumber,
+      currentFilters: customFilters || filters
+    });
+
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const currentFilters = customFilters || filters;
       const dateRange = getDateRange(currentFilters.period);
-      
+
+      // 모든 계좌 타입에 대해 동일하게 거래내역 API 호출
+      console.log('loadTransactions - API call params:', {
+        accountNumber: selectedAccount.accountNumber,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        transactionType: currentFilters.type === 'ALL' ? undefined : currentFilters.type === 'DEPOSIT' ? 'DEPOSIT' : currentFilters.type === 'WITHDRAWAL' ? 'WITHDRAWAL' : undefined,
+        sortDirection: currentFilters.sortOrder
+      });
+
       const response = await getTransactionHistory({
-        accountId: selectedAccountId,
+        accountNumber: selectedAccount.accountNumber,
         page: 0,
         size: 20,
         startDate: dateRange.startDate,
@@ -101,19 +158,24 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
         sortDirection: currentFilters.sortOrder
       });
       
+      console.log('loadTransactions - API response received:', {
+        totalElements: response.totalElements,
+        contentLength: response.content?.length || 0
+      });
+
       let filteredTransactions = response.content || [];
-      
+
       // 프론트엔드에서 추가 필터링
       if (currentFilters.type === 'DEPOSIT') {
-        filteredTransactions = filteredTransactions.filter(transaction => 
+        filteredTransactions = filteredTransactions.filter(transaction =>
           transaction.transactionDirection === 'CREDIT'
         );
       } else if (currentFilters.type === 'WITHDRAWAL') {
-        filteredTransactions = filteredTransactions.filter(transaction => 
+        filteredTransactions = filteredTransactions.filter(transaction =>
           transaction.transactionDirection === 'DEBIT'
         );
       }
-      
+
       // 키워드 검색 필터링
       if (currentFilters.type === 'KEYWORD' && currentFilters.keyword.trim()) {
         filteredTransactions = filteredTransactions.filter(transaction =>
@@ -121,7 +183,8 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
           transaction.memo?.toLowerCase().includes(currentFilters.keyword.toLowerCase())
         );
       }
-      
+
+      console.log('loadTransactions - filtered transactions:', filteredTransactions.length);
       setTransactions(filteredTransactions);
     } catch (err) {
       console.error('거래내역 로드 오류:', err);
@@ -145,7 +208,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     if (Array.isArray(dateValue) && dateValue.length >= 3) {
       const [year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0] = dateValue;
       // 백엔드에서 월을 1부터 시작하는 값으로 보내고 있으므로 그대로 사용
-      date = new Date(year, month - 1, day, hour, minute, second, millisecond);
+      date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), Number(millisecond));
     }
       // 문자열이나 숫자인 경우
       else {
@@ -179,7 +242,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     if (Array.isArray(dateValue) && dateValue.length >= 3) {
       const [year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0] = dateValue;
       // 백엔드에서 월을 1부터 시작하는 값으로 보내고 있으므로 그대로 사용
-      date = new Date(year, month - 1, day, hour, minute, second, millisecond);
+      date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), Number(millisecond));
     }
       // 문자열이나 숫자인 경우
       else {
@@ -219,13 +282,30 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     const typeText = filterOptions.find(opt => opt.value === filters.type)?.label || '전체조회';
     const sortText = sortOptions.find(opt => opt.value === filters.sortOrder)?.label || '최신순';
     const periodText = periodOptions.find(opt => opt.value === filters.period)?.label || '3개월';
-    
+
     if (filters.type === 'KEYWORD' && filters.keyword.trim()) {
       return `${typeText} / ${sortText} / ${periodText} (${filters.keyword})`;
     }
-    
+
     return `${typeText} / ${sortText} / ${periodText}`;
   };
+
+  // 선택된 계좌 표시 텍스트
+  const getSelectedAccountDisplayText = () => {
+    if (!selectedAccount) return '';
+
+    // IRP 계좌인 경우
+    if (selectedAccountType === 'IRP') {
+      return `하나은행 IRP ${selectedAccount.accountNumber}`;
+    }
+
+    // 일반 계좌인 경우
+    const bankInfo = getBankInfo(selectedAccount.accountNumber);
+    const accountType = selectedAccount.accountType === 1 ? '입출금통장' : '기타';
+
+    return `${bankInfo?.name || '은행'} ${accountType} ${selectedAccount.accountNumber}`;
+  };
+
 
   const getTransactionTypeDisplay = (type: string) => {
     const typeMap: { [key: string]: string } = {
@@ -243,8 +323,8 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     return typeMap[type] || type;
   };
 
-  // 계좌가 없으면 아무것도 렌더링하지 않음
-  if (!selectedAccountId) {
+  // 계좌가 없으면 아무것도 렌더링하지 않음 (IRP 계좌 선택 시에는 렌더링)
+  if (!selectedAccountId && selectedAccountType !== 'IRP') {
     return null;
   }
 
@@ -253,7 +333,9 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
       <div className="bg-white rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200 flex items-center">
           <img src="/icons/settings-gray.png" alt="settings" className="w-5 h-5 mr-2" />
-          <span className="text-sm font-hana-medium text-gray-600">거래내역 조회 중...</span>
+          <span className="text-sm font-hana-medium text-gray-600">
+            {selectedAccount ? `${getSelectedAccountDisplayText()} - 거래내역 조회 중...` : '거래내역 조회 중...'}
+          </span>
         </div>
         <div className="p-8 text-center">
           <div className="text-gray-500 font-hana-medium">거래내역을 불러오는 중...</div>
@@ -279,9 +361,26 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
   if (transactions.length === 0) {
     return (
       <div className="bg-white rounded-lg overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex items-center">
-          <img src="/icons/settings-gray.png" alt="settings" className="w-5 h-5 mr-2" />
-          <span className="text-sm font-hana-medium text-gray-600">전체조회 / 최신순 / 3개월</span>
+        <div className="p-4 border-b border-gray-200">
+          {/* 선택된 계좌 정보 */}
+          {selectedAccount && (
+            <div className="mb-3">
+              <div className="text-xs text-gray-500 font-hana-regular mb-1">선택된 계좌</div>
+              <div className="text-sm font-hana-medium text-gray-800">{getSelectedAccountDisplayText()}</div>
+            </div>
+          )}
+
+          {/* 필터 정보 - 모든 계좌 타입에 대해 표시 */}
+          <div
+            className="flex items-center cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded"
+            onClick={() => setShowFilterModal(true)}
+          >
+            <img src="/icons/settings-gray.png" alt="settings" className="w-5 h-5 mr-2" />
+            <span className="text-sm font-hana-medium text-gray-600">{getFilterDisplayText()}</span>
+            <svg className="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
         <div className="p-8 text-center">
           <div className="text-gray-500 font-hana-medium">거래내역이 없습니다.</div>
@@ -293,15 +392,26 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
   return (
     <>
       <div className="bg-white rounded-lg overflow-hidden">
-        <div 
-          className="p-4 border-b border-gray-200 flex items-center cursor-pointer hover:bg-gray-50 transition-colors"
-          onClick={() => setShowFilterModal(true)}
-        >
-          <img src="/icons/settings-gray.png" alt="settings" className="w-5 h-5 mr-2" />
-          <span className="text-sm font-hana-medium text-gray-600">{getFilterDisplayText()}</span>
-          <svg className="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+        <div className="p-4 border-b border-gray-200">
+          {/* 선택된 계좌 정보 */}
+          {selectedAccount && (
+            <div className="mb-3">
+              <div className="text-xs text-gray-500 font-hana-regular mb-1">선택된 계좌</div>
+              <div className="text-sm font-hana-medium text-gray-800">{getSelectedAccountDisplayText()}</div>
+            </div>
+          )}
+
+          {/* 필터 정보 - 모든 계좌 타입에 대해 표시 */}
+          <div
+            className="flex items-center cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded"
+            onClick={() => setShowFilterModal(true)}
+          >
+            <img src="/icons/settings-gray.png" alt="settings" className="w-5 h-5 mr-2" />
+            <span className="text-sm font-hana-medium text-gray-600">{getFilterDisplayText()}</span>
+            <svg className="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
         </div>
         {transactions.map((transaction) => (
           <div key={transaction.transactionId} className="flex justify-between items-center py-4 px-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">

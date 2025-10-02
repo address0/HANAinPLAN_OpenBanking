@@ -1,133 +1,190 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-
-interface DepositProduct {
-  productId: number;
-  productCode: string;
-  productName: string;
-  depositType: string;
-  minContractPeriod: number;
-  maxContractPeriod: number;
-  contractPeriodUnit: string;
-  subscriptionTarget: string;
-  subscriptionAmount: number;
-  productCategory: string;
-  interestPayment: string;
-  taxBenefit: string;
-  partialWithdrawal: string;
-  cancellationPenalty: string;
-  description: string;
-}
+import { useUserStore } from '../../store/userStore';
+import { 
+  getAllDepositProducts, 
+  getOptimalDepositRecommendation, 
+  subscribeDeposit,
+  getIrpAccount
+} from '../../api/productApi';
+import type { 
+  DepositProduct, 
+  OptimalDepositRecommendation,
+  DepositSubscriptionRequest,
+  DepositRecommendationRequest 
+} from '../../api/productApi';
 
 function DepositProducts() {
-  const [selectedProduct, setSelectedProduct] = useState<DepositProduct | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'calculator'>('products');
+  const { user } = useUserStore();
+  const [activeTab, setActiveTab] = useState<'products' | 'recommend'>('products');
   
-  // 예금 계산기 상태 (일시불 예치)
-  const [depositAmount, setDepositAmount] = useState<number>(0);
-  const [depositInterestRate, setDepositInterestRate] = useState<number>(3.5);
-  const [depositPeriod, setDepositPeriod] = useState<number>(12);
-  const [depositResult, setDepositResult] = useState<{
-    principal: number;
-    interest: number;
-    finalAmount: number;
-  } | null>(null);
+  // 상품 목록 상태
+  const [depositProducts, setDepositProducts] = useState<DepositProduct[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<DepositProduct | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  // 추천 상태
+  const [recommendation, setRecommendation] = useState<OptimalDepositRecommendation | null>(null);
+  const [recommendLoading, setRecommendLoading] = useState(false);
+  const [hasIrpAccount, setHasIrpAccount] = useState(false);
+  const [irpAccount, setIrpAccount] = useState<any>(null);
+  
+  // 은퇴 목표 입력
+  const [retirementDate, setRetirementDate] = useState<string>('');
+  const [goalAmount, setGoalAmount] = useState<number>(0);
+  
+  // 가입 상태
+  const [subscribing, setSubscribing] = useState(false);
+  
+  // 가입 완료 모달 상태
+  const [subscriptionResult, setSubscriptionResult] = useState<any>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+  
+  // 가입 확인 모달 상태
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // 예금 계산 함수 (일시불 예치)
-  const calculateDeposit = () => {
-    if (depositAmount <= 0 || depositPeriod <= 0 || depositInterestRate <= 0) {
-      setDepositResult(null);
+  // 컴포넌트 마운트 시 상품 목록 조회
+  useEffect(() => {
+    fetchDepositProducts();
+    if (user?.userId) {
+      checkIrpAccount();
+    }
+  }, [user]);
+
+  /**
+   * 예금 상품 목록 조회
+   */
+  const fetchDepositProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllDepositProducts();
+      if (response.success) {
+        setDepositProducts(response.products);
+      }
+    } catch (error) {
+      console.error('예금 상품 조회 실패:', error);
+      alert('예금 상품 조회에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * IRP 계좌 확인
+   */
+  const checkIrpAccount = async () => {
+    try {
+      const irpData = await getIrpAccount(user!.userId);
+      setIrpAccount(irpData);
+      setHasIrpAccount(true);
+    } catch (error) {
+      console.error('IRP 계좌 확인 실패:', error);
+      setHasIrpAccount(false);
+    }
+  };
+
+  /**
+   * 최적 상품 추천 조회
+   */
+  const fetchRecommendation = async () => {
+    if (!user?.userId) {
+      alert('로그인이 필요합니다.');
       return;
     }
 
-    // 예금은 일시불 예치이므로 단리 계산
-    const annualRate = depositInterestRate / 100;
-    const interest = depositAmount * annualRate * (depositPeriod / 12);
-    const finalAmount = depositAmount + interest;
+    if (!hasIrpAccount) {
+      alert('IRP 계좌를 먼저 개설해주세요.');
+      return;
+    }
 
-    setDepositResult({
-      principal: depositAmount,
-      interest: Math.round(interest),
-      finalAmount: Math.round(finalAmount)
-    });
+    if (!retirementDate || !goalAmount || goalAmount <= 0) {
+      alert('은퇴 예정일과 목표 금액을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setRecommendLoading(true);
+      
+      const request: DepositRecommendationRequest = {
+        userId: user.userId,
+        retirementDate: retirementDate,
+        goalAmount: goalAmount
+      };
+      
+      const response = await getOptimalDepositRecommendation(request);
+      if (response.success) {
+        setRecommendation(response.recommendation);
+      }
+    } catch (error: any) {
+      console.error('추천 조회 실패:', error);
+      alert(error.response?.data?.message || '추천 조회에 실패했습니다.');
+    } finally {
+      setRecommendLoading(false);
+    }
   };
 
-  // 목업 데이터
-  const depositProducts: DepositProduct[] = [
-    {
-      productId: 1,
-      productCode: "1479088",
-      productName: "하나의 정기예금",
-      depositType: "정기예금",
-      minContractPeriod: 1,
-      maxContractPeriod: 60,
-      contractPeriodUnit: "개월",
-      subscriptionTarget: "실명의 개인 또는 개인사업자",
-      subscriptionAmount: 1000000,
-      productCategory: "예금",
-      interestPayment: "만기일시지급식",
-      taxBenefit: "비과세종합저축으로 가입 가능",
-      partialWithdrawal: "만기일 이전 2회까지 가능",
-      cancellationPenalty: "",
-      description: "자유롭게 자금관리가 가능한 하나원큐(스마트폰 뱅킹) 전용 정기예금"
-    },
-    {
-      productId: 2,
-      productCode: "1419635",
-      productName: "1년 연동형 정기예금",
-      depositType: "정기예금",
-      minContractPeriod: 12,
-      maxContractPeriod: 180,
-      contractPeriodUnit: "개월",
-      subscriptionTarget: "개인, 개인사업자 또는 법인",
-      subscriptionAmount: 10000,
-      productCategory: "예금",
-      interestPayment: "만기일시지급식",
-      taxBenefit: "개인의 경우 비과세종합저축 가능",
-      partialWithdrawal: "불가",
-      cancellationPenalty: "",
-      description: "서울보증보험의 보증서 발급 담보용 정기예금"
-    },
-    {
-      productId: 3,
-      productCode: "1419664",
-      productName: "행복knowhow 연금예금",
-      depositType: "정기예금",
-      minContractPeriod: 12,
-      maxContractPeriod: 360,
-      contractPeriodUnit: "개월",
-      subscriptionTarget: "실명의 개인 또는 개인사업자",
-      subscriptionAmount: 1000000,
-      productCategory: "적금",
-      interestPayment: "원리금균등지급식",
-      taxBenefit: "비과세종합저축으로 가입 가능",
-      partialWithdrawal: "거치기간 동안에만 총3회까지 가능",
-      cancellationPenalty: "",
-      description: "노후자금, 생활자금, 재투자자금까지! 행복knowhow 연금예금으로 설계하세요!"
-    },
-    {
-      productId: 4,
-      productCode: "1419602",
-      productName: "정기예금",
-      depositType: "정기예금",
-      minContractPeriod: 1,
-      maxContractPeriod: 36,
-      contractPeriodUnit: "개월",
-      subscriptionTarget: "제한없음",
-      subscriptionAmount: 10000,
-      productCategory: "예금",
-      interestPayment: "만기일시지급식",
-      taxBenefit: "비과세종합저축으로 가입 가능",
-      partialWithdrawal: "만기해지 포함 총3회 일부해지 가능",
-      cancellationPenalty: "",
-      description: "목돈을 일정기간 동안 예치하여 안정적인 수익을 추구하는 예금"
+  /**
+   * 예금 가입 확인 모달 열기
+   */
+  const openConfirmModal = () => {
+    if (!recommendation || !user || !irpAccount) {
+      alert('가입 정보가 부족합니다.');
+      return;
     }
-  ];
+    setShowConfirmModal(true);
+  };
+
+  /**
+   * 예금 가입 처리
+   */
+  const handleSubscribe = async () => {
+    setShowConfirmModal(false);
+
+    try {
+      setSubscribing(true);
+
+      const request: DepositSubscriptionRequest = {
+        userId: user!.userId,
+        bankCode: recommendation!.bankCode,
+        irpAccountNumber: irpAccount!.accountNumber,
+        linkedAccountNumber: irpAccount!.linkedMainAccount,
+        depositCode: recommendation!.depositCode,
+        productType: recommendation!.productType,
+        contractPeriod: recommendation!.contractPeriod,
+        subscriptionAmount: recommendation!.recommendedAmount
+      };
+
+      console.log('예금 가입 요청:', JSON.stringify(request, null, 2));
+
+      const response = await subscribeDeposit(request);
+
+      if (response.success) {
+        setSubscriptionResult(response);
+        setShowResultModal(true);
+        
+        // 상태 초기화
+        setRecommendation(null);
+      }
+    } catch (error: any) {
+      console.error('예금 가입 실패:', error);
+      alert(error.response?.data?.message || '예금 가입에 실패했습니다.');
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  /**
+   * 가입 완료 모달 닫기
+   */
+  const closeResultModal = () => {
+    setShowResultModal(false);
+    setSubscriptionResult(null);
+    setActiveTab('products');
+  };
 
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50">
-
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Tab Navigation */}
@@ -141,17 +198,19 @@ function DepositProducts() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                상품 종류
+                상품 목록
               </button>
               <button
-                onClick={() => setActiveTab('calculator')}
+                onClick={() => setActiveTab('recommend')}
                 className={`flex-1 py-4 px-6 text-center font-hana-medium transition-colors ${
-                  activeTab === 'calculator'
+                  activeTab === 'recommend'
                     ? 'text-hana-green border-b-2 border-hana-green bg-hana-green/5'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
+                disabled={!hasIrpAccount}
               >
-                목표 금액 계산
+                맞춤 상품 추천
+                {!hasIrpAccount && <span className="ml-2 text-xs text-gray-400">(IRP 계좌 필요)</span>}
               </button>
             </div>
           </div>
@@ -172,166 +231,256 @@ function DepositProducts() {
                       <ul className="space-y-2">
                         <li>• 일정 기간 동안 안정적인 수익 보장</li>
                         <li>• 예금자보호법에 의한 원금 보호</li>
-                        <li>• 만기 전 해지 시 약정 이자보다 낮은 이자 적용</li>
+                        <li>• IRP 계좌와 연동하여 세제 혜택</li>
                       </ul>
                     </div>
                     <div className="bg-blue-50 p-6 rounded-lg">
                       <h3 className="text-xl font-hana-bold text-blue-600 mb-3">고객 혜택</h3>
                       <ul className="space-y-2">
                         <li>• 안정적인 자산 증식</li>
-                        <li>• 세제 혜택 (비과세, 소득공제 등)</li>
-                        <li>• 다양한 만기 옵션 제공</li>
+                        <li>• 노후 자금 준비</li>
+                        <li>• AI 기반 최적 상품 추천</li>
                       </ul>
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* AI 추천 배너 */}
+              {hasIrpAccount && (
+                <div className="bg-gradient-to-r from-hana-green to-green-600 rounded-xl shadow-lg p-6 mb-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-2xl font-hana-bold text-white mb-2">
+                        AI 맞춤 상품 추천
+                      </h3>
+                      <p className="text-white/90">
+                        회원님의 은퇴 목표와 IRP 잔액을 분석하여 최적의 예금 상품을 추천해드립니다.
+                      </p>
+                    </div>
+                    <button
+                      onClick={fetchRecommendation}
+                      disabled={recommendLoading}
+                      className="bg-white text-hana-green px-6 py-3 rounded-lg font-hana-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      {recommendLoading ? '분석 중...' : '지금 추천받기'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Product List */}
               <div className="mb-6">
-                <h3 className="text-2xl font-hana-bold text-gray-900 mb-4">하나은행 정기예금 상품</h3>
+                <h3 className="text-2xl font-hana-bold text-gray-900 mb-4">정기예금 상품</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {depositProducts.map((product) => (
-                  <div 
-                    key={product.productId} 
-                    className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
-                    onClick={() => setSelectedProduct(product)}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-hana-bold text-gray-900">{product.productName}</h3>
-                      <span className="bg-hana-green text-white px-3 py-1 rounded-full text-sm font-hana-medium">
-                        {product.productCategory}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-3 mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">상품코드</span>
-                        <span className="font-hana-medium">{product.productCode}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">가입기간</span>
-                        <span className="font-hana-medium">
-                          {product.minContractPeriod === product.maxContractPeriod 
-                            ? `${product.minContractPeriod}${product.contractPeriodUnit}`
-                            : `${product.minContractPeriod}~${product.maxContractPeriod}${product.contractPeriodUnit}`
-                          }
+              
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-hana-green"></div>
+                  <p className="mt-4 text-gray-600">상품 목록을 불러오는 중...</p>
+                </div>
+              ) : depositProducts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {depositProducts.map((product) => (
+                    <div 
+                      key={product.depositCode} 
+                      className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
+                      onClick={() => setSelectedProduct(product)}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-hana-bold text-gray-900">{product.name}</h3>
+                        <span className="bg-hana-green text-white px-3 py-1 rounded-full text-sm font-hana-medium">
+                          {product.bankName}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">가입금액</span>
-                        <span className="font-hana-medium">{product.subscriptionAmount.toLocaleString()}원 이상</span>
+                      
+                      <div className="space-y-3 mb-4">
+                        <div>
+                          <span className="text-gray-500 text-sm">금리 정보</span>
+                          <p className="font-hana-medium text-sm text-gray-700 mt-1">{product.rateInfo}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-sm block mb-1">상품 설명</span>
+                          <p className="font-hana-medium text-sm text-gray-700">{product.description}</p>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">가입대상</span>
-                        <span className="font-hana-medium">{product.subscriptionTarget}</span>
-                      </div>
-                    </div>
 
-                    <div className="border-t pt-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">상세 정보 보기</span>
-                        <span className="text-hana-green font-hana-medium">→</span>
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">상세 정보 보기</span>
+                          <span className="text-hana-green font-hana-medium">→</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-white rounded-xl shadow-lg">
+                  <p className="text-gray-500">등록된 예금 상품이 없습니다.</p>
+                </div>
+              )}
             </>
           )}
 
-          {activeTab === 'calculator' && (
+          {activeTab === 'recommend' && (
             <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-3xl font-hana-bold text-gray-900 mb-6">정기예금 수익 계산기</h2>
-              <p className="text-gray-600 mb-8">예치할 금액과 기간을 입력하면 예상 수익을 계산해드립니다.</p>
+              <h2 className="text-3xl font-hana-bold text-gray-900 mb-6">AI 맞춤 상품 추천</h2>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 입력 폼 */}
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-hana-medium text-gray-700 mb-2">
-                      예치 금액 (원)
-                    </label>
-                    <input
-                      type="number"
-                      value={depositAmount || ''}
-                      onChange={(e) => setDepositAmount(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent"
-                      placeholder="예: 10000000"
-                    />
+              {!recommendation ? (
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-8 text-center">
+                    <svg className="mx-auto h-24 w-24 text-hana-green mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-gray-600 mb-2">
+                      회원님의 은퇴 목표와 IRP 잔액을 분석하여<br />
+                      최적의 예금 상품을 추천해드립니다.
+                    </p>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-hana-medium text-gray-700 mb-2">
-                      예상 금리 (%)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={depositInterestRate}
-                      onChange={(e) => setDepositInterestRate(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent"
-                    />
+
+                  {/* 은퇴 목표 입력 폼 */}
+                  <div className="space-y-6 mb-8">
+                    <div>
+                      <label className="block text-sm font-hana-medium text-gray-700 mb-2">
+                        은퇴 예정일 *
+                      </label>
+                      <input
+                        type="date"
+                        value={retirementDate}
+                        onChange={(e) => setRetirementDate(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent"
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-hana-medium text-gray-700 mb-2">
+                        목표 금액 (원) *
+                      </label>
+                      <input
+                        type="number"
+                        value={goalAmount || ''}
+                        onChange={(e) => setGoalAmount(Number(e.target.value))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent"
+                        placeholder="예: 100000000"
+                        min="0"
+                      />
+                      <p className="mt-2 text-sm text-gray-500">
+                        {goalAmount > 0 ? `${goalAmount.toLocaleString()}원` : '은퇴 시 필요한 목표 금액을 입력하세요'}
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-hana-medium text-gray-700 mb-2">
-                      예치 기간 (개월)
-                    </label>
-                    <input
-                      type="number"
-                      value={depositPeriod}
-                      onChange={(e) => setDepositPeriod(Number(e.target.value))}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent"
-                    />
-                  </div>
-                  
+
                   <button
-                    onClick={calculateDeposit}
-                    className="w-full bg-hana-green text-white py-3 px-6 rounded-lg font-hana-medium hover:bg-green-600 transition-colors"
+                    onClick={fetchRecommendation}
+                    disabled={recommendLoading || !retirementDate || !goalAmount}
+                    className="w-full bg-hana-green text-white px-8 py-4 rounded-lg font-hana-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    수익 계산하기
+                    {recommendLoading ? '분석 중...' : 'AI 추천 받기'}
                   </button>
                 </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* 추천 근거 */}
+                  <div className="bg-blue-50 p-6 rounded-lg">
+                    <h3 className="text-lg font-hana-bold text-blue-900 mb-3">📊 분석 결과</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div>
+                        <div className="text-sm text-blue-600">은퇴까지</div>
+                        <div className="text-xl font-hana-bold text-blue-900">{recommendation.yearsToRetirement}년</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-blue-600">현재 IRP 잔액</div>
+                        <div className="text-xl font-hana-bold text-blue-900">{recommendation.currentIrpBalance.toLocaleString()}원</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-blue-600">목표 금액</div>
+                        <div className="text-xl font-hana-bold text-blue-900">{recommendation.targetAmount.toLocaleString()}원</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-blue-600">부족 금액</div>
+                        <div className="text-xl font-hana-bold text-red-600">{recommendation.shortfall.toLocaleString()}원</div>
+                      </div>
+                    </div>
+                    <p className="text-blue-800">{recommendation.recommendationReason}</p>
+                  </div>
 
-                {/* 결과 표시 */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-xl font-hana-bold text-gray-900 mb-4">예상 수익</h3>
-                  {depositResult ? (
-                    <div className="space-y-4">
-                      <div className="bg-white p-4 rounded-lg">
-                        <div className="text-sm text-gray-500">예치 원금</div>
-                        <div className="text-xl font-hana-bold text-gray-900">
-                          {depositResult.principal.toLocaleString()}원
+                  {/* 추천 상품 정보 */}
+                  <div className="border-2 border-hana-green rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-2xl font-hana-bold text-gray-900">{recommendation.depositName}</h3>
+                      <span className="bg-hana-green text-white px-4 py-2 rounded-full font-hana-medium">
+                        {recommendation.bankName}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* 가입 조건 */}
+                      <div>
+                        <h4 className="font-hana-bold text-gray-900 mb-3">가입 조건</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">상품 유형</span>
+                            <span className="font-hana-medium">{recommendation.productTypeName}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">가입 기간</span>
+                            <span className="font-hana-medium">{recommendation.contractPeriod}{recommendation.contractPeriodUnit}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">추천 금액</span>
+                            <span className="font-hana-medium text-hana-green">{recommendation.recommendedAmount.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">적용 금리</span>
+                            <span className="font-hana-medium">{(recommendation.appliedRate * 100).toFixed(2)}%</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="bg-white p-4 rounded-lg">
-                        <div className="text-sm text-gray-500">예상 이자</div>
-                        <div className="text-xl font-hana-bold text-blue-600">
-                          {depositResult.interest.toLocaleString()}원
-                        </div>
-                      </div>
-                      <div className="bg-white p-4 rounded-lg border-2 border-hana-green">
-                        <div className="text-sm text-gray-500">만기 수령액</div>
-                        <div className="text-2xl font-hana-bold text-hana-green">
-                          {depositResult.finalAmount.toLocaleString()}원
-                        </div>
-                      </div>
-                      <div className="bg-hana-green/10 p-4 rounded-lg">
-                        <div className="text-sm text-hana-green font-hana-medium">수익률</div>
-                        <div className="text-lg font-hana-bold text-hana-green">
-                          {((depositResult.interest / depositResult.principal) * 100).toFixed(2)}%
+
+                      {/* 예상 수익 */}
+                      <div>
+                        <h4 className="font-hana-bold text-gray-900 mb-3">예상 수익</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">원금</span>
+                            <span className="font-hana-medium">{recommendation.recommendedAmount.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">예상 이자</span>
+                            <span className="font-hana-medium text-blue-600">{recommendation.expectedInterest.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-2">
+                            <span className="text-gray-900 font-hana-bold">만기 수령액</span>
+                            <span className="font-hana-bold text-hana-green text-lg">{recommendation.expectedMaturityAmount.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">만기일</span>
+                            <span className="font-hana-medium">{recommendation.expectedMaturityDate}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      예치 금액과 기간을 입력하고 수익 계산하기 버튼을 눌러주세요.
-                    </div>
-                  )}
+                  </div>
+
+                  {/* 가입 버튼 */}
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setRecommendation(null)}
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-hana-medium hover:bg-gray-300 transition-colors"
+                    >
+                      다시 추천받기
+                    </button>
+                    <button
+                      onClick={openConfirmModal}
+                      disabled={subscribing}
+                      className="flex-1 bg-hana-green text-white py-3 px-6 rounded-lg font-hana-medium hover:bg-green-600 transition-colors disabled:opacity-50"
+                    >
+                      {subscribing ? '가입 처리 중...' : '이 상품으로 가입하기'}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -342,12 +491,12 @@ function DepositProducts() {
               onClick={() => setSelectedProduct(null)}
             >
               <div 
-                className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="p-6 border-b">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-hana-bold text-gray-900">{selectedProduct.productName}</h2>
+                    <h2 className="text-2xl font-hana-bold text-gray-900">{selectedProduct.name}</h2>
                     <button
                       onClick={() => setSelectedProduct(null)}
                       className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -358,71 +507,44 @@ function DepositProducts() {
                 </div>
 
                 <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* 기본 정보 */}
+                  <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-hana-bold text-gray-900 mb-4">기본 정보</h3>
+                      <h3 className="text-lg font-hana-bold text-gray-900 mb-3">기본 정보</h3>
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="text-gray-500">상품코드</span>
-                          <span className="font-hana-medium">{selectedProduct.productCode}</span>
+                          <span className="font-hana-medium">{selectedProduct.depositCode}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-500">상품유형</span>
-                          <span className="font-hana-medium">{selectedProduct.depositType}</span>
+                          <span className="text-gray-500">은행</span>
+                          <span className="font-hana-medium">{selectedProduct.bankName}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">가입기간</span>
-                          <span className="font-hana-medium">
-                            {selectedProduct.minContractPeriod === selectedProduct.maxContractPeriod 
-                              ? `${selectedProduct.minContractPeriod}${selectedProduct.contractPeriodUnit}`
-                              : `${selectedProduct.minContractPeriod}~${selectedProduct.maxContractPeriod}${selectedProduct.contractPeriodUnit}`
-                            }
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">가입대상</span>
-                          <span className="font-hana-medium">{selectedProduct.subscriptionTarget}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">가입금액</span>
-                          <span className="font-hana-medium">{selectedProduct.subscriptionAmount.toLocaleString()}원 이상</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">이자지급</span>
-                          <span className="font-hana-medium">{selectedProduct.interestPayment}</span>
+                        <div>
+                          <span className="text-gray-500 block mb-2">금리 정보</span>
+                          <span className="font-hana-medium">{selectedProduct.rateInfo}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* 상세 정보 */}
                     <div>
-                      <h3 className="text-lg font-hana-bold text-gray-900 mb-4">상세 정보</h3>
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-gray-500 block mb-1">세제혜택</span>
-                          <span className="font-hana-medium">{selectedProduct.taxBenefit}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 block mb-1">일부해지</span>
-                          <span className="font-hana-medium">{selectedProduct.partialWithdrawal}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 block mb-1">해지시 불이익</span>
-                          <span className="font-hana-medium">{selectedProduct.cancellationPenalty || '없음'}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500 block mb-1">상품 설명</span>
-                          <span className="font-hana-medium">{selectedProduct.description}</span>
-                        </div>
-                      </div>
+                      <h3 className="text-lg font-hana-bold text-gray-900 mb-3">상품 설명</h3>
+                      <p className="text-gray-700">{selectedProduct.description}</p>
                     </div>
                   </div>
 
-                  {/* 신청 버튼 */}
-                  <div className="mt-8 flex justify-center">
-                    <button className="bg-hana-green text-white px-8 py-3 rounded-lg font-hana-medium hover:bg-green-600 transition-colors">
-                      상품 신청하기
+                  <div className="mt-8">
+                    <button 
+                      onClick={() => {
+                        setSelectedProduct(null);
+                        if (hasIrpAccount) {
+                          fetchRecommendation();
+                        } else {
+                          alert('IRP 계좌를 먼저 개설해주세요.');
+                        }
+                      }}
+                      className="w-full bg-hana-green text-white px-8 py-3 rounded-lg font-hana-medium hover:bg-green-600 transition-colors"
+                    >
+                      AI 추천 받기
                     </button>
                   </div>
                 </div>
@@ -431,6 +553,178 @@ function DepositProducts() {
           )}
         </div>
       </div>
+
+      {/* 가입 확인 모달 */}
+      {showConfirmModal && recommendation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-8 animate-fade-in">
+            <div className="text-center mb-6">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-hana-bold text-gray-900 mb-2">
+                정기예금 가입 확인
+              </h3>
+              <p className="text-gray-600">
+                아래 내용으로 정기예금에 가입하시겠습니까?
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">상품명</span>
+                    <span className="font-hana-medium text-gray-900">{recommendation.depositName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">은행</span>
+                    <span className="font-hana-medium text-gray-900">{recommendation.bankName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">상품 유형</span>
+                    <span className="font-hana-medium text-gray-900">{recommendation.productTypeName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">가입 기간</span>
+                    <span className="font-hana-medium text-gray-900">
+                      {recommendation.contractPeriod}{recommendation.contractPeriodUnit}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-hana-green/5 rounded-lg p-4 border border-hana-green/20">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">가입 금액</span>
+                    <span className="font-hana-bold text-hana-green text-lg">
+                      {recommendation.recommendedAmount.toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">적용 금리</span>
+                    <span className="font-hana-medium text-gray-900">
+                      연 {(recommendation.appliedRate * 100).toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">예상 이자</span>
+                    <span className="font-hana-medium text-blue-600">
+                      +{recommendation.expectedInterest.toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                    <span className="text-sm font-hana-bold text-gray-700">만기 수령액</span>
+                    <span className="font-hana-bold text-hana-green text-xl">
+                      {recommendation.expectedMaturityAmount.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center text-sm text-gray-600 bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                <p>⚠️ 가입 후 IRP 계좌에서 즉시 차감됩니다.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-hana-medium hover:bg-gray-300 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSubscribe}
+                disabled={subscribing}
+                className="flex-1 bg-hana-green text-white px-6 py-3 rounded-lg font-hana-medium hover:bg-green-600 transition-colors disabled:opacity-50"
+              >
+                {subscribing ? '처리 중...' : '가입하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 가입 완료 모달 */}
+      {showResultModal && subscriptionResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-8 animate-fade-in">
+            <div className="text-center mb-6">
+              <div className="mx-auto w-16 h-16 bg-hana-green rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-hana-bold text-gray-900 mb-2">
+                정기예금 가입 완료
+              </h3>
+              <p className="text-gray-600">
+                정기예금 가입이 성공적으로 완료되었습니다.
+              </p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">IRP 계좌번호</p>
+                    <p className="font-hana-medium text-gray-900">{subscriptionResult.accountNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">은행</p>
+                    <p className="font-hana-medium text-gray-900">{subscriptionResult.bankName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">가입 금액</p>
+                    <p className="font-hana-medium text-hana-green">
+                      {subscriptionResult.expectedMaturityAmount ? 
+                        (subscriptionResult.expectedMaturityAmount - subscriptionResult.expectedInterest).toLocaleString() : 
+                        '0'}원
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">만기일</p>
+                    <p className="font-hana-medium text-gray-900">{subscriptionResult.maturityDate}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-hana-green/5 rounded-lg p-4 border border-hana-green/20">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">예상 이자</p>
+                    <p className="font-hana-bold text-hana-green text-lg">
+                      +{subscriptionResult.expectedInterest?.toLocaleString() || '0'}원
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">만기 수령액</p>
+                    <p className="font-hana-bold text-hana-green text-lg">
+                      {subscriptionResult.expectedMaturityAmount?.toLocaleString() || '0'}원
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center text-sm text-gray-600 bg-blue-50 rounded-lg p-3">
+                <p>💡 예금 상품은 IRP 계좌에 가입되었습니다.</p>
+                <p className="mt-1">만기 시 자동으로 IRP 계좌 잔액에 반영됩니다.</p>
+              </div>
+            </div>
+
+            <button
+              onClick={closeResultModal}
+              className="w-full bg-hana-green text-white px-6 py-3 rounded-lg font-hana-medium hover:bg-green-600 transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

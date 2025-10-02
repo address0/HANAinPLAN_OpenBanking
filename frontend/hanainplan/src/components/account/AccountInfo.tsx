@@ -11,6 +11,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
   const {
     accounts,
     selectedAccountId,
+    selectedAccountType,
     setSelectedAccount,
     allAccountsData
   } = useAccountStore();
@@ -47,15 +48,30 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
 
   useEffect(() => {
     if (accounts.length > 0) {
-      const account = accounts.find(acc => acc.accountId === selectedAccountId) || accounts[0];
-      setLocalSelectedAccount(account);
-      if (!selectedAccountId) {
-        setSelectedAccount(account.accountId);
+      // IRP 계좌가 선택된 경우는 무시 (별도 처리)
+      if (selectedAccountType === 'IRP') {
+        return;
+      }
+
+      // 선택된 계좌가 유효한지 확인
+      if (selectedAccountId) {
+        const validAccount = accounts.find(acc => acc.accountId === selectedAccountId);
+        if (validAccount) {
+          setLocalSelectedAccount(validAccount);
+        } else {
+          // 선택된 계좌가 유효하지 않으면 첫 번째 계좌로 설정
+          setLocalSelectedAccount(accounts[0]);
+          setSelectedAccount(accounts[0].accountId, 'BANKING');
+        }
+      } else {
+        // 선택된 계좌가 없으면 첫 번째 계좌 선택
+        setLocalSelectedAccount(accounts[0]);
+        setSelectedAccount(accounts[0].accountId, 'BANKING');
       }
     } else {
       setLocalSelectedAccount(null);
     }
-  }, [accounts, selectedAccountId, setSelectedAccount]);
+  }, [accounts, selectedAccountId, selectedAccountType, setSelectedAccount]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount);
@@ -124,8 +140,10 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
           return (
             <div
               key={account.accountId}
-              className={`${bankColor} w-full h-[140px] rounded-xl relative cursor-pointer flex flex-col justify-between p-6 text-white hover:opacity-90 transition-opacity shadow-lg`}
-              onClick={() => setSelectedAccount(account.accountId)}
+              className={`${bankColor} w-full h-[140px] rounded-xl relative cursor-pointer flex flex-col justify-between p-6 text-white hover:opacity-90 transition-opacity shadow-lg ${
+                selectedAccountId === account.accountId && selectedAccountType === 'BANKING' ? 'ring-4 ring-white ring-opacity-50' : ''
+              }`}
+              onClick={() => setSelectedAccount(account.accountId, 'BANKING')}
             >
               {/* 상단: 은행 정보 */}
               <div className="flex items-center justify-between">
@@ -146,7 +164,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
                   className="bg-white/20 px-4 py-2 rounded-lg text-sm font-hana-medium hover:bg-white/30 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelectedAccount(account.accountId);
+                    setSelectedAccount(account.accountId, 'BANKING');
                     onTransferClick();
                   }}
                 >
@@ -165,7 +183,12 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
 
         {/* IRP 계좌 */}
         {allAccountsData?.irpAccount && (
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 w-full h-[140px] rounded-xl relative cursor-pointer flex flex-col justify-between p-6 text-white hover:opacity-90 transition-opacity shadow-lg">
+          <div
+            className={`bg-gradient-to-r from-green-500 to-emerald-600 w-full h-[140px] rounded-xl relative cursor-pointer flex flex-col justify-between p-6 text-white hover:opacity-90 transition-opacity shadow-lg ${
+              selectedAccountType === 'IRP' ? 'ring-4 ring-white ring-opacity-50' : ''
+            }`}
+            onClick={() => setSelectedAccount(null, 'IRP')}
+          >
             {/* 상단: IRP 정보 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -189,7 +212,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
                   window.location.href = '/portfolio';
                 }}
               >
-                조회
+                포트폴리오
               </button>
             </div>
 
