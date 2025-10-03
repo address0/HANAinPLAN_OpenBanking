@@ -138,6 +138,29 @@ public class InterestRateController {
     }
 
     /**
+     * 모든 금리 정보 조회 (HanaInPlan 통합용)
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getAllInterestRatesForIntegration() {
+        List<InterestRateResponseDto> interestRates = interestRateService.getAllInterestRates();
+        List<java.util.Map<String, Object>> result = interestRates.stream()
+            .map(rate -> {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("bankCode", "HANA");
+                map.put("bankName", "하나은행");
+                map.put("productCode", rate.getProductCode());
+                map.put("productName", "하나은행 정기예금");
+                map.put("maturityPeriod", rate.getMaturityPeriod());
+                map.put("interestRate", rate.getInterestRate());
+                map.put("interestType", rate.getInterestType().name());
+                map.put("isIrp", rate.getIsIrp());
+                return map;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * 금리 정보 수정
      */
     @PutMapping("/{interestRateId}")

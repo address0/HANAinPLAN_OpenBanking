@@ -34,9 +34,14 @@ public interface IrpAccountRepository extends JpaRepository<IrpAccount, Long> {
     Optional<IrpAccount> findByCustomerCiAndAccountStatus(String customerCi, String accountStatus);
 
     /**
-     * 사용자 CI, 은행코드, 계좌상태로 조회
+     * 사용자 CI, 은행코드, 계좌상태로 조회 (단건)
      */
     Optional<IrpAccount> findByCustomerCiAndBankCodeAndAccountStatus(String customerCi, String bankCode, String accountStatus);
+
+    /**
+     * 사용자 CI, 은행코드, 계좌상태로 조회 (목록)
+     */
+    List<IrpAccount> findAllByCustomerCiAndBankCodeAndAccountStatus(String customerCi, String bankCode, String accountStatus);
 
     /**
      * 계좌상태로 조회

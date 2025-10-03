@@ -8,6 +8,8 @@ import com.hanainplan.domain.banking.entity.BankingAccount;
 import com.hanainplan.domain.banking.entity.IrpAccount;
 import com.hanainplan.domain.banking.entity.Transaction;
 import com.hanainplan.domain.banking.client.HanaBankClient;
+import com.hanainplan.domain.banking.client.KookminBankClient;
+import com.hanainplan.domain.banking.client.ShinhanBankClient;
 import com.hanainplan.domain.banking.repository.AccountRepository;
 import com.hanainplan.domain.banking.repository.IrpAccountRepository;
 import com.hanainplan.domain.banking.repository.TransactionRepository;
@@ -40,6 +42,8 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
     private final IrpAccountRepository irpAccountRepository;
     private final UserRepository userRepository;
     private final HanaBankClient hanaBankClient;
+    private final KookminBankClient kookminBankClient;
+    private final ShinhanBankClient shinhanBankClient;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
@@ -154,104 +158,224 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
             request.setCustomerCi(customerCi);
         }
 
-        // 2. 연결 주계좌 유효성 확인 (간단한 형식 검사)
+        // 3. 연결 주계좌 유효성 확인 (간단한 형식 검사)
         if (request.getLinkedMainAccount() == null || request.getLinkedMainAccount().length() < 10) {
             return IrpAccountOpenResponseDto.failure("연결 주계좌 정보가 올바르지 않습니다.", "INVALID_LINKED_ACCOUNT");
         }
 
+        // 4. 연결된 주계좌 조회 및 잔액 확인 (DB 변경 전 검증)
+        BankingAccount linkedAccount = accountRepository.findByAccountNumber(request.getLinkedMainAccount())
+                .orElseThrow(() -> new RuntimeException("연결 주계좌를 찾을 수 없습니다: " + request.getLinkedMainAccount()));
+        
+        BigDecimal initialDepositAmount = BigDecimal.valueOf(request.getInitialDeposit());
+        BigDecimal newLinkedBalance = linkedAccount.getBalance().subtract(initialDepositAmount);
+        if (newLinkedBalance.compareTo(BigDecimal.ZERO) < 0) {
+            return IrpAccountOpenResponseDto.failure("연결 주계좌 잔액이 부족합니다", "INSUFFICIENT_BALANCE");
+        }
+
         try {
-            // 3. 먼저 HANAinPLAN DB에 IRP 계좌 정보 저장 (계좌번호는 임시)
-            BigDecimal initialDepositAmount = BigDecimal.valueOf(request.getInitialDeposit());
-            String tempAccountNumber = "TEMP-" + System.currentTimeMillis();
+            // ============================================================
+            // 5. 외부 API 호출 (DB 변경 전에 먼저 실행)
+            // ============================================================
             
-            IrpAccount account = IrpAccount.builder()
-                    .customerId(request.getCustomerId())
-                    .customerCi(customerCi)
-                    .bankCode("HANA")
-                    .accountNumber(tempAccountNumber) // 임시 계좌번호
-                    .accountStatus("PENDING") // 하나은행 생성 전이므로 PENDING
-                    .initialDeposit(initialDepositAmount)
-                    .currentBalance(initialDepositAmount)
-                    .totalContribution(initialDepositAmount)
-                    .monthlyDeposit(request.getMonthlyDeposit() != null ? BigDecimal.valueOf(request.getMonthlyDeposit()) : BigDecimal.ZERO)
-                    .isAutoDeposit(request.getIsAutoDeposit())
-                    .depositDay(request.getDepositDay())
-                    .investmentStyle(request.getInvestmentStyle())
-                    .linkedMainAccount(request.getLinkedMainAccount())
-                    .productCode("IRP001")
-                    .productName("하나은행 IRP")
-                    .openDate(LocalDate.now())
-                    .lastContributionDate(LocalDate.now())
-                    .syncStatus("PENDING")
-                    .build();
-
-            // 4. HANAinPLAN 데이터베이스에 저장 (임시)
-            IrpAccount savedAccount = irpAccountRepository.save(account);
-            
-            log.info("하나인플랜 IRP 계좌 임시 저장 완료 - 임시 계좌번호: {}", tempAccountNumber);
-
-            // 5. 연결된 주계좌에서 출금 처리 (하나인플랜 DB)
-            BankingAccount linkedAccount = accountRepository.findByAccountNumber(request.getLinkedMainAccount())
-                    .orElseThrow(() -> new RuntimeException("연결 주계좌를 찾을 수 없습니다: " + request.getLinkedMainAccount()));
-            
-            BigDecimal newLinkedBalance = linkedAccount.getBalance().subtract(initialDepositAmount);
-            if (newLinkedBalance.compareTo(BigDecimal.ZERO) < 0) {
-                throw new RuntimeException("연결 주계좌 잔액이 부족합니다");
+            // 5-1. 실제 은행 서버에 출금 요청 (DB 변경 전)
+            String bankCode = determineBankCode(request.getLinkedMainAccount());
+            try {
+                Map<String, Object> withdrawalRequest = new HashMap<>();
+                withdrawalRequest.put("accountNumber", request.getLinkedMainAccount());
+                withdrawalRequest.put("amount", initialDepositAmount);
+                withdrawalRequest.put("description", "IRP 계좌 개설 초기 입금");
+                
+                Map<String, Object> withdrawalResponse;
+                
+                switch (bankCode) {
+                    case "HANA":
+                        withdrawalResponse = hanaBankClient.processWithdrawal(withdrawalRequest);
+                        break;
+                    case "KOOKMIN":
+                        withdrawalResponse = kookminBankClient.processWithdrawal(withdrawalRequest);
+                        break;
+                    case "SHINHAN":
+                        withdrawalResponse = shinhanBankClient.processWithdrawal(withdrawalRequest);
+                        break;
+                    default:
+                        throw new RuntimeException("지원하지 않는 은행입니다: " + bankCode);
+                }
+                
+                log.info("[{}] 연결 주계좌 출금 처리 완료 - 계좌: {}, 금액: {}원", 
+                        bankCode, request.getLinkedMainAccount(), initialDepositAmount);
+                
+            } catch (Exception e) {
+                log.error("연결 주계좌 출금 실패 - 은행: {}, 계좌: {}, 오류: {}", 
+                        bankCode, request.getLinkedMainAccount(), e.getMessage());
+                // 외부 API 실패 시 즉시 실패 응답 (DB 변경 없음)
+                return IrpAccountOpenResponseDto.failure("연결 주계좌 출금에 실패했습니다: " + e.getMessage(), "WITHDRAWAL_FAILED");
             }
-            
-            linkedAccount.setBalance(newLinkedBalance);
-            accountRepository.save(linkedAccount);
-            
-            log.info("하나인플랜 연결 주계좌 출금 완료 - 계좌: {}, 출금액: {}원, 남은 잔액: {}원", 
-                    request.getLinkedMainAccount(), initialDepositAmount, newLinkedBalance);
 
-            // 6. 하나은행 서버에 IRP 계좌 개설 요청
+            // 5-2. 하나은행 서버에 IRP 계좌 개설 요청 (DB 변경 전)
             IrpAccountOpenResponseDto bankResponse = openIrpAccountAtHanaBank(request);
 
             if (!bankResponse.isSuccess()) {
-                // 하나은행 생성 실패 시 롤백
-                linkedAccount.setBalance(linkedAccount.getBalance().add(initialDepositAmount));
-                accountRepository.save(linkedAccount);
-                irpAccountRepository.delete(savedAccount);
+                log.error("하나은행 IRP 계좌 개설 실패 - 응답: {}", bankResponse.getMessage());
+                
+                // 보상 트랜잭션: 이미 수행된 출금을 취소 (입금으로 원복)
+                try {
+                    log.info("보상 트랜잭션 시작 - 출금 취소 (입금으로 원복)");
+                    
+                    Map<String, Object> compensationRequest = new HashMap<>();
+                    compensationRequest.put("accountNumber", request.getLinkedMainAccount());
+                    compensationRequest.put("amount", initialDepositAmount);
+                    compensationRequest.put("description", "IRP 계좌 개설 실패로 인한 출금 취소");
+                    
+                    Map<String, Object> compensationResponse;
+                    
+                    switch (bankCode) {
+                        case "HANA":
+                            compensationResponse = hanaBankClient.createDepositTransaction(compensationRequest);
+                            break;
+                        case "KOOKMIN":
+                            // 국민은행 입금 API 호출 (클라이언트에 메서드가 있다고 가정)
+                            compensationResponse = kookminBankClient.createDepositTransaction(compensationRequest);
+                            break;
+                        case "SHINHAN":
+                            // 신한은행 입금 API 호출 (클라이언트에 메서드가 있다고 가정)
+                            compensationResponse = shinhanBankClient.createDepositTransaction(compensationRequest);
+                            break;
+                        default:
+                            throw new RuntimeException("지원하지 않는 은행입니다: " + bankCode);
+                    }
+                    
+                    log.info("[{}] 보상 트랜잭션 완료 - 출금 취소 성공, 계좌: {}, 금액: {}원", 
+                            bankCode, request.getLinkedMainAccount(), initialDepositAmount);
+                    
+                } catch (Exception compensationError) {
+                    log.error("보상 트랜잭션 실패 - 수동 확인 필요! 은행: {}, 계좌: {}, 금액: {}원, 오류: {}", 
+                            bankCode, request.getLinkedMainAccount(), initialDepositAmount, compensationError.getMessage());
+                    // 보상 트랜잭션 실패는 심각한 문제이므로 로그에 기록하고 알림 필요
+                }
+                
                 return bankResponse;
             }
-
-            // 7. 실제 계좌번호로 업데이트
-            savedAccount.setAccountNumber(bankResponse.getAccountNumber());
-            savedAccount.setAccountStatus("ACTIVE");
-            savedAccount.setSyncStatus("SUCCESS");
-            savedAccount.setExternalAccountId(bankResponse.getAccountNumber());
-            savedAccount.setExternalLastUpdated(LocalDateTime.now());
-            irpAccountRepository.save(savedAccount);
             
-            log.info("하나인플랜 IRP 계좌번호 업데이트 완료 - 실제 계좌번호: {}", bankResponse.getAccountNumber());
+            String realAccountNumber = bankResponse.getAccountNumber();
+            log.info("하나은행 IRP 계좌 개설 완료 - 실제 계좌번호: {}", realAccountNumber);
 
-            // 8. IRP 계좌를 일반 계좌 테이블에도 등록 (account_type=6: IRP)
-            BankingAccount irpBankingAccount = BankingAccount.builder()
-                    .userId(request.getCustomerId())
-                    .customerCi(customerCi)
-                    .accountNumber(bankResponse.getAccountNumber())
-                    .accountName("IRP 연금저축")
-                    .accountType(6) // IRP 계좌
-                    .accountStatus(BankingAccount.AccountStatus.ACTIVE)
-                    .balance(initialDepositAmount)
-                    .currencyCode("KRW")
-                    .openedDate(LocalDateTime.now())
-                    .description("하나은행 IRP 계좌")
-                    .build();
-            accountRepository.save(irpBankingAccount);
+            // ============================================================
+            // 6. 외부 API 호출이 모두 성공한 후 DB 변경 시작
+            //    (이 시점부터 오류 발생 시 Spring의 @Transactional이 자동 롤백)
+            // ============================================================
             
-            log.info("IRP 계좌를 일반 계좌 테이블에 등록 완료 - 계좌번호: {}, account_type: 6", bankResponse.getAccountNumber());
+            try {
+                // 6-1. HanaInPlan DB에 연결 주계좌 출금 반영
+                linkedAccount.setBalance(newLinkedBalance);
+                accountRepository.save(linkedAccount);
+                
+                log.info("[HanaInPlan] 연결 주계좌 출금 완료 - 계좌: {}, 출금액: {}원, 남은 잔액: {}원", 
+                        request.getLinkedMainAccount(), initialDepositAmount, newLinkedBalance);
 
-            // 9. 거래내역 생성 - IRP 계좌에 입금(+), 연결 주계좌에 출금(-)
-            createIrpAccountOpenTransactions(request, customerCi, bankResponse.getAccountNumber(), irpBankingAccount, linkedAccount);
+                // 6-2. HANAinPLAN DB에 IRP 계좌 정보 저장
+                IrpAccount account = IrpAccount.builder()
+                        .customerId(request.getCustomerId())
+                        .customerCi(customerCi)
+                        .bankCode("HANA")
+                        .accountNumber(realAccountNumber) // 실제 계좌번호 사용
+                        .accountStatus("ACTIVE") // 하나은행에서 이미 생성되었으므로 ACTIVE
+                        .initialDeposit(initialDepositAmount)
+                        .currentBalance(initialDepositAmount)
+                        .totalContribution(initialDepositAmount)
+                        .monthlyDeposit(request.getMonthlyDeposit() != null ? BigDecimal.valueOf(request.getMonthlyDeposit()) : BigDecimal.ZERO)
+                        .isAutoDeposit(request.getIsAutoDeposit())
+                        .depositDay(request.getDepositDay())
+                        .investmentStyle(request.getInvestmentStyle())
+                        .linkedMainAccount(request.getLinkedMainAccount())
+                        .productCode("IRP001")
+                        .productName("하나은행 IRP")
+                        .openDate(LocalDate.now())
+                        .lastContributionDate(LocalDate.now())
+                        .syncStatus("SUCCESS")
+                        .externalAccountId(realAccountNumber)
+                        .externalLastUpdated(LocalDateTime.now())
+                        .build();
 
-            log.info("IRP 계좌 개설 완료 - 계좌번호: {}, 고객 CI: {}", bankResponse.getAccountNumber(), customerCi);
+                IrpAccount savedAccount = irpAccountRepository.save(account);
+                log.info("하나인플랜 IRP 계좌 저장 완료 - 계좌번호: {}", realAccountNumber);
 
-            return bankResponse;
+                // 6-3. IRP 계좌를 일반 계좌 테이블에도 등록 (account_type=6: IRP)
+                BankingAccount irpBankingAccount = BankingAccount.builder()
+                        .userId(request.getCustomerId())
+                        .customerCi(customerCi)
+                        .accountNumber(realAccountNumber)
+                        .accountName("IRP 연금저축")
+                        .accountType(6) // IRP 계좌
+                        .accountStatus(BankingAccount.AccountStatus.ACTIVE)
+                        .balance(initialDepositAmount)
+                        .currencyCode("KRW")
+                        .openedDate(LocalDateTime.now())
+                        .description("하나은행 IRP 계좌")
+                        .build();
+                accountRepository.save(irpBankingAccount);
+                
+                log.info("IRP 계좌를 일반 계좌 테이블에 등록 완료 - 계좌번호: {}, account_type: 6", realAccountNumber);
+
+                // 6-4. 거래내역 생성 - IRP 계좌에 입금(+), 연결 주계좌에 출금(-)
+                createIrpAccountOpenTransactions(request, customerCi, realAccountNumber, irpBankingAccount, linkedAccount);
+
+                log.info("IRP 계좌 개설 완료 - 계좌번호: {}, 고객 CI: {}", realAccountNumber, customerCi);
+
+                return bankResponse;
+                
+            } catch (Exception dbError) {
+                log.error("DB 저장 중 오류 발생 - 보상 트랜잭션 시작", dbError);
+                
+                // DB 저장 실패 시 보상 트랜잭션: 외부 API로 생성된 데이터 취소
+                try {
+                    // 보상 1: 연결 주계좌 출금 취소 (입금으로 원복)
+                    Map<String, Object> compensationRequest = new HashMap<>();
+                    compensationRequest.put("accountNumber", request.getLinkedMainAccount());
+                    compensationRequest.put("amount", initialDepositAmount);
+                    compensationRequest.put("description", "IRP 계좌 개설 DB 저장 실패로 인한 출금 취소");
+                    
+                    switch (bankCode) {
+                        case "HANA":
+                            hanaBankClient.createDepositTransaction(compensationRequest);
+                            break;
+                        case "KOOKMIN":
+                            kookminBankClient.createDepositTransaction(compensationRequest);
+                            break;
+                        case "SHINHAN":
+                            shinhanBankClient.createDepositTransaction(compensationRequest);
+                            break;
+                    }
+                    
+                    log.info("[{}] 보상 트랜잭션 1 완료 - 연결 주계좌 출금 취소, 계좌: {}, 금액: {}원", 
+                            bankCode, request.getLinkedMainAccount(), initialDepositAmount);
+                    
+                    // 보상 2: 하나은행 IRP 계좌 삭제 요청
+                    try {
+                        Map<String, Object> deleteRequest = new HashMap<>();
+                        deleteRequest.put("accountNumber", realAccountNumber);
+                        deleteRequest.put("reason", "DB 저장 실패로 인한 계좌 삭제");
+                        
+                        hanaBankClient.deleteIrpAccount(deleteRequest);
+                        log.info("[하나은행] 보상 트랜잭션 2 완료 - IRP 계좌 삭제, 계좌번호: {}", realAccountNumber);
+                        
+                    } catch (Exception deleteError) {
+                        log.error("[하나은행] IRP 계좌 삭제 실패 - 수동 확인 필요! 계좌번호: {}, 오류: {}", 
+                                realAccountNumber, deleteError.getMessage());
+                    }
+                    
+                } catch (Exception compensationError) {
+                    log.error("보상 트랜잭션 실패 - 수동 확인 필요! 은행: {}, 계좌: {}, IRP계좌: {}, 금액: {}원, 오류: {}", 
+                            bankCode, request.getLinkedMainAccount(), realAccountNumber, initialDepositAmount, compensationError.getMessage());
+                }
+                
+                // @Transactional에 의해 DB는 자동 롤백되고, 예외를 다시 던짐
+                throw new Exception("DB 저장 중 오류 발생: " + dbError.getMessage());
+            }
 
         } catch (Exception e) {
-            log.error("IRP 계좌 개설 실패 - 고객 CI: {}", request.getCustomerCi(), e);
+            log.error("IRP 계좌 개설 실패 - 고객 CI: {}, 오류: {}", request.getCustomerCi(), e.getMessage(), e);
+            // @Transactional에 의해 자동으로 롤백됨
             throw new Exception("IRP 계좌 개설에 실패했습니다: " + e.getMessage());
         }
     }
@@ -476,9 +600,17 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         try {
             log.info("하나은행 서버에 IRP 계좌 개설 요청 - 고객 CI: {}", request.getCustomerCi());
 
+            // 사용자 정보 조회 (고객 정보를 하나은행에 전달하기 위함)
+            User user = userRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + request.getCustomerId()));
+
             // 하나은행 서버 요청 데이터 구성
             Map<String, Object> hanaBankRequest = new HashMap<>();
             hanaBankRequest.put("customerCi", request.getCustomerCi());
+            hanaBankRequest.put("customerName", user.getUserName()); // 고객 이름
+            hanaBankRequest.put("birthDate", user.getBirthDate().toString().replace("-", "")); // YYYYMMDD 형식
+            hanaBankRequest.put("gender", user.getGender().toString()); // M/F
+            hanaBankRequest.put("phone", user.getPhoneNumber()); // 전화번호
             hanaBankRequest.put("initialDeposit", request.getInitialDeposit());
             hanaBankRequest.put("monthlyDeposit", request.getMonthlyDeposit() != null ? request.getMonthlyDeposit() : 0);
             hanaBankRequest.put("isAutoDeposit", request.getIsAutoDeposit());
@@ -522,16 +654,15 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
             BigDecimal initialDepositAmount = BigDecimal.valueOf(request.getInitialDeposit());
             String transactionNumber = Transaction.generateTransactionNumber();
             
-            // 1. 연결 주계좌에 출금(-) 거래내역 생성
-            // ⚠️ 주의: linkedAccount.getBalance()는 이미 차감된 잔액이므로 그대로 사용
+            // 1. HanaInPlan DB: 연결 주계좌에 출금(-) 거래내역 생성
             Transaction withdrawalTransaction = Transaction.builder()
                         .transactionNumber(transactionNumber + "_OUT")
                         .fromAccountId(linkedAccount.getAccountId())
-                        .toAccountId(null) // IRP 계좌는 별도 시스템이므로 null
+                        .toAccountId(null)
                         .transactionType(Transaction.TransactionType.TRANSFER)
                         .transactionCategory(Transaction.TransactionCategory.INVESTMENT)
                         .amount(initialDepositAmount)
-                        .balanceAfter(linkedAccount.getBalance()) // 이미 차감된 잔액
+                        .balanceAfter(linkedAccount.getBalance())
                         .transactionDirection(Transaction.TransactionDirection.DEBIT)
                         .description("IRP 계좌 개설 초기 입금")
                         .transactionStatus(Transaction.TransactionStatus.COMPLETED)
@@ -542,14 +673,13 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
                         .build();
             
             transactionRepository.save(withdrawalTransaction);
-            
-            log.info("연결 주계좌 출금 거래내역 생성 완료 - 계좌: {}, 금액: {}", 
+            log.info("[HanaInPlan] 연결 주계좌 출금 거래내역 생성 완료 - 계좌: {}, 금액: {}", 
                     linkedAccount.getAccountNumber(), initialDepositAmount);
             
-            // 2. IRP 계좌에 입금(+) 거래내역 생성 (일반 거래내역 테이블 사용)
+            // 2. HanaInPlan DB: IRP 계좌에 입금(+) 거래내역 생성
             Transaction irpDepositTransaction = Transaction.builder()
                     .transactionNumber(transactionNumber + "_IN")
-                    .fromAccountId(null) // 외부 계좌에서 입금
+                    .fromAccountId(null)
                     .toAccountId(irpBankingAccount.getAccountId())
                     .transactionType(Transaction.TransactionType.TRANSFER)
                     .transactionCategory(Transaction.TransactionCategory.INVESTMENT)
@@ -565,12 +695,64 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
                     .build();
             
             transactionRepository.save(irpDepositTransaction);
+            log.info("[HanaInPlan] IRP 계좌 입금 거래내역 생성 완료 - 계좌: {}, 금액: {}", irpAccountNumber, initialDepositAmount);
             
-            log.info("IRP 계좌 입금 거래내역 생성 완료 - 계좌: {}, 금액: {}", irpAccountNumber, initialDepositAmount);
+            // 3. 하나은행 서버에 입금 거래내역 생성 (IRP 계좌)
+            // 출금은 이미 openIrpAccount 메서드에서 처리되었으므로 입금만 처리
+            createDepositTransactionAtHanaBank(irpAccountNumber, initialDepositAmount, "IRP 계좌 개설 초기 입금");
             
         } catch (Exception e) {
             log.error("IRP 계좌 개설 거래내역 생성 실패", e);
             // 거래내역 생성 실패는 계좌 개설 자체를 실패시키지 않음
+        }
+    }
+
+    /**
+     * 하나은행 서버에 입금 거래내역 생성
+     */
+    private void createDepositTransactionAtHanaBank(String accountNumber, BigDecimal amount, String description) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("accountNumber", accountNumber);
+            request.put("amount", amount);
+            request.put("description", description);
+            
+            Map<String, Object> response = hanaBankClient.createDepositTransaction(request);
+            log.info("[하나은행] 입금 거래내역 생성 완료 - 계좌: {}, 금액: {}", accountNumber, amount);
+            
+        } catch (Exception e) {
+            log.error("하나은행 서버 입금 거래내역 생성 실패 - 계좌: {}, 오류: {}", accountNumber, e.getMessage());
+            // 실패해도 계속 진행
+        }
+    }
+
+    /**
+     * 계좌번호로 은행 코드 판별 (앞 3자리 기준)
+     */
+    private String determineBankCode(String accountNumber) {
+        if (accountNumber == null || accountNumber.length() < 3) {
+            log.warn("계좌번호가 null이거나 길이가 3자리 미만입니다: {}", accountNumber);
+            return "UNKNOWN";
+        }
+        
+        String prefix = accountNumber.substring(0, 3);
+        
+        // 은행별 계좌번호 prefix
+        // 하나은행: 110, 117, 118, 176
+        if (prefix.equals("110") || prefix.equals("117") || prefix.equals("118") || prefix.equals("176")) {
+            return "HANA";
+        }
+        // 국민은행: 004, 040, 060
+        else if (prefix.equals("004") || prefix.equals("040") || prefix.equals("060")) {
+            return "KOOKMIN";
+        }
+        // 신한은행: 088, 110, 140
+        else if (prefix.equals("088") || prefix.equals("140")) {
+            return "SHINHAN";
+        }
+        else {
+            log.warn("알 수 없는 계좌번호 prefix: {} (계좌번호: {})", prefix, accountNumber);
+            return "UNKNOWN";
         }
     }
 

@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import AssetSummary from '../components/portfolio/AssetSummary';
 import SavingsInsurance from '../components/portfolio/SavingsInsurance';
 import AssetDistribution from '../components/portfolio/AssetDistribution';
+import IrpProductsPortfolio from '../components/portfolio/IrpProductsPortfolio';
 import { getAllAccounts, type AllAccountsResponse } from '../api/bankingApi';
 
 interface PortfolioData {
@@ -254,6 +255,13 @@ function Portfolio() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* IRP 포트폴리오 구성 상품 */}
+          {allAccountsData?.irpAccount && (
+            <div className="mb-8">
+              <IrpProductsPortfolio irpAccountNumber={allAccountsData.irpAccount.accountNumber} />
             </div>
           )}
 

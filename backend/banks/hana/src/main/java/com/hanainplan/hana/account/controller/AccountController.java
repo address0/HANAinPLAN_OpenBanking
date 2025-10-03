@@ -62,9 +62,82 @@ public class AccountController {
     }
 
     /**
+     * 계좌 입금 API
+     */
+    @PostMapping("/deposit")
+    public ResponseEntity<Map<String, Object>> deposit(@RequestBody DepositRequest request) {
+        log.info("하나은행 계좌 입금 요청 - 계좌번호: {}, 금액: {}원", request.getAccountNumber(), request.getAmount());
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // 입금 처리 및 거래내역 저장
+            String transactionId = accountService.processDeposit(
+                request.getAccountNumber(),
+                request.getAmount(),
+                request.getDescription() != null ? request.getDescription() : "입금"
+            );
+            
+            response.put("success", true);
+            response.put("message", "입금이 완료되었습니다");
+            response.put("transactionId", transactionId);
+            response.put("accountNumber", request.getAccountNumber());
+            response.put("amount", request.getAmount());
+            
+            log.info("하나은행 계좌 입금 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
+                    transactionId, request.getAccountNumber(), request.getAmount());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("하나은행 계좌 입금 실패 - 계좌번호: {}, 오류: {}", request.getAccountNumber(), e.getMessage());
+            
+            response.put("success", false);
+            response.put("message", "입금 처리 중 오류가 발생했습니다: " + e.getMessage());
+            response.put("accountNumber", request.getAccountNumber());
+            response.put("amount", request.getAmount());
+            
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
      * 출금 요청 DTO
      */
     public static class WithdrawalRequest {
+        private String accountNumber;
+        private BigDecimal amount;
+        private String description;
+
+        public String getAccountNumber() {
+            return accountNumber;
+        }
+
+        public void setAccountNumber(String accountNumber) {
+            this.accountNumber = accountNumber;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+    }
+
+    /**
+     * 입금 요청 DTO
+     */
+    public static class DepositRequest {
         private String accountNumber;
         private BigDecimal amount;
         private String description;

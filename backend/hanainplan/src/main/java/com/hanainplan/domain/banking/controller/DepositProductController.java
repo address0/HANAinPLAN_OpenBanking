@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,31 +82,33 @@ public class DepositProductController {
     }
 
     /**
-     * 사용자 목표 기반 최적 예금 상품 추천
+     * 정기예금 상품 추천
      */
     @PostMapping("/recommend")
-    @Operation(summary = "최적 예금 상품 추천", 
-               description = "사용자의 목표와 IRP 계좌 정보를 기반으로 최적의 예금 상품을 추천합니다")
+    @Operation(summary = "정기예금 상품 추천", 
+               description = "은퇴 시점과 예치 희망 금액을 기반으로 최적의 정기예금 상품을 추천합니다")
     public ResponseEntity<?> recommendOptimalDeposit(
             @Valid @RequestBody com.hanainplan.domain.banking.dto.DepositRecommendationRequest request) {
         try {
-            log.info("최적 예금 상품 추천 API 호출: userId={}, retirementDate={}, goalAmount={}", 
-                    request.getUserId(), request.getRetirementDate(), request.getGoalAmount());
+            log.info("정기예금 상품 추천 API 호출: userId={}, retirementDate={}, depositAmount={}원", 
+                    request.getUserId(), request.getRetirementDate(), request.getDepositAmount());
 
             OptimalDepositRecommendation recommendation = 
                     depositProductService.recommendOptimalDeposit(
                             request.getUserId(), 
                             request.getRetirementDate(), 
-                            request.getGoalAmount());
+                            request.getDepositAmount());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", "최적 예금 상품 추천이 완료되었습니다");
+            response.put("message", "정기예금 상품 추천이 완료되었습니다");
             response.put("recommendation", recommendation);
 
-            log.info("최적 예금 상품 추천 완료: userId={}, productType={}, period={}{}", 
-                    request.getUserId(), recommendation.getProductType(), 
-                    recommendation.getContractPeriod(), recommendation.getContractPeriodUnit());
+            log.info("정기예금 상품 추천 완료: userId={}, bank={}, period={}, rate={}%, maturityAmount={}원", 
+                    request.getUserId(), recommendation.getBankName(), 
+                    recommendation.getMaturityPeriod(), 
+                    recommendation.getAppliedRate().multiply(BigDecimal.valueOf(100)),
+                    recommendation.getExpectedMaturityAmount());
 
             return ResponseEntity.ok(response);
 

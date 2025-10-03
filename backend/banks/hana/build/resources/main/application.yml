@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: hana-bank-server
+  profiles:
+    active: dev
   
   datasource:
     url: jdbc:mysql://localhost:3307/hana_bank?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true

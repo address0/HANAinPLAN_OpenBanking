@@ -70,6 +70,19 @@ CREATE TABLE IF NOT EXISTS hana_deposit_subscriptions (
     FOREIGN KEY (account_number) REFERENCES hana_accounts(account_number)
 ) COMMENT='하나은행 예금 가입 정보';
 
+-- 금리 정보 테이블
+CREATE TABLE IF NOT EXISTS hana_interest_rates (
+    interest_rate_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '금리조건pk',
+    product_code VARCHAR(20) NOT NULL COMMENT '상품코드',
+    interest_type VARCHAR(20) NOT NULL COMMENT '금리종류(BASIC/PREFERENTIAL/AFTER_MATURITY/EARLY_WITHDRAWAL)',
+    maturity_period VARCHAR(50) COMMENT '만기기간',
+    interest_rate DECIMAL(5,4) NOT NULL COMMENT '금리(%)',
+    is_irp BOOLEAN DEFAULT FALSE COMMENT 'IRP여부',
+    effective_date DATE NOT NULL COMMENT '적용일자',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Insert sample data
 INSERT INTO hana_customers (ci, name, gender, birth_date, phone) VALUES
 ('ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ567890', '홍길동', 'M', '19900101', '010-1234-5678'),
@@ -78,3 +91,15 @@ INSERT INTO hana_customers (ci, name, gender, birth_date, phone) VALUES
 INSERT INTO hana_accounts (account_number, account_type, balance, opening_date, customer_ci) VALUES
 ('1101234567890123', 1, 1000000.00, '2024-01-01', 'ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ567890'),
 ('1111234567890123', 2, 500000.00, '2024-01-02', 'XYZ789ABC123DEF456GHI789JKL012MNO345PQR678STU901VWX234YZ');
+
+-- 하나은행 정기예금 금리 데이터 (일반 정기예금)
+INSERT INTO hana_interest_rates (product_code, interest_type, maturity_period, interest_rate, is_irp, effective_date) VALUES
+('HANA_DEPOSIT_001', 'BASIC', '6개월', 0.0207, FALSE, '2025-01-01'),
+('HANA_DEPOSIT_001', 'BASIC', '1년', 0.0240, FALSE, '2025-01-01'),
+('HANA_DEPOSIT_001', 'BASIC', '2년', 0.0200, FALSE, '2025-01-01'),
+('HANA_DEPOSIT_001', 'BASIC', '3년', 0.0210, FALSE, '2025-01-01'),
+('HANA_DEPOSIT_001', 'BASIC', '5년', 0.0202, FALSE, '2025-01-01');
+
+-- 하나은행 정기예금 금리 데이터 (디폴트옵션)
+INSERT INTO hana_interest_rates (product_code, interest_type, maturity_period, interest_rate, is_irp, effective_date) VALUES
+('HANA_DEPOSIT_002', 'BASIC', '3년', 0.0220, TRUE, '2025-01-01');

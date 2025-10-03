@@ -128,6 +128,19 @@ export const closeIrpAccount = async (accountNumber: string): Promise<{ accountN
 // ============ 예금 상품 관련 API ============
 
 /**
+ * 금리 정보 인터페이스
+ */
+export interface InterestRateInfo {
+  bankCode: string;
+  bankName: string;
+  productCode: string;
+  productName: string;
+  maturityPeriod: string;
+  interestRate: number;
+  interestType: string;
+}
+
+/**
  * 예금 상품 정보 인터페이스
  */
 export interface DepositProduct {
@@ -138,6 +151,19 @@ export interface DepositProduct {
   description: string;
   rateInfo: string;
 }
+
+/**
+ * 전체 은행 금리 정보 조회
+ */
+export const getAllInterestRates = async (): Promise<InterestRateInfo[]> => {
+  try {
+    const response = await axiosInstance.get<InterestRateInfo[]>('/banking/interest-rates/all');
+    return response.data;
+  } catch (error) {
+    console.error('금리 정보 조회 실패:', error);
+    throw error;
+  }
+};
 
 /**
  * 최적 예금 상품 추천 인터페이스
@@ -151,7 +177,8 @@ export interface OptimalDepositRecommendation {
   productTypeName: string;
   contractPeriod: number;
   contractPeriodUnit: string;
-  recommendedAmount: number;
+  maturityPeriod: string;
+  depositAmount: number; // 사용자가 입력한 예치 금액
   appliedRate: number;
   expectedInterest: number;
   expectedMaturityAmount: number;
@@ -159,8 +186,6 @@ export interface OptimalDepositRecommendation {
   recommendationReason: string;
   yearsToRetirement: number;
   currentIrpBalance: number;
-  targetAmount: number;
-  shortfall: number;
 }
 
 /**
@@ -204,12 +229,12 @@ export const getDepositProductsByBank = async (bankCode: string): Promise<{ succ
 };
 
 /**
- * 최적 예금 상품 추천 요청 인터페이스
+ * 정기예금 상품 추천 요청 인터페이스
  */
 export interface DepositRecommendationRequest {
   userId: number;
-  retirementDate: string; // YYYY-MM-DD
-  goalAmount: number;
+  retirementDate: string; // YYYY-MM-DD (은퇴 예정일)
+  depositAmount: number; // 예치 희망 금액
 }
 
 /**
