@@ -1,3 +1,5 @@
+import { formatAmount } from '../../utils/fundUtils';
+
 interface NextMonthWithdrawalProps {
   onProductClick?: () => void;
   isMobile?: boolean;
@@ -14,10 +16,6 @@ function NextMonthWithdrawal({ onProductClick, isMobile = false }: NextMonthWith
     ]
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR').format(amount);
-  };
-
   const handleClick = () => {
     if (isMobile && onProductClick) {
       onProductClick();
@@ -32,7 +30,7 @@ function NextMonthWithdrawal({ onProductClick, isMobile = false }: NextMonthWith
       <div className="col-span-2 flex flex-col items-center justify-center mb-4 h-full relative border-r border-gray-200">
         <h2 className="text-lg font-hana-medium text-gray-600 absolute top-0 left-0">다음 달 출금예정액 합계</h2>
         <div className="text-3xl font-hana-bold text-center text-hana-green">
-          {formatCurrency(nextMonthData.totalAmount)} 원
+          {formatAmount(nextMonthData.totalAmount)} 원
         </div>
         <p className="text-sm font-hana-medium text-gray-600 absolute bottom-0 right-4">
           기준일: 2024-10-01
@@ -51,7 +49,7 @@ function NextMonthWithdrawal({ onProductClick, isMobile = false }: NextMonthWith
               </div>
               <div className="text-right mr-4">
                 <div className="font-hana-bold text-red-600">
-                  -{formatCurrency(item.amount)} 원
+                  -{formatAmount(item.amount)} 원
                 </div>
               </div>
             </div>

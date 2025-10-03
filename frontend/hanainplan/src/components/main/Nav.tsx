@@ -22,7 +22,7 @@ function Nav() {
       submenu: [
         { label: 'IRP 상품소개', path: '/products/irp' },
         { label: 'IRP 정기예금', path: '/products/deposit' },
-        { label: '나의 퇴직연금', path: '/products/insurance' }
+        { label: 'IRP 펀드', path: '/funds' }
       ]
     },
     {
@@ -37,6 +37,7 @@ function Nav() {
       submenu: [
         { label: '내 계좌', path: '/my-account' },
         { label: '포트폴리오', path: '/portfolio' },
+        { label: '나의 펀드', path: '/fund/my' },
         { label: '연금 계산기', path: '/pension-calculator' }
       ]
     },

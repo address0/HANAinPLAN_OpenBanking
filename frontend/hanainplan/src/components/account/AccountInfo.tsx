@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { type BankingAccount } from '../../api/bankingApi';
 import { useAccountStore } from '../../store/accountStore';
 import { getBankPatternByPattern } from '../../store/bankStore';
+import { formatAmount } from '../../utils/fundUtils';
 
 interface AccountInfoProps {
   onTransferClick: () => void;
@@ -72,10 +73,6 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
       setLocalSelectedAccount(null);
     }
   }, [accounts, selectedAccountId, selectedAccountType, setSelectedAccount]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR').format(amount);
-  };
 
   const getAccountTypeDisplay = (accountType: number) => {
     const typeMap: { [key: number]: string } = {
@@ -174,7 +171,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
 
               {/* 하단: 계좌 잔액 */}
               <div className="text-right">
-                <p className="text-3xl font-hana-bold">{formatCurrency(account.balance)}원</p>
+                <p className="text-3xl font-hana-bold">{formatAmount(account.balance)}원</p>
                 <p className="text-sm opacity-80">{account.accountName}</p>
               </div>
             </div>
@@ -218,7 +215,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
 
             {/* 하단: IRP 잔액 */}
             <div className="text-right">
-              <p className="text-3xl font-hana-bold">{formatCurrency(allAccountsData.irpAccount.currentBalance)}원</p>
+              <p className="text-3xl font-hana-bold">{formatAmount(allAccountsData.irpAccount.currentBalance)}원</p>
               <p className="text-sm opacity-80">IRP 계좌</p>
             </div>
           </div>
