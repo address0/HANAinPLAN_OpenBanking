@@ -7,6 +7,7 @@ export interface FundClassDetail {
   childFundCd: string;
   classCode: string;
   saleStatus: string;
+  sourceUrl: string | null;
   fundMaster: FundMaster;
   rules: FundRules | null;
   fees: FundFees | null;

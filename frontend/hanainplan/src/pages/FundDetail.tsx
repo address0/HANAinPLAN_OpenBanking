@@ -102,12 +102,27 @@ const FundDetail = () => {
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => setShowPurchaseModal(true)}
-              className="px-6 py-3 bg-hana-green text-white rounded-lg hover:bg-green-600 font-hana-bold transition-colors"
-            >
-              매수하기
-            </button>
+            <div className="flex gap-3">
+              {fund.sourceUrl && (
+                <a
+                  href={fund.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3 bg-white text-hana-green border-2 border-hana-green rounded-lg hover:bg-gray-50 font-hana-bold transition-colors flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  공식 페이지
+                </a>
+              )}
+              <button
+                onClick={() => setShowPurchaseModal(true)}
+                className="px-6 py-3 bg-hana-green text-white rounded-lg hover:bg-green-600 font-hana-bold transition-colors"
+              >
+                매수하기
+              </button>
+            </div>
           </div>
         </div>
 

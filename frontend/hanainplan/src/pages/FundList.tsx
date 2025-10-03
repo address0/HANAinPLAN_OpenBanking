@@ -213,6 +213,20 @@ const FundList = () => {
                   <span className="px-2 py-1 text-xs bg-hana-green text-white rounded font-hana-medium">
                     {fund.classCode}클래스
                   </span>
+                  {fund.sourceUrl && (
+                    <a
+                      href={fund.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-hana-green hover:text-green-700 transition-colors"
+                      title="공식 페이지에서 보기"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
                 </div>
                 <p className="text-sm text-gray-600 mb-2 font-hana-regular">
                   {fund.fundMaster.assetType}

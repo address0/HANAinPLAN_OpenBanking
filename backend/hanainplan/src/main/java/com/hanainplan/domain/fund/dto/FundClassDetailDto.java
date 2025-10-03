@@ -25,6 +25,7 @@ public class FundClassDetailDto {
     private String loadType;
     private String taxCategory;
     private String saleStatus;
+    private String sourceUrl;
 
     // 모펀드 정보
     private FundMasterDto fundMaster;
