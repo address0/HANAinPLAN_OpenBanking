@@ -25,6 +25,7 @@ public class FundClassDetailDto {
     private String loadType;
     private String taxCategory;
     private String saleStatus;
+    private String sourceUrl;
 
     // 모펀드 정보
     private FundMasterDto fundMaster;
@@ -48,7 +49,8 @@ public class FundClassDetailDto {
                 .classCode(entity.getClassCode())
                 .loadType(entity.getLoadType())
                 .taxCategory(entity.getTaxCategory())
-                .saleStatus(entity.getSaleStatus());
+                .saleStatus(entity.getSaleStatus())
+                .sourceUrl(entity.getSourceUrl());
 
         // 모펀드 정보
         if (entity.getFundMaster() != null) {

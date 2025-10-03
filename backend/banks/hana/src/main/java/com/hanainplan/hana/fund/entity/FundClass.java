@@ -40,6 +40,9 @@ public class FundClass {
     @Builder.Default
     private String saleStatus = "ON"; // ON/OFF/PAUSE
 
+    @Column(name = "source_url", length = 512)
+    private String sourceUrl; // 펀드 상세페이지 URL
+
     // 연관관계: 클래스 1 : 1 거래규칙
     @OneToOne(mappedBy = "fundClass", cascade = CascadeType.ALL, orphanRemoval = true)
     private FundRules fundRules;
