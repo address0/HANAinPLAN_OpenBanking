@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Calendar from 'react-calendar';
 import '../../css/calendar.css';
 import productStore from '../../store/productStore';
+import { formatAmount } from '../../utils/fundUtils';
 
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
@@ -67,10 +68,6 @@ function ProductTransactions() {
     { date: '2025-08-15', productName: '하나연금보험', productType: '자산', amount: -300000, type: 'withdrawal' },
     { date: '2025-08-25', productName: '하나생명 암보험', productType: '의료', amount: -300000, type: 'withdrawal' },
   ];
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR').format(amount);
-  };
 
   const getTransactionsByDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
@@ -173,7 +170,7 @@ function ProductTransactions() {
               <div className="bg-gray-50 p-3 rounded-lg">
                 <div className="text-sm text-gray-600 font-hana-medium mb-1">월 납입금액</div>
                 <div className="text-lg font-hana-bold text-hana-green">
-                  {formatCurrency(product.monthlyAmount)} 원
+                  {formatAmount(product.monthlyAmount)} 원
                 </div>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">
@@ -181,7 +178,7 @@ function ProductTransactions() {
                   {selectedPeriod === 'monthly' ? '연간 예상금액' : '총 납입금액'}
                 </div>
                 <div className="text-lg font-hana-bold text-gray-800">
-                  {formatCurrency(product.totalAmount)} 원
+                  {formatAmount(product.totalAmount)} 원
                 </div>
               </div>
             </div>
@@ -203,7 +200,7 @@ function ProductTransactions() {
           <div className="flex justify-between items-center">
             <span className="font-hana-bold text-gray-800">총 월 납입금액</span>
             <span className="text-xl font-hana-bold text-hana-green">
-              {formatCurrency(productData.reduce((sum, product) => sum + product.monthlyAmount, 0))} 원
+              {formatAmount(productData.reduce((sum, product) => sum + product.monthlyAmount, 0))} 원
             </span>
           </div>
         </div>

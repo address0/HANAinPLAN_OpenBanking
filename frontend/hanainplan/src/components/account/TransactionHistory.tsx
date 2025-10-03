@@ -3,6 +3,7 @@ import { getTransactionHistory, type Transaction } from '../../api/bankingApi';
 import { useAccountStore } from '../../store/accountStore';
 import { useUserStore } from '../../store/userStore';
 import { getBankPatternByPattern } from '../../store/bankStore';
+import { formatAmount } from '../../utils/fundUtils';
 
 interface TransactionHistoryProps {
   refreshTrigger?: number;
@@ -192,10 +193,6 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ko-KR').format(Math.abs(amount));
   };
 
   const formatDate = (dateValue: string | string[] | number[]) => {
@@ -433,10 +430,10 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
                 transaction.transactionDirection === 'CREDIT' ? 'text-red-600' : 'text-blue-600'
               }`}>
                 {transaction.transactionDirectionSymbol}
-                {formatCurrency(transaction.amount)} 원
+                {formatAmount(Math.abs(transaction.amount))} 원
               </div>
               <div className="text-sm text-gray-500 font-hana-regular">
-                잔액: {formatCurrency(transaction.balanceAfter)}원
+                잔액: {formatAmount(transaction.balanceAfter)}원
               </div>
             </div>
           </div>
