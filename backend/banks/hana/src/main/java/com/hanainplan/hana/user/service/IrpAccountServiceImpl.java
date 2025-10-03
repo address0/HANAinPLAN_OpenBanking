@@ -48,21 +48,25 @@ public class IrpAccountServiceImpl implements IrpAccountService {
 
     @Override
     public IrpAccountResponse openIrpAccount(IrpAccountRequest request) throws Exception {
-        log.info("하나은행 IRP 계좌 개설 시작");
+        log.info("하나은행 IRP 계좌 개설 시작 - 고객 CI: {}", request.getCustomerCi());
 
         try {
-            // 1. 중복 계좌 보유 여부 확인 (은행 코드로만 확인)
-            List<IrpAccount> hanaAccounts = irpAccountRepository.findByBankCodeAndAccountStatus("HANA", "ACTIVE");
+            // 1. 고객 정보 확인 및 자동 생성
+            ensureCustomerExists(request);
 
-            if (!hanaAccounts.isEmpty()) {
+            // 2. 중복 계좌 보유 여부 확인 (해당 고객의 하나은행 IRP 계좌만 확인)
+            List<IrpAccount> customerIrpAccounts = irpAccountRepository.findAllByCustomerCiAndBankCodeAndAccountStatus(
+                    request.getCustomerCi(), "HANA", "ACTIVE");
+
+            if (!customerIrpAccounts.isEmpty()) {
                 return IrpAccountResponse.builder()
                         .success(false)
-                        .message("하나은행에 이미 활성화된 IRP 계좌가 존재합니다.")
-                        .accountNumber(hanaAccounts.get(0).getAccountNumber())
+                        .message("이미 하나은행 IRP 계좌를 보유하고 있습니다.")
+                        .accountNumber(customerIrpAccounts.get(0).getAccountNumber())
                         .build();
             }
 
-            // 2. 연결 주계좌 유효성 확인
+            // 3. 연결 주계좌 유효성 확인
             if (request.getLinkedMainAccount() == null || request.getLinkedMainAccount().length() < 10) {
                 return IrpAccountResponse.builder()
                         .success(false)
@@ -303,6 +307,39 @@ public class IrpAccountServiceImpl implements IrpAccountService {
         stats.put("averageBalance", totalAccounts > 0 ? totalBalance.divide(BigDecimal.valueOf((long)totalAccounts), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
 
         return stats;
+    }
+
+    /**
+     * 고객 정보 확인 및 자동 생성
+     */
+    private void ensureCustomerExists(IrpAccountRequest request) {
+        try {
+            // 고객 정보가 이미 존재하는지 확인
+            Optional<Customer> existingCustomer = customerRepository.findByCi(request.getCustomerCi());
+            
+            if (existingCustomer.isEmpty()) {
+                // 고객 정보가 없으면 자동 생성
+                log.info("하나은행에 고객 정보가 없어 자동 생성 - CI: {}, 이름: {}", 
+                        request.getCustomerCi(), request.getCustomerName());
+                
+                Customer newCustomer = Customer.builder()
+                        .ci(request.getCustomerCi())
+                        .name(request.getCustomerName())
+                        .birthDate(request.getBirthDate())
+                        .gender(request.getGender())
+                        .phone(request.getPhone())
+                        .hasIrpAccount(false)
+                        .build();
+                
+                customerRepository.save(newCustomer);
+                log.info("하나은행에 고객 정보 자동 생성 완료 - CI: {}", request.getCustomerCi());
+            } else {
+                log.info("하나은행에 고객 정보 이미 존재 - CI: {}", request.getCustomerCi());
+            }
+        } catch (Exception e) {
+            log.error("고객 정보 확인/생성 중 오류 발생 - CI: {}", request.getCustomerCi(), e);
+            throw new RuntimeException("고객 정보 처리 실패: " + e.getMessage());
+        }
     }
 
     /**

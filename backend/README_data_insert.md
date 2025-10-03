@@ -246,3 +246,4 @@ python3 insert_all_data.py
 4. 충분한 디스크 공간이 있어야 합니다
 
 
+

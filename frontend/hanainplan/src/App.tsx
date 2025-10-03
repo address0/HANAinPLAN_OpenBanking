@@ -15,6 +15,11 @@ import IrpProducts from './pages/products/IrpProducts'
 import InsuranceProducts from './pages/products/InsuranceProducts'
 import ConsultationStaff from './pages/consultation/ConsultationStaff'
 import ConsultationRequest from './pages/consultation/ConsultationRequest'
+import FundList from './pages/FundList'
+import FundDetail from './pages/FundDetail'
+import FundPurchase from './pages/FundPurchase'
+import FundPortfolio from './pages/FundPortfolio'
+import FundTransactions from './pages/FundTransactions'
 
 function Landing() {
   const [isLoading, setIsLoading] = useState(true)
@@ -105,6 +110,14 @@ function App() {
         <Route path="/products/insurance" element={<InsuranceProducts />} />
         <Route path="/consultation/staff" element={<ConsultationStaff />} />
         <Route path="/consultation/request" element={<ConsultationRequest />} />
+        
+        {/* 펀드 라우트 */}
+        <Route path="/funds" element={<FundList />} />
+        <Route path="/fund/:fundCode" element={<FundDetail />} />
+        <Route path="/fund/:fundCode/purchase" element={<FundPurchase />} />
+        <Route path="/fund/portfolio" element={<FundPortfolio />} />
+        <Route path="/fund/transactions" element={<FundTransactions />} />
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

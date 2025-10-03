@@ -24,8 +24,8 @@ public class DepositRecommendationRequest {
     @NotNull(message = "은퇴 예정일은 필수입니다")
     private LocalDate retirementDate; // 은퇴 예정일
 
-    @NotNull(message = "목표 금액은 필수입니다")
-    private BigDecimal goalAmount; // 은퇴 자금 목표 금액
+    @NotNull(message = "예치 희망 금액은 필수입니다")
+    private BigDecimal depositAmount; // 예치 희망 금액 (직접 입력)
 }
 
 

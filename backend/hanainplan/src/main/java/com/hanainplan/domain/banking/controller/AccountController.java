@@ -7,6 +7,7 @@ import com.hanainplan.domain.banking.dto.IrpAccountOpenResponseDto;
 import com.hanainplan.domain.banking.dto.IrpAccountStatusResponseDto;
 import com.hanainplan.domain.banking.entity.BankingAccount;
 import com.hanainplan.domain.banking.service.AccountService;
+import com.hanainplan.domain.banking.service.AccountSyncService;
 import com.hanainplan.domain.banking.service.IrpIntegrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,7 +19,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -30,6 +33,7 @@ public class AccountController {
 
     private final AccountService accountService;
     private final IrpIntegrationService irpIntegrationService;
+    private final AccountSyncService accountSyncService;
     
     @PostMapping
     @Operation(summary = "계좌 생성", description = "새로운 계좌를 생성합니다")
@@ -54,14 +58,55 @@ public class AccountController {
     }
     
     @GetMapping("/user/{userId}/active")
-    @Operation(summary = "사용자 활성 계좌 목록 조회", description = "특정 사용자의 활성 계좌만 조회합니다")
+    @Operation(summary = "사용자 활성 계좌 목록 조회", description = "특정 사용자의 활성 계좌만 조회합니다 (자동 동기화 포함)")
     public ResponseEntity<List<AccountDto>> getActiveUserAccounts(
-            @Parameter(description = "사용자 ID") @PathVariable Long userId) {
+            @Parameter(description = "사용자 ID") @PathVariable Long userId,
+            @Parameter(description = "동기화 여부 (기본값: true)") @RequestParam(defaultValue = "true") boolean sync) {
         
-        log.info("사용자 활성 계좌 목록 조회 API 호출 - 사용자 ID: {}", userId);
+        log.info("사용자 활성 계좌 목록 조회 API 호출 - 사용자 ID: {}, 동기화: {}", userId, sync);
+        
+        // 동기화가 활성화되어 있으면 먼저 하나은행 서버와 동기화
+        if (sync) {
+            try {
+                accountSyncService.syncUserAccounts(userId);
+                log.info("계좌 동기화 완료 - 사용자 ID: {}", userId);
+            } catch (Exception e) {
+                log.error("계좌 동기화 실패 - 사용자 ID: {}, 오류: {}", userId, e.getMessage());
+                // 동기화 실패해도 기존 데이터는 조회
+            }
+        }
         
         List<AccountDto> accounts = accountService.getActiveUserAccounts(userId);
         return ResponseEntity.ok(accounts);
+    }
+    
+    @PostMapping("/user/{userId}/sync")
+    @Operation(summary = "계좌 수동 동기화", description = "하나은행 서버의 최신 계좌 및 거래내역을 동기화합니다")
+    public ResponseEntity<Map<String, Object>> syncUserAccounts(
+            @Parameter(description = "사용자 ID") @PathVariable Long userId) {
+        
+        log.info("계좌 수동 동기화 API 호출 - 사용자 ID: {}", userId);
+        
+        try {
+            accountSyncService.syncUserAccounts(userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "계좌 동기화가 완료되었습니다");
+            response.put("userId", userId);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("계좌 수동 동기화 실패 - 사용자 ID: {}, 오류: {}", userId, e.getMessage(), e);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "계좌 동기화에 실패했습니다: " + e.getMessage());
+            response.put("userId", userId);
+            
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
     
     @GetMapping("/{accountId}")

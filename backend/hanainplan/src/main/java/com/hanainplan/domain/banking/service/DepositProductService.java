@@ -1,6 +1,7 @@
 package com.hanainplan.domain.banking.service;
 
 import com.hanainplan.domain.banking.dto.DepositProductResponse;
+import com.hanainplan.domain.banking.dto.InterestRateDto;
 import com.hanainplan.domain.banking.dto.OptimalDepositRecommendation;
 import com.hanainplan.domain.banking.entity.DepositProduct;
 import com.hanainplan.domain.banking.entity.IrpAccount;
@@ -18,7 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +33,7 @@ public class DepositProductService {
     private final DepositProductRepository depositProductRepository;
     private final IrpAccountRepository irpAccountRepository;
     private final UserRepository userRepository;
+    private final InterestRateService interestRateService;
 
     /**
      * 모든 예금 상품 조회
@@ -62,11 +64,12 @@ public class DepositProductService {
     }
 
     /**
-     * 사용자 목표 기반 최적 예금 상품 추천
+     * 사용자 정기예금 추천 (단순화 버전)
+     * - 사용자가 원하는 예치 금액으로 은퇴 시점에 맞는 최적 상품 추천
      */
     @Transactional(readOnly = true)
-    public OptimalDepositRecommendation recommendOptimalDeposit(Long userId, LocalDate retirementDate, BigDecimal goalAmount) {
-        log.info("최적 예금 상품 추천 시작: userId={}, retirementDate={}, goalAmount={}", userId, retirementDate, goalAmount);
+    public OptimalDepositRecommendation recommendOptimalDeposit(Long userId, LocalDate retirementDate, BigDecimal depositAmount) {
+        log.info("정기예금 상품 추천 시작: userId={}, retirementDate={}, depositAmount={}원", userId, retirementDate, depositAmount);
 
         // 1. 사용자 정보 조회
         User user = userRepository.findById(userId)
@@ -76,131 +79,174 @@ public class DepositProductService {
         IrpAccount irpAccount = irpAccountRepository.findByCustomerIdAndAccountStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new RuntimeException("활성화된 IRP 계좌가 없습니다. IRP 계좌를 먼저 개설해주세요."));
 
-        // 3. 목표 분석
-        LocalDate birthDate = user.getBirthDate();
+        // 3. IRP 잔액 확인
         BigDecimal currentBalance = irpAccount.getCurrentBalance();
+        
+        // 예치 금액이 IRP 잔액을 초과하는지 확인
+        if (depositAmount.compareTo(currentBalance) > 0) {
+            throw new RuntimeException(String.format("예치 희망 금액(%s원)이 IRP 계좌 잔액(%s원)을 초과합니다.", 
+                    depositAmount, currentBalance));
+        }
 
-        // 은퇴까지 남은 기간 계산
+        // 4. 은퇴까지 남은 기간 계산
         Period period = Period.between(LocalDate.now(), retirementDate);
         int yearsToRetirement = period.getYears();
         int monthsToRetirement = yearsToRetirement * 12 + period.getMonths();
 
-        log.info("목표 분석 - 은퇴까지: {}년 {}개월, 현재 잔액: {}원, 목표: {}원", 
-                yearsToRetirement, period.getMonths(), currentBalance, goalAmount);
+        log.info("은퇴까지: {}년 {}개월, 현재 IRP 잔액: {}원, 예치 희망 금액: {}원", 
+                yearsToRetirement, period.getMonths(), currentBalance, depositAmount);
 
-        // 4. 부족 금액 계산
-        BigDecimal shortfall = goalAmount.subtract(currentBalance);
-        
-        if (shortfall.compareTo(BigDecimal.ZERO) <= 0) {
-            log.info("이미 목표 금액을 달성했습니다");
-            shortfall = BigDecimal.ZERO;
+        // 5. 최소 예치 금액 확인 (100만원)
+        BigDecimal minAmount = BigDecimal.valueOf(1_000_000);
+        if (depositAmount.compareTo(minAmount) < 0) {
+            throw new RuntimeException(String.format("최소 예치 금액은 %s원입니다.", minAmount));
         }
 
-        // 5. 최적 상품 유형 및 기간 결정
-        int productType;
-        int contractPeriod;
-        String contractPeriodUnit;
+        // 6. 실시간 금리 정보 조회
+        List<InterestRateDto> allRates = interestRateService.getAllInterestRates();
+        log.info("전체 {}개 은행의 금리 정보 조회 완료", allRates.size());
+
+        // 7. 최적 상품 유형 및 기간 결정 (은퇴 시점에 맞춤)
+        String targetMaturityPeriod;
         String recommendationReason;
+        int contractPeriod;
+        boolean isDayUnit = false; // 일 단위 상품 여부
 
-        if (yearsToRetirement >= 3) {
-            // 3년 이상: 디폴트옵션 추천
-            productType = 1;
+        if (yearsToRetirement >= 5) {
+            // 5년 이상: 5년 상품 추천
+            targetMaturityPeriod = "5년";
+            contractPeriod = 60;
+            recommendationReason = String.format("은퇴까지 %d년이 남아, 5년 정기예금을 추천드립니다. " +
+                    "장기 투자로 안정적이고 높은 수익을 기대할 수 있습니다.", yearsToRetirement);
+        } else if (yearsToRetirement >= 3) {
+            // 3~5년: 3년 상품 추천
+            targetMaturityPeriod = "3년";
             contractPeriod = 36;
-            contractPeriodUnit = "개월";
-            recommendationReason = String.format("은퇴까지 %d년이 남아, 장기 투자에 유리한 디폴트옵션(3년)을 추천드립니다. " +
-                    "만기 시 펀드 포트폴리오와 함께 자동 재예치되어 안정적인 자산 증식이 가능합니다.", yearsToRetirement);
+            recommendationReason = String.format("은퇴까지 %d년이 남아, 3년 정기예금을 추천드립니다. " +
+                    "은퇴 시점에 맞춰 만기가 도래하여 자금 운용이 용이합니다.", yearsToRetirement);
+        } else if (yearsToRetirement >= 2) {
+            // 2~3년: 2년 상품 추천
+            targetMaturityPeriod = "2년";
+            contractPeriod = 24;
+            recommendationReason = String.format("은퇴까지 %d년이 남아, 2년 정기예금을 추천드립니다. " +
+                    "은퇴 시점에 맞춰 만기가 도래하여 자금 운용이 용이합니다.", yearsToRetirement);
         } else if (yearsToRetirement >= 1) {
-            // 1~3년: 일반 상품 (은퇴까지의 기간에 맞춤)
-            productType = 0;
-            if (monthsToRetirement >= 24) {
-                contractPeriod = 24;
-            } else if (monthsToRetirement >= 12) {
-                contractPeriod = 12;
+            // 1~2년: 1년 상품 추천
+            targetMaturityPeriod = "1년";
+            contractPeriod = 12;
+            recommendationReason = String.format("은퇴까지 %d년이 남아, 1년 정기예금을 추천드립니다. " +
+                    "은퇴 시점에 맞춰 만기가 도래하여 자금 운용이 용이합니다.", yearsToRetirement);
+        } else if (monthsToRetirement >= 6) {
+            // 6개월~1년: 6개월 상품
+            targetMaturityPeriod = "6개월";
+            contractPeriod = 6;
+            recommendationReason = "은퇴까지 6개월 이상 1년 미만이 남아, 6개월 정기예금을 추천드립니다. " +
+                    "짧은 기간에 맞춰 유연하게 자금을 운용할 수 있습니다.";
+        } else {
+            // 6개월 미만: 일 단위 상품 (90일 또는 180일)
+            isDayUnit = true;
+            int daysToRetirement = Period.between(LocalDate.now(), retirementDate).getDays() + 
+                                   monthsToRetirement * 30; // 대략적인 일수 계산
+            
+            if (daysToRetirement >= 120) {
+                // 120일 이상: 180일 상품
+                targetMaturityPeriod = "180일";
+                contractPeriod = 6; // 개월 단위로는 6개월로 계산
+                recommendationReason = String.format("은퇴까지 약 %d개월(%d일)이 남아, 180일 정기예금을 추천드립니다. " +
+                        "은퇴 시점에 맞춰 만기가 도래하여 자금을 받을 수 있습니다.", monthsToRetirement, daysToRetirement);
             } else {
-                contractPeriod = 6;
+                // 120일 미만: 90일 상품
+                targetMaturityPeriod = "90일";
+                contractPeriod = 3; // 개월 단위로는 3개월로 계산
+                recommendationReason = String.format("은퇴까지 약 %d개월(%d일)이 남아, 90일 정기예금을 추천드립니다. " +
+                        "은퇴 시점에 맞춰 만기가 도래하여 자금을 받을 수 있습니다.", monthsToRetirement, daysToRetirement);
             }
-            contractPeriodUnit = "개월";
-            recommendationReason = String.format("은퇴까지 %d년이 남아, %d개월 일반 정기예금을 추천드립니다. " +
-                    "은퇴 시점에 맞춰 만기가 도래하여 자금 운용이 용이합니다.", yearsToRetirement, contractPeriod);
-        } else {
-            // 1년 미만: 일단위 상품 (짧은 기간)
-            productType = 2;
-            int daysToRetirement = period.getDays() + (period.getMonths() * 30);
-            if (daysToRetirement < 31) {
-                daysToRetirement = 31; // 최소 31일
-            }
-            contractPeriod = Math.min(daysToRetirement, 365); // 최대 1년
-            contractPeriodUnit = "일";
-            recommendationReason = String.format("은퇴까지 %d일이 남아, 일단위 정기예금(%d일)을 추천드립니다. " +
-                    "짧은 기간에 맞춰 유연하게 자금을 운용할 수 있습니다.", daysToRetirement, contractPeriod);
         }
 
-        // 6. 추천 예치 금액 계산 (부족 금액의 50% 또는 현재 잔액의 30% 중 작은 값)
-        BigDecimal recommendedAmount;
-        if (shortfall.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal halfShortfall = shortfall.divide(BigDecimal.valueOf(2), 0, RoundingMode.DOWN);
-            BigDecimal thirtyPercentBalance = currentBalance.multiply(BigDecimal.valueOf(0.3))
-                    .setScale(0, RoundingMode.DOWN);
-            
-            recommendedAmount = halfShortfall.min(thirtyPercentBalance);
-            
-            // 최소 금액 보장 (100만원)
-            BigDecimal minAmount = BigDecimal.valueOf(1_000_000);
-            if (recommendedAmount.compareTo(minAmount) < 0) {
-                recommendedAmount = minAmount;
-            }
-        } else {
-            // 목표 달성 시 현재 잔액의 20%
-            recommendedAmount = currentBalance.multiply(BigDecimal.valueOf(0.2))
-                    .setScale(0, RoundingMode.DOWN);
+        // 8. 해당 기간의 금리 필터링 (BASIC 금리만)
+        List<InterestRateDto> candidateRates = allRates.stream()
+                .filter(rate -> "BASIC".equals(rate.getInterestType()))
+                .filter(rate -> targetMaturityPeriod.equals(rate.getMaturityPeriod()))
+                .sorted(Comparator.comparing(InterestRateDto::getInterestRate).reversed())
+                .collect(Collectors.toList());
+
+        if (candidateRates.isEmpty()) {
+            throw new RuntimeException("추천 가능한 금리 정보가 없습니다. 은행 서버를 확인해주세요.");
         }
 
-        // 7. 금리 및 예상 수익 계산
-        BigDecimal appliedRate = InterestRateCalculator.getBaseRate(productType, contractPeriod);
-        
-        int months = productType == 2 
-                ? (int) Math.ceil(contractPeriod / 30.0) 
-                : contractPeriod;
-        
-        BigDecimal expectedInterest = InterestRateCalculator.calculateMaturityInterest(
-                recommendedAmount, appliedRate, months);
-        
-        BigDecimal expectedMaturityAmount = recommendedAmount.add(expectedInterest);
-        
-        LocalDate expectedMaturityDate = InterestRateCalculator.calculateMaturityDate(
-                LocalDate.now(), productType, contractPeriod);
+        // 9. 최고 금리 상품 선택
+        InterestRateDto bestRate = candidateRates.get(0);
+        log.info("최적 금리 선택 - 은행: {}, 기간: {}, 금리: {}%", 
+                bestRate.getBankName(), bestRate.getMaturityPeriod(), bestRate.getInterestRate().multiply(BigDecimal.valueOf(100)));
 
-        // 8. 하나은행 상품 조회 (현재는 하나은행만)
-        DepositProduct hanaProduct = depositProductRepository.findByBankCode("HANA").stream()
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("예금 상품을 찾을 수 없습니다"));
+        // 10. 예상 수익 계산 (사용자 입력 금액 기준)
+        BigDecimal expectedInterest = calculateInterest(depositAmount, bestRate.getInterestRate(), contractPeriod);
+        BigDecimal expectedMaturityAmount = depositAmount.add(expectedInterest);
+        LocalDate expectedMaturityDate = LocalDate.now().plusMonths(contractPeriod);
 
-        // 9. 추천 결과 구성
+        // 11. 대안 상품 TOP 3 구성 (최고 금리 제외)
+        List<OptimalDepositRecommendation.AlternativeDepositOption> alternatives = new ArrayList<>();
+        for (int i = 1; i < Math.min(candidateRates.size(), 4); i++) {
+            InterestRateDto rate = candidateRates.get(i);
+            BigDecimal altInterest = calculateInterest(depositAmount, rate.getInterestRate(), contractPeriod);
+            BigDecimal altMaturityAmount = depositAmount.add(altInterest);
+            
+            String reason = String.format("%s은행의 %s 상품으로, 연 %.2f%% 금리를 제공합니다.", 
+                    rate.getBankName(), rate.getMaturityPeriod(), rate.getInterestRate().multiply(BigDecimal.valueOf(100)));
+            
+            alternatives.add(OptimalDepositRecommendation.AlternativeDepositOption.builder()
+                    .bankCode(rate.getBankCode())
+                    .bankName(rate.getBankName())
+                    .maturityPeriod(rate.getMaturityPeriod())
+                    .interestRate(rate.getInterestRate())
+                    .expectedInterest(altInterest)
+                    .expectedMaturityAmount(altMaturityAmount)
+                    .reason(reason)
+                    .build());
+        }
+
+        // 12. 최종 추천 결과 구성
+        int productType = isDayUnit ? 2 : 0; // 일 단위: 2, 일반: 0
+        String productTypeName = isDayUnit ? "일단위 정기예금" : "일반 정기예금";
+        String periodUnit = isDayUnit ? "일" : "개월";
+        
         OptimalDepositRecommendation recommendation = OptimalDepositRecommendation.builder()
-                .depositCode(hanaProduct.getDepositCode())
-                .depositName(hanaProduct.getName())
-                .bankCode(hanaProduct.getBankCode())
-                .bankName(hanaProduct.getBankName())
+                .depositCode(bestRate.getProductCode())
+                .depositName(bestRate.getProductName())
+                .bankCode(bestRate.getBankCode())
+                .bankName(bestRate.getBankName())
                 .productType(productType)
-                .productTypeName(getProductTypeName(productType))
+                .productTypeName(productTypeName)
                 .contractPeriod(contractPeriod)
-                .contractPeriodUnit(contractPeriodUnit)
-                .recommendedAmount(recommendedAmount)
-                .appliedRate(appliedRate)
+                .contractPeriodUnit(periodUnit)
+                .maturityPeriod(targetMaturityPeriod)
+                .depositAmount(depositAmount) // 사용자 입력 금액 그대로 사용
+                .appliedRate(bestRate.getInterestRate())
                 .expectedInterest(expectedInterest)
                 .expectedMaturityAmount(expectedMaturityAmount)
                 .expectedMaturityDate(expectedMaturityDate)
-                .recommendationReason(recommendationReason)
+                .recommendationReason(recommendationReason + String.format(" %s은행이 연 %.2f%%로 가장 높은 금리를 제공합니다.", 
+                        bestRate.getBankName(), bestRate.getInterestRate().multiply(BigDecimal.valueOf(100))))
                 .yearsToRetirement(yearsToRetirement)
                 .currentIrpBalance(currentBalance)
-                .targetAmount(goalAmount)
-                .shortfall(shortfall)
+                .alternativeOptions(alternatives)
                 .build();
 
-        log.info("최적 예금 상품 추천 완료 - 상품유형: {}, 기간: {}{}, 금액: {}원", 
-                productType, contractPeriod, contractPeriodUnit, recommendedAmount);
+        log.info("정기예금 상품 추천 완료 - 은행: {}, 기간: {}, 금리: {}%, 예치금액: {}원, 만기예상액: {}원", 
+                bestRate.getBankName(), targetMaturityPeriod, bestRate.getInterestRate().multiply(BigDecimal.valueOf(100)), 
+                depositAmount, expectedMaturityAmount);
 
         return recommendation;
+    }
+
+    /**
+     * 이자 계산 (단리)
+     */
+    private BigDecimal calculateInterest(BigDecimal principal, BigDecimal rate, int months) {
+        return principal
+                .multiply(rate)
+                .multiply(BigDecimal.valueOf(months))
+                .divide(BigDecimal.valueOf(12), 2, RoundingMode.DOWN);
     }
 
     private String getProductTypeName(Integer productType) {

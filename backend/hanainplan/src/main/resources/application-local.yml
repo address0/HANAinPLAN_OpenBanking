@@ -47,3 +47,12 @@ logging:
   level:
     com.hanainplan: DEBUG
     org.springframework.web: DEBUG
+
+# 은행 서버 URL 설정
+bank:
+  hana:
+    base-url: ${HANA_BANK_URL:http://localhost:8081}
+  kookmin:
+    base-url: ${KOOKMIN_BANK_URL:http://localhost:8082}
+  shinhan:
+    base-url: ${SHINHAN_BANK_URL:http://localhost:8083}

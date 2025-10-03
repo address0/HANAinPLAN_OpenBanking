@@ -259,6 +259,27 @@ CREATE TABLE IF NOT EXISTS tb_branch_code (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- 금리 정보 테이블
+CREATE TABLE IF NOT EXISTS tb_interest_rate (
+    interest_rate_id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '금리 ID',
+    bank_code VARCHAR(20) NOT NULL COMMENT '은행 코드 (HANA, KOOKMIN, SHINHAN)',
+    bank_name VARCHAR(50) NOT NULL COMMENT '은행명',
+    product_code VARCHAR(50) NOT NULL COMMENT '상품 코드',
+    product_name VARCHAR(100) NOT NULL COMMENT '상품명',
+    product_type INT NOT NULL COMMENT '상품 유형 (0:일반, 1:디폴트옵션)',
+    maturity_period VARCHAR(20) NOT NULL COMMENT '만기 기간 (예: 6개월, 1년, 2년, 3년, 5년)',
+    interest_type VARCHAR(20) NOT NULL DEFAULT 'BASIC' COMMENT '금리 종류 (BASIC, PREFERENTIAL)',
+    interest_rate DECIMAL(5,4) NOT NULL COMMENT '금리 (%)',
+    is_irp BOOLEAN DEFAULT FALSE COMMENT 'IRP 여부',
+    effective_date DATE NOT NULL COMMENT '적용일자',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_bank_code (bank_code),
+    INDEX idx_product_code (product_code),
+    INDEX idx_maturity_period (maturity_period),
+    INDEX idx_interest_type (interest_type)
+) COMMENT='은행별 금리 정보';
+
 -- 인덱스 생성
 CREATE INDEX idx_user_account ON tb_banking_account(user_id);
 CREATE INDEX idx_user_transaction ON tb_banking_transaction(from_account_id);
@@ -267,6 +288,34 @@ CREATE INDEX idx_user_irp ON tb_irp_account(user_id);
 CREATE INDEX idx_user_auto_transfer ON tb_auto_transfer(user_id);
 CREATE INDEX idx_user_consult ON tb_consult(user_id);
 CREATE INDEX idx_consult_status ON tb_consult(consult_status);
+
+-- 금리 데이터 삽입
+-- 하나은행 정기예금 금리
+INSERT INTO tb_interest_rate (bank_code, bank_name, product_code, product_name, product_type, maturity_period, interest_type, interest_rate, is_irp, effective_date) VALUES
+('HANA', '하나은행', 'HANA_DEPOSIT_001', '하나 정기예금', 0, '6개월', 'BASIC', 0.0207, FALSE, '2025-01-01'),
+('HANA', '하나은행', 'HANA_DEPOSIT_001', '하나 정기예금', 0, '1년', 'BASIC', 0.0240, FALSE, '2025-01-01'),
+('HANA', '하나은행', 'HANA_DEPOSIT_001', '하나 정기예금', 0, '2년', 'BASIC', 0.0200, FALSE, '2025-01-01'),
+('HANA', '하나은행', 'HANA_DEPOSIT_001', '하나 정기예금', 0, '3년', 'BASIC', 0.0210, FALSE, '2025-01-01'),
+('HANA', '하나은행', 'HANA_DEPOSIT_001', '하나 정기예금', 0, '5년', 'BASIC', 0.0202, FALSE, '2025-01-01'),
+('HANA', '하나은행', 'HANA_DEPOSIT_002', '하나 디폴트옵션', 1, '3년', 'BASIC', 0.0220, TRUE, '2025-01-01');
+
+-- 국민은행 정기예금 금리
+INSERT INTO tb_interest_rate (bank_code, bank_name, product_code, product_name, product_type, maturity_period, interest_type, interest_rate, is_irp, effective_date) VALUES
+('KOOKMIN', '국민은행', 'KOOKMIN_DEPOSIT_001', 'KB 정기예금', 0, '6개월', 'BASIC', 0.0203, FALSE, '2025-01-01'),
+('KOOKMIN', '국민은행', 'KOOKMIN_DEPOSIT_001', 'KB 정기예금', 0, '1년', 'BASIC', 0.0230, FALSE, '2025-01-01'),
+('KOOKMIN', '국민은행', 'KOOKMIN_DEPOSIT_001', 'KB 정기예금', 0, '2년', 'BASIC', 0.0187, FALSE, '2025-01-01'),
+('KOOKMIN', '국민은행', 'KOOKMIN_DEPOSIT_001', 'KB 정기예금', 0, '3년', 'BASIC', 0.0197, FALSE, '2025-01-01'),
+('KOOKMIN', '국민은행', 'KOOKMIN_DEPOSIT_001', 'KB 정기예금', 0, '5년', 'BASIC', 0.0182, FALSE, '2025-01-01'),
+('KOOKMIN', '국민은행', 'KOOKMIN_DEPOSIT_002', 'KB 디폴트옵션', 1, '3년', 'BASIC', 0.0207, TRUE, '2025-01-01');
+
+-- 신한은행 정기예금 금리
+INSERT INTO tb_interest_rate (bank_code, bank_name, product_code, product_name, product_type, maturity_period, interest_type, interest_rate, is_irp, effective_date) VALUES
+('SHINHAN', '신한은행', 'SHINHAN_DEPOSIT_001', '신한 정기예금', 0, '6개월', 'BASIC', 0.0198, FALSE, '2025-01-01'),
+('SHINHAN', '신한은행', 'SHINHAN_DEPOSIT_001', '신한 정기예금', 0, '1년', 'BASIC', 0.0233, FALSE, '2025-01-01'),
+('SHINHAN', '신한은행', 'SHINHAN_DEPOSIT_001', '신한 정기예금', 0, '2년', 'BASIC', 0.0197, FALSE, '2025-01-01'),
+('SHINHAN', '신한은행', 'SHINHAN_DEPOSIT_001', '신한 정기예금', 0, '3년', 'BASIC', 0.0202, FALSE, '2025-01-01'),
+('SHINHAN', '신한은행', 'SHINHAN_DEPOSIT_001', '신한 정기예금', 0, '5년', 'BASIC', 0.0205, FALSE, '2025-01-01'),
+('SHINHAN', '신한은행', 'SHINHAN_DEPOSIT_002', '신한 디폴트옵션', 1, '3년', 'BASIC', 0.0212, TRUE, '2025-01-01');
 
 -- 샘플 데이터 (선택사항)
 -- INSERT INTO tb_user (user_name, social_number, phone_number, birth_date, gender, email, user_type) VALUES

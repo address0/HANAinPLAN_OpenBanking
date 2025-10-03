@@ -105,6 +105,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "AND t.transactionStatus = 'FAILED' ORDER BY t.transactionDate DESC")
     List<Transaction> findFailedTransactions(@Param("accountId") Long accountId);
     
+    // 계좌번호로 거래 내역 조회 (동기화용)
+    @Query("SELECT t FROM Transaction t WHERE t.fromAccountNumber = :accountNumber OR t.toAccountNumber = :accountNumber ORDER BY t.transactionDate DESC")
+    List<Transaction> findByAccountNumber(@Param("accountNumber") String accountNumber);
+    
     // 계좌별 최근 거래 1건 조회 (거래내역 동기화용)
     @Query("SELECT t FROM Transaction t JOIN BankingAccount a ON (t.fromAccountId = a.accountId OR t.toAccountId = a.accountId) " +
            "WHERE a.accountNumber = :accountNumber ORDER BY t.transactionDate DESC")

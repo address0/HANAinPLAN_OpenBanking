@@ -37,6 +37,14 @@ public class Transaction {
     @Column(name = "to_account_id")
     private Long toAccountId;
     
+    // 출금 계좌번호 (동기화용)
+    @Column(name = "from_account_number", length = 20)
+    private String fromAccountNumber;
+    
+    // 입금 계좌번호 (동기화용)
+    @Column(name = "to_account_number", length = 20)
+    private String toAccountNumber;
+    
     // 거래 유형
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
