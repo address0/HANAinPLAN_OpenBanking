@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  ocr-service:
+    build: .
+    container_name: hanainplan-ocr
+    ports:
+      - "8090:8090"
+    environment:
+      - DB_HOST=host.docker.internal  # Mac/Windows Docker에서 호스트 MySQL 접근
+      - DB_PORT=3306
+      - MYSQL_USER=hanainplan
+      - MYSQL_PASSWORD=hanainplan123
+      - MYSQL_DATABASE=hanainplan
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
+    volumes:
+      - ./google-credentials.json:/app/google-credentials.json:ro  # Google API 키 파일 마운트
+    restart: unless-stopped
+    networks:
+      - hanainplan-network
+
+networks:
+  hanainplan-network:
+    external: true
+
