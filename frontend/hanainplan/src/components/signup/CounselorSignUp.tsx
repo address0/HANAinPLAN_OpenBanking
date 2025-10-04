@@ -3,14 +3,17 @@ import Step2BasicInfo from './Step2BasicInfo'
 import Step3CounselorProfessionalInfo from './Step3CounselorProfessionalInfo.tsx'
 import Step4CounselorBranchInfo from './Step4CounselorBranchInfo.tsx'
 import Step5CounselorVerification from './Step5CounselorVerification.tsx'
+import Step5PasswordSetup from './Step5PasswordSetup'
 import Step6Complete from './Step6Complete'
+import { signUp, type SignUpRequest } from '../../api/userApi'
+import AlertModal from '../modal/AlertModal'
 
 interface CounselorSignUpProps {
   onBackToLogin: () => void;
   onBackToUserTypeSelection: () => void;
 }
 
-type SignUpStep = 2 | 3 | 4 | 5 | 6
+type SignUpStep = 2 | 3 | 4 | 5 | 6 | 7
 
 interface SignUpData {
   name: string;
@@ -45,6 +48,13 @@ interface SignUpData {
 
 function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: CounselorSignUpProps) {
   const [currentStep, setCurrentStep] = useState<SignUpStep>(2) // 유형 선택 후부터 시작
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info' | 'warning'
+  })
   const [signUpData, setSignUpData] = useState<SignUpData>({
     name: '',
     socialNumber: '',
@@ -91,6 +101,10 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
     setSignUpData(prev => ({ ...prev, verificationInfo }))
   }
 
+  const handlePasswordDataChange = (data: { password: string; confirmPassword: string }) => {
+    setSignUpData(prev => ({ ...prev, ...data }))
+  }
+
   // 유효성 검사
   const isStep2Valid = () => {
     const isNameValid = signUpData.name.trim().length >= 2
@@ -120,6 +134,80 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
            verificationInfo.verificationDocuments.length > 0
   }
 
+  const isStep6Valid = () => {
+    const { password, confirmPassword } = signUpData
+    const isPasswordValid = password.length >= 8 && 
+                           password.length <= 20 &&
+                           /\d/.test(password) &&
+                           /[a-zA-Z]/.test(password) &&
+                           /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    const isConfirmPasswordValid = password === confirmPassword && password.length > 0
+    return isPasswordValid && isConfirmPasswordValid
+  }
+
+  // 실제 회원가입 처리
+  const handleSignUp = async () => {
+    if (!isStep6Valid()) return
+
+    setIsSubmitting(true)
+    try {
+      const request: SignUpRequest = {
+        userType: 'COUNSELOR',
+        name: signUpData.name,
+        socialNumber: signUpData.socialNumber,
+        phoneNumber: signUpData.phoneNumber,
+        verificationCode: signUpData.verificationCode,
+        ci: signUpData.ci || '',
+        password: signUpData.password,
+        confirmPassword: signUpData.confirmPassword,
+        counselorInfo: {
+          employeeId: signUpData.verificationInfo.employeeId,
+          specialty: signUpData.professionalInfo.specialty,
+          position: signUpData.professionalInfo.position,
+          workPhoneNumber: signUpData.professionalInfo.workPhoneNumber,
+          workEmail: signUpData.professionalInfo.workEmail,
+          branchCode: signUpData.branchInfo.branchCode,
+          branchName: signUpData.branchInfo.branchName,
+          branchAddress: signUpData.branchInfo.address,
+          branchLatitude: signUpData.branchInfo.coordinates.latitude,
+          branchLongitude: signUpData.branchInfo.coordinates.longitude,
+          additionalNotes: signUpData.verificationInfo.additionalNotes
+        }
+      }
+
+      const response = await signUp(request)
+
+      if (response.userId) {
+        // 성공 시 완료 단계로 이동
+        setCurrentStep(7)
+        setAlertModal({
+          isOpen: true,
+          title: '회원가입 성공',
+          message: `${response.name}님, 환영합니다!`,
+          type: 'success'
+        })
+      } else {
+        // 실패
+        setAlertModal({
+          isOpen: true,
+          title: '회원가입 실패',
+          message: response.message || '회원가입에 실패했습니다.',
+          type: 'error'
+        })
+      }
+    } catch (error: any) {
+      console.error('회원가입 오류:', error)
+      setAlertModal({
+        isOpen: true,
+        title: '회원가입 실패',
+        message: error.message || '회원가입 처리 중 오류가 발생했습니다.',
+        type: 'error'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // 화살표 형태 진행 상태 표시기
   const renderArrowProgressBar = () => {
     const steps = [
@@ -131,8 +219,8 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
 
     const getCurrentStepIndex = () => {
       if (currentStep === 2) return 1
-      if (currentStep >= 3 && currentStep <= 5) return 2
-      if (currentStep === 6) return 3
+      if (currentStep >= 3 && currentStep <= 6) return 2
+      if (currentStep === 7) return 3
       return 0
     }
 
@@ -204,7 +292,8 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
       case 3: return isStep3Valid()
       case 4: return isStep4Valid()
       case 5: return isStep5Valid()
-      case 6: return true
+      case 6: return isStep6Valid()
+      case 7: return true
       default: return false
     }
   }
@@ -254,6 +343,15 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
           />
         )}
         {currentStep === 6 && (
+          <Step5PasswordSetup
+            signUpData={{
+              password: signUpData.password,
+              confirmPassword: signUpData.confirmPassword
+            }}
+            onDataChange={handlePasswordDataChange}
+          />
+        )}
+        {currentStep === 7 && (
           <Step6Complete
             userType="counselor"
             userName={signUpData.name}
@@ -262,28 +360,40 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
       </div>
 
       {/* 네비게이션 버튼들 */}
-      {currentStep < 6 && (
+      {currentStep < 7 && (
         <div className="flex gap-4 mt-2">
           {/* 2단계일 때는 유형 선택으로, 그 이후엔 이전 단계로 */}
           <button 
             onClick={currentStep === 2 ? onBackToUserTypeSelection : () => setCurrentStep((prev) => (prev - 1) as SignUpStep)}
-            className="px-6 py-3 bg-gray-500 text-white rounded-[10px] font-['Hana2.0_M'] text-[16px] hover:bg-gray-600 transition-colors duration-200"
+            disabled={isSubmitting}
+            className="px-6 py-3 bg-gray-500 text-white rounded-[10px] font-['Hana2.0_M'] text-[16px] hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             이전 단계
           </button>
           <button 
-            onClick={() => setCurrentStep((prev) => (prev + 1) as SignUpStep)}
-            disabled={!isCurrentStepValid()}
+            onClick={currentStep === 6 ? handleSignUp : () => setCurrentStep((prev) => (prev + 1) as SignUpStep)}
+            disabled={!isCurrentStepValid() || isSubmitting}
             className={`px-6 py-3 rounded-[10px] font-['Hana2.0_M'] text-[16px] transition-all duration-200 ${
-              isCurrentStepValid()
+              isCurrentStepValid() && !isSubmitting
                 ? 'bg-[#008485] text-white hover:bg-[#006666] cursor-pointer'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            다음 단계
+            {isSubmitting ? '처리 중...' : currentStep === 6 ? '회원가입 완료' : '다음 단계'}
           </button>
         </div>
       )}
+
+      {/* AlertModal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        autoClose={true}
+        autoCloseDelay={2000}
+      />
 
       {/* 로그인 링크 */}
       <div className="font-['Hana2.0_M'] text-[16px] leading-[20px] mt-2">

@@ -86,6 +86,19 @@ export interface SignUpRequest {
     careerYears: number;
     assetLevel: string;
   };
+  counselorInfo?: {
+    employeeId: string;
+    specialty: string;
+    position: string;
+    workPhoneNumber: string;
+    workEmail: string;
+    branchCode: string;
+    branchName: string;
+    branchAddress: string;
+    branchLatitude: number;
+    branchLongitude: number;
+    additionalNotes?: string;
+  };
 }
 
 // 회원가입 응답 데이터 타입

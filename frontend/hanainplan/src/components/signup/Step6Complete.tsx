@@ -49,12 +49,6 @@ function Step6Complete({ userType, userName }: Step6CompleteProps) {
         <p className="font-['Hana2.0_M'] text-[16px] leading-[20px] text-gray-600 mb-4">
           {userName ? `${userName}님, ` : ''}하나인플랜에 오신 것을 환영합니다
         </p>
-        <p className="font-['Hana2.0_M'] text-[14px] leading-[18px] text-gray-500">
-          {userType === 'general' 
-            ? '이제 다양한 보험 상품을 비교하고 맞춤형 플랜을 받아보세요' 
-            : '고객 상담을 위한 모든 도구가 준비되어 있습니다'
-          }
-        </p>
       </div>
 
       {/* 하나 로고와 브랜딩 */}
