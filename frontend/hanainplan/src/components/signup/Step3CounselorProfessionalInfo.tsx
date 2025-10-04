@@ -13,15 +13,14 @@ interface Step3CounselorProfessionalInfoProps {
 }
 
 const SPECIALTIES = [
-  { value: 'PENSION', label: '연금' },
-  { value: 'INSURANCE_PLANNING', label: '보험설계' },
-  { value: 'INVESTMENT', label: '투자/재테크' },
-  { value: 'TAX', label: '세무' },
-  { value: 'REAL_ESTATE', label: '부동산' }
+  { value: 'PENSION', label: '연금(IRP)' },
+  { value: 'FUND', label: '펀드' },
+  { value: 'DEPOSIT', label: '예금' },
+  { value: 'ASSET', label: '자산관리(종합)' }
 ]
 
 const POSITIONS = [
-  { value: 'JUNIOR', label: '주임' },
+  { value: 'JUNIOR', label: '사원' },
   { value: 'SENIOR', label: '대리' },
   { value: 'MANAGER', label: '과장' },
   { value: 'DEPUTY_DIRECTOR', label: '차장' },

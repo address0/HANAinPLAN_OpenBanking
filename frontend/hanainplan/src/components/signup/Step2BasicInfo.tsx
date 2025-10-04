@@ -8,6 +8,7 @@ interface SignUpData {
   phoneNumber: string;
   verificationCode: string;
   ci?: string;
+  isPhoneVerified?: boolean;
 }
 
 interface Step2Props {
@@ -120,7 +121,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedNumber = formatPhoneNumber(e.target.value)
-    onDataChange({ phoneNumber: formattedNumber })
+    onDataChange({ phoneNumber: formattedNumber, isPhoneVerified: false })
     setIsVerified(false)
   }
 
@@ -138,7 +139,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         if (response.success) {
           setIsCodeSent(true)
           setTimeLeft(180) // 3분
-          onDataChange({ verificationCode: '' })
+          onDataChange({ verificationCode: '', isPhoneVerified: false })
           setIsVerified(false)
           
           setAlertModal({
@@ -176,6 +177,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         if (response.success) {
           setIsVerified(true)
           setTimeLeft(0) // 타이머 중지
+          onDataChange({ isPhoneVerified: true }) // 부모 컴포넌트에 인증 완료 알림
 
           setAlertModal({
             isOpen: true,
