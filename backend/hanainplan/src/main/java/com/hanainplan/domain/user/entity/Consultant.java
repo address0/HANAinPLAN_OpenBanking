@@ -1,6 +1,5 @@
 package com.hanainplan.domain.user.entity;
 
-import com.hanainplan.domain.common.entity.BranchCode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,6 +42,15 @@ public class Consultant {
 
     @Column(name = "branch_name", length = 100)
     private String branchName; // 지점명
+
+    @Column(name = "branch_address", length = 300)
+    private String branchAddress; // 지점 주소
+
+    @Column(name = "branch_latitude", precision = 10, scale = 6)
+    private BigDecimal branchLatitude; // 지점 위도
+
+    @Column(name = "branch_longitude", precision = 10, scale = 6)
+    private BigDecimal branchLongitude; // 지점 경도
 
     // 자격증 정보
     @Column(name = "license_type", length = 50)
@@ -105,10 +113,6 @@ public class Consultant {
     // @OneToOne
     // @JoinColumn(name = "consultant_id", referencedColumnName = "user_id")
     // private User user;
-
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "branch_code", referencedColumnName = "branch_code", insertable = false, updatable = false)
-    // private BranchCode branch;
 
     /**
      * 근무 상태 enum 정의

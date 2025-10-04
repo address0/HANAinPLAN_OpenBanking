@@ -1,6 +1,5 @@
 package com.hanainplan.domain.consult.entity;
 
-import com.hanainplan.domain.common.entity.BranchCode;
 import com.hanainplan.domain.user.entity.Customer;
 import com.hanainplan.domain.user.entity.Consultant;
 import jakarta.persistence.*;

@@ -52,8 +52,8 @@ public class SignUpRequestDto {
     private HealthInfoDto healthInfo;
     private JobInfoDto jobInfo;
 
-    // 상담원 전용 필드들 (현재는 기본 정보만)
-    // 추후 상담원 가입 폼 구현시 추가 예정
+    // 상담원 전용 필드들
+    private CounselorInfoDto counselorInfo;
 
     /**
      * 건강 정보 DTO
@@ -99,6 +99,34 @@ public class SignUpRequestDto {
         private String industryName;
         private Integer careerYears;
         private String assetLevel;
+    }
+
+    /**
+     * 상담원 정보 DTO
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CounselorInfoDto {
+        // 직원 정보
+        private String employeeId;          // 직원번호
+        
+        // 전문직 정보
+        private String specialty;           // 전문직종 (PENSION, FUND, DEPOSIT, ASSET)
+        private String position;            // 직책 (JUNIOR, SENIOR, MANAGER, etc.)
+        private String workPhoneNumber;     // 업무용 연락처
+        private String workEmail;           // 업무용 이메일
+        
+        // 지점 정보
+        private String branchCode;          // 지점 코드
+        private String branchName;          // 지점명
+        private String branchAddress;       // 지점 주소
+        private Double branchLatitude;      // 지점 위도
+        private Double branchLongitude;     // 지점 경도
+        
+        // 증빙서류 정보
+        private String additionalNotes;     // 추가 메모
+        // verificationDocuments는 파일이므로 별도 처리 필요
     }
 
     /**
