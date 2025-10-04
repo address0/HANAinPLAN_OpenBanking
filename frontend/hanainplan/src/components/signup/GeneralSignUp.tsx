@@ -20,6 +20,8 @@ interface SignUpData {
   socialNumber: string;
   phoneNumber: string;
   verificationCode: string;
+  ci?: string;
+  isPhoneVerified?: boolean;
   password: string;
   confirmPassword: string;
   healthInfo: {
@@ -113,8 +115,9 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
   const isStep2Valid = () => {
     const isNameValid = signUpData.name.trim().length >= 2
     const isSocialNumberValid = signUpData.socialNumber.replace(/[^\d]/g, '').length === 13
-    const isVerified = signUpData.verificationCode.trim().length > 0
-    return isNameValid && isSocialNumberValid && isVerified
+    const isCiVerified = !!signUpData.ci
+    const isPhoneVerified = signUpData.isPhoneVerified === true
+    return isNameValid && isSocialNumberValid && isCiVerified && isPhoneVerified
   }
 
   const isStep3Valid = () => {

@@ -40,7 +40,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
   }>>([])
   const [isSearching, setIsSearching] = useState(false)
 
-  // 카카오맵 장소 검색 함수
+  // 카카오맵 장소 검색 함수 (하나은행 지점만 검색)
   const searchPlaces = async (query: string) => {
     if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
       console.error('카카오맵 API 또는 서비스가 로드되지 않았습니다.')
@@ -52,20 +52,32 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
     try {
       const ps = new window.kakao.maps.services.Places()
       
-      ps.keywordSearch(query, (data: PlaceSearchResult[], status: any) => {
+      // 하나은행 지점 검색을 위해 "하나은행 + 사용자 입력"으로 검색
+      const searchKeyword = `하나은행 ${query}`
+      
+      ps.keywordSearch(searchKeyword, (data: PlaceSearchResult[], status: any) => {
         setIsSearching(false)
         
         if (status === window.kakao.maps.services.Status.OK) {
-          // 검색 결과를 그대로 사용 (필터링 제거)
-          setSearchResults(data)
+          // 하나은행 지점만 필터링
+          const hanaResults = data.filter(place => 
+            place.place_name.includes('하나은행') || 
+            place.category_name.includes('은행')
+          )
+          
+          setSearchResults(hanaResults)
           
           // 검색 결과를 지도 마커로 표시
-          setMapMarkers(data.map(place => ({
+          setMapMarkers(hanaResults.map(place => ({
             latitude: parseFloat(place.y),
             longitude: parseFloat(place.x),
             title: place.place_name,
             address: place.road_address_name || place.address_name
           })))
+        } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+          console.log('검색 결과가 없습니다.')
+          setSearchResults([])
+          setMapMarkers([])
         } else {
           console.error('장소 검색 실패:', status)
           setSearchResults([])
@@ -75,6 +87,8 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
     } catch (error) {
       console.error('장소 검색 오류:', error)
       setIsSearching(false)
+      setSearchResults([])
+      setMapMarkers([])
     }
   }
 
@@ -137,7 +151,8 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
       }
     })
     setSearchQuery(place.place_name)
-    setShowMap(false)
+    setShowMap(true) // 지점 선택 시 지도 표시
+    setSearchResults([]) // 검색 결과 목록 숨기기
   }
 
   const handleInputChange = (field: keyof BranchInfo, value: string | number) => {
@@ -189,11 +204,8 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
     <div className="w-full max-w-4xl mx-auto p-6">
       <div className="mb-8">
         <h2 className="text-2xl font-['Hana2.0_M'] text-gray-800 mb-2">
-          근무 지점 정보
+          근무 지점 정보 입력
         </h2>
-        <p className="text-gray-600 font-['Hana2.0_M'] text-sm">
-          근무하시는 지점을 검색하여 선택해주세요.
-        </p>
       </div>
 
       <div className="space-y-6">
@@ -208,7 +220,12 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="은행명 또는 지역명으로 검색 (예: 하나은행, 강남구)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim() && !isSearching) {
+                    executeSearch()
+                  }
+                }}
+                placeholder="지점명 또는 지역명으로 검색 (예: 강남점, 서울 강남구)"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg font-['Hana2.0_M'] text-sm focus:outline-none focus:ring-2 focus:ring-[#008485]"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -240,45 +257,49 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
             <div className="mt-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
               <div className="divide-y divide-gray-200">
                 {searchResults.map((place) => {
-                  const isHanaBank = place.place_name.includes('하나은행')
+                  const isSelected = branchInfo.branchCode === place.id
                   return (
                     <button
                       key={place.id}
                       onClick={() => handlePlaceSelect(place)}
-                      className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                        branchInfo.branchCode === place.id ? 'bg-[#008485] text-white' : ''
+                      className={`w-full text-left p-4 transition-colors ${
+                        isSelected 
+                          ? 'bg-[#008485] text-white' 
+                          : 'hover:bg-gray-50'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-0.5">
-                          {isHanaBank ? (
-                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          ) : (
-                            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                          )}
+                          <div className={`w-3 h-3 rounded-full ${
+                            isSelected ? 'bg-white' : 'bg-[#008485]'
+                          }`}></div>
                         </div>
                         <div className="flex-1">
-                          <p className={`font-['Hana2.0_M'] text-sm font-medium ${
-                            branchInfo.branchCode === place.id ? 'text-white' : 'text-gray-900'
-                          }`}>
-                            {place.place_name}
-                            {isHanaBank && (
-                              <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
+                          <div className="flex items-center gap-2">
+                            <p className={`font-['Hana2.0_M'] text-sm font-medium ${
+                              isSelected ? 'text-white' : 'text-gray-900'
+                            }`}>
+                              {place.place_name}
+                            </p>
+                            {!isSelected && (
+                              <span className="px-2 py-0.5 bg-[#008485] text-white text-xs rounded-full">
                                 하나은행
                               </span>
                             )}
-                          </p>
+                          </div>
                           <p className={`font-['Hana2.0_M'] text-xs mt-1 ${
-                            branchInfo.branchCode === place.id ? 'text-gray-200' : 'text-gray-500'
+                            isSelected ? 'text-gray-100' : 'text-gray-600'
                           }`}>
-                            {place.road_address_name || place.address_name}
-                          </p>
-                          <p className={`font-['Hana2.0_M'] text-xs mt-1 ${
-                            branchInfo.branchCode === place.id ? 'text-gray-200' : 'text-gray-400'
-                          }`}>
-                            {place.category_name}
+                            📍 {place.road_address_name || place.address_name}
                           </p>
                         </div>
+                        {isSelected && (
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     </button>
                   )
@@ -287,7 +308,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
             </div>
           )}
 
-          {searchQuery && !isSearching && searchResults.length === 0 && (
+          {searchQuery && !isSearching && searchResults.length === 0 && !branchInfo.branchCode && (
             <div className="mt-2 p-4 text-center text-gray-500 font-['Hana2.0_M'] text-sm border border-gray-200 rounded-lg bg-gray-50">
               검색 결과가 없습니다. 다른 키워드로 검색해보세요.
             </div>
@@ -347,28 +368,43 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
 
             {/* 선택된 지점 정보 - 지도 위에 표시 */}
             {branchInfo.branchCode && (
-              <div className="absolute top-4 left-4 right-4 bg-white rounded-lg shadow-lg border border-gray-200 p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-['Hana2.0_M'] text-sm font-medium text-gray-900 mb-1">
-                      선택된 지점
-                    </h3>
-                    <p className="font-['Hana2.0_M'] text-sm text-gray-700 mb-1">
+              <div className="absolute top-4 left-4 right-4 bg-white rounded-lg shadow-xl border-2 border-[#008485] p-4 z-10">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-[#008485] rounded-full animate-pulse"></div>
+                      <h3 className="font-['Hana2.0_M'] text-xs font-medium text-[#008485] uppercase">
+                        선택된 지점
+                      </h3>
+                    </div>
+                    <p className="font-['Hana2.0_M'] text-base font-bold text-gray-900 mb-2">
                       {branchInfo.branchName}
                     </p>
-                    <p className="font-['Hana2.0_M'] text-xs text-gray-500">
-                      {branchInfo.address}
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="font-['Hana2.0_M'] text-xs text-gray-600 leading-relaxed">
+                        {branchInfo.address}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => onBranchInfoChange({
-                      branchCode: '',
-                      branchName: '',
-                      address: '',
-                      coordinates: { latitude: 0, longitude: 0 }
-                    })}
-                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => {
+                      onBranchInfoChange({
+                        branchCode: '',
+                        branchName: '',
+                        address: '',
+                        coordinates: { latitude: 0, longitude: 0 }
+                      })
+                      setSearchQuery('')
+                      setSearchResults([])
+                      setMapMarkers([])
+                    }}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    title="선택 취소"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -383,18 +419,21 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
       </div>
 
       {/* 안내 메시지 */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+      <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-0.5">
+            <svg className="h-5 w-5 text-[#008485]" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-blue-700 font-['Hana2.0_M']">
-              지역명이나 은행명으로 검색하여 근무 지점을 선택해주세요. 
-              하나은행 지점은 빨간색 마커로 표시됩니다.
-            </p>
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-[#008485] font-['Hana2.0_M'] mb-1">
+              지점 검색 안내
+            </h4>
+            <ul className="text-sm text-gray-700 font-['Hana2.0_M'] space-y-1">
+              <li>• <strong>지점명</strong>으로 검색: "강남점", "서초점", "역삼점" 등</li>
+              <li>• <strong>지역명</strong>으로 검색: "강남구", "서초구", "역삼동" 등</li>
+            </ul>
           </div>
         </div>
       </div>
