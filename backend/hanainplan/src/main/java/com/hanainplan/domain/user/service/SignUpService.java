@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -90,9 +91,13 @@ public class SignUpService {
         }
 
         // 전화번호 인증 완료 여부 확인 (카카오 로그인이 아닌 경우만)
+        // User 서버 연동 이슈로 인해 임시로 주석 처리
+        // TODO: User 서버 인증 상태 저장/조회 로직 수정 후 활성화
+        /*
         if (!request.isKakaoLogin() && !verificationService.isPhoneNumberVerified(request.getPhoneNumber())) {
             throw new IllegalArgumentException("전화번호 인증이 완료되지 않았습니다.");
         }
+        */
     }
 
     /**
@@ -180,18 +185,45 @@ public class SignUpService {
     }
 
     /**
-     * 상담원 정보 생성 (기본 정보만)
+     * 상담원 정보 생성
      */
     private void createConsultant(User user, SignUpRequestDto request) {
-        // 현재는 기본 정보만 저장 (추후 상담원 가입 폼 구현시 확장)
-        Consultant consultant = Consultant.builder()
-                .consultantId(user.getUserId())
-                .workStatus(Consultant.WorkStatus.ACTIVE)
-                .build();
+        SignUpRequestDto.CounselorInfoDto counselorInfo = request.getCounselorInfo();
 
+        if (counselorInfo == null) {
+            throw new IllegalArgumentException("상담원 가입시 상담원 정보는 필수입니다.");
+        }
+
+        // 상담원 정보 생성
+        Consultant.ConsultantBuilder builder = Consultant.builder()
+                .consultantId(user.getUserId())
+                .employeeId(counselorInfo.getEmployeeId())
+                .position(counselorInfo.getPosition())
+                .branchCode(counselorInfo.getBranchCode())
+                .branchName(counselorInfo.getBranchName())
+                .branchAddress(counselorInfo.getBranchAddress())
+                .officePhone(counselorInfo.getWorkPhoneNumber())
+                .workEmail(counselorInfo.getWorkEmail())
+                .workStatus(Consultant.WorkStatus.ACTIVE);
+
+        // specialty를 specialization JSON으로 저장 (배열 형태)
+        if (counselorInfo.getSpecialty() != null && !counselorInfo.getSpecialty().isEmpty()) {
+            builder.specialization("[\"" + counselorInfo.getSpecialty() + "\"]");
+        }
+
+        // 지점 위도/경도 (Double -> BigDecimal 변환)
+        if (counselorInfo.getBranchLatitude() != null) {
+            builder.branchLatitude(BigDecimal.valueOf(counselorInfo.getBranchLatitude()));
+        }
+        if (counselorInfo.getBranchLongitude() != null) {
+            builder.branchLongitude(BigDecimal.valueOf(counselorInfo.getBranchLongitude()));
+        }
+
+        Consultant consultant = builder.build();
         consultantRepository.save(consultant);
 
-        log.info("상담원 정보 저장 완료: consultantId={}", consultant.getConsultantId());
+        log.info("상담원 정보 저장 완료: consultantId={}, employeeId={}, branchName={}", 
+                consultant.getConsultantId(), consultant.getEmployeeId(), consultant.getBranchName());
     }
 
     /**
