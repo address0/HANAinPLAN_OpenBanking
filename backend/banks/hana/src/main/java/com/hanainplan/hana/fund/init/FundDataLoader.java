@@ -61,11 +61,15 @@ public class FundDataLoader implements CommandLineRunner {
 
     /**
      * 펀드가 없는 경우에만 생성
+     * findById를 사용하여 안전하게 확인
      */
     private void createFundIfNotExists(String fundCd, Runnable creator) {
-        if (fundMasterRepository.existsById(fundCd)) {
+        // existsById 대신 findById를 사용하여 엔티티를 직접 조회
+        // 존재하지 않으면 Optional.empty() 반환
+        if (fundMasterRepository.findById(fundCd).isPresent()) {
             log.info("펀드 {} 는 이미 존재합니다. 스킵합니다.", fundCd);
         } else {
+            log.info("펀드 {} 를 새로 생성합니다.", fundCd);
             creator.run();
         }
     }
