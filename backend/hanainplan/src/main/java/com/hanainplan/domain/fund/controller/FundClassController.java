@@ -13,20 +13,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 하나인플랜 펀드 클래스 컨트롤러 (실제 구조)
+ * 하나인플랜 펀드 클래스 컨트롤러
+ * - 하나인플랜 DB에서 조회 (하나은행과 동일한 구조)
  */
 @RestController
 @RequestMapping("/api/banking/fund-classes")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Fund Classes", description = "펀드 클래스 조회 API (실제 구조)")
+@Tag(name = "Fund Classes", description = "펀드 클래스 API")
 @CrossOrigin(origins = "*")
 public class FundClassController {
 
     private final FundClassService fundClassService;
 
     /**
-     * 판매중인 펀드 클래스 목록 조회
+     * 모든 판매중인 펀드 클래스 조회
      */
     @GetMapping
     @Operation(summary = "판매중인 펀드 클래스 목록", description = "판매중인 모든 펀드 클래스를 상세 정보와 함께 조회합니다")
@@ -50,7 +51,8 @@ public class FundClassController {
     ) {
         log.info("GET /api/banking/fund-classes/{} - 펀드 클래스 상세 조회", childFundCd);
         
-        FundClassDetailDto fundClass = fundClassService.getFundClassByCode(childFundCd);
+        FundClassDetailDto fundClass = fundClassService.getFundClassByCode(childFundCd)
+                .orElseThrow(() -> new IllegalArgumentException("펀드 클래스를 찾을 수 없습니다: " + childFundCd));
         
         log.info("펀드 클래스 상세 조회 완료 - childFundCd: {}", childFundCd);
         return ResponseEntity.ok(fundClass);
@@ -67,7 +69,7 @@ public class FundClassController {
     ) {
         log.info("GET /api/banking/fund-classes/master/{} - 모펀드의 클래스 목록 조회", fundCd);
         
-        List<FundClassDetailDto> fundClasses = fundClassService.getFundClassesByMaster(fundCd);
+        List<FundClassDetailDto> fundClasses = fundClassService.getFundClassesByMasterCode(fundCd);
         
         log.info("모펀드의 클래스 목록 조회 완료 - fundCd: {}, 결과: {}건", fundCd, fundClasses.size());
         return ResponseEntity.ok(fundClasses);
@@ -124,4 +126,3 @@ public class FundClassController {
         return ResponseEntity.ok(fundClasses);
     }
 }
-

@@ -25,3 +25,4 @@ ENV DB_PORT=3306
 # 서버 실행
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8090"]
 
+

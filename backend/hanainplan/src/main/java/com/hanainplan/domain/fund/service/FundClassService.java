@@ -1,104 +1,101 @@
 package com.hanainplan.domain.fund.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hanainplan.domain.banking.client.HanaBankClient;
 import com.hanainplan.domain.fund.dto.FundClassDetailDto;
+import com.hanainplan.domain.fund.entity.FundClass;
+import com.hanainplan.domain.fund.entity.FundNav;
+import com.hanainplan.domain.fund.repository.FundClassRepository;
+import com.hanainplan.domain.fund.repository.FundNavRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * 하나인플랜 펀드 클래스 서비스
- * - 하나은행 API를 통해 실제 펀드 클래스 정보 조회
+ * 펀드 클래스 서비스 (하나인플랜)
+ * - 하나은행 FundClassService와 동일한 로직
+ * - 하나인플랜 DB에서 조회
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class FundClassService {
 
-    private final HanaBankClient hanaBankClient;
-    private final ObjectMapper objectMapper;
+    private final FundClassRepository fundClassRepository;
+    private final FundNavRepository fundNavRepository;
 
     /**
-     * 판매중인 펀드 클래스 목록 조회
+     * 모든 판매중인 펀드 클래스 조회 (상세 정보 포함)
      */
     public List<FundClassDetailDto> getAllOnSaleFundClasses() {
-        log.info("판매중인 펀드 클래스 목록 조회 요청");
+        log.info("판매중인 펀드 클래스 목록 조회");
         
-        try {
-            List<Map<String, Object>> response = hanaBankClient.getAllOnSaleFundClasses();
-            List<FundClassDetailDto> fundClasses = response.stream()
-                    .map(this::mapToDto)
-                    .collect(Collectors.toList());
-            
-            log.info("판매중인 펀드 클래스 목록 조회 완료 - {}건", fundClasses.size());
-            return fundClasses;
-        } catch (Exception e) {
-            log.error("펀드 클래스 목록 조회 실패", e);
-            throw new RuntimeException("펀드 클래스 목록 조회에 실패했습니다: " + e.getMessage(), e);
-        }
+        List<FundClass> fundClasses = fundClassRepository.findBySaleStatusOrderByChildFundCdAsc("ON");
+        
+        return fundClasses.stream()
+                .map(fc -> {
+                    FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
+                            .orElse(null);
+                    return toDetailDto(fc, latestNav);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
      * 클래스 코드로 상세 조회
      */
-    public FundClassDetailDto getFundClassByCode(String childFundCd) {
+    public Optional<FundClassDetailDto> getFundClassByCode(String childFundCd) {
         log.info("펀드 클래스 상세 조회 - childFundCd: {}", childFundCd);
         
-        try {
-            Map<String, Object> response = hanaBankClient.getFundClass(childFundCd);
-            FundClassDetailDto fundClass = mapToDto(response);
-            
-            log.info("펀드 클래스 상세 조회 완료 - childFundCd: {}", childFundCd);
-            return fundClass;
-        } catch (Exception e) {
-            log.error("펀드 클래스 상세 조회 실패 - childFundCd: {}", childFundCd, e);
-            throw new RuntimeException("펀드 클래스 조회에 실패했습니다: " + e.getMessage(), e);
+        Optional<FundClass> fundClassOpt = fundClassRepository.findById(childFundCd);
+        
+        if (fundClassOpt.isEmpty()) {
+            return Optional.empty();
         }
+        
+        FundClass fundClass = fundClassOpt.get();
+        FundNav latestNav = fundNavRepository.findLatestByChildFundCd(childFundCd)
+                .orElse(null);
+        
+        return Optional.of(toDetailDto(fundClass, latestNav));
     }
 
     /**
      * 모펀드 코드로 클래스 목록 조회
      */
-    public List<FundClassDetailDto> getFundClassesByMaster(String fundCd) {
+    public List<FundClassDetailDto> getFundClassesByMasterCode(String fundCd) {
         log.info("모펀드의 클래스 목록 조회 - fundCd: {}", fundCd);
         
-        try {
-            List<Map<String, Object>> response = hanaBankClient.getFundClassesByMaster(fundCd);
-            List<FundClassDetailDto> fundClasses = response.stream()
-                    .map(this::mapToDto)
-                    .collect(Collectors.toList());
-            
-            log.info("모펀드의 클래스 목록 조회 완료 - fundCd: {}, 결과: {}건", fundCd, fundClasses.size());
-            return fundClasses;
-        } catch (Exception e) {
-            log.error("모펀드의 클래스 목록 조회 실패 - fundCd: {}", fundCd, e);
-            throw new RuntimeException("펀드 클래스 조회에 실패했습니다: " + e.getMessage(), e);
-        }
+        List<FundClass> fundClasses = fundClassRepository.findByFundMasterFundCd(fundCd);
+        
+        return fundClasses.stream()
+                .map(fc -> {
+                    FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
+                            .orElse(null);
+                    return toDetailDto(fc, latestNav);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
      * 자산 유형별 조회
      */
     public List<FundClassDetailDto> getFundClassesByAssetType(String assetType) {
-        log.info("자산 유형별 조회 - assetType: {}", assetType);
+        log.info("자산 유형별 펀드 클래스 조회 - assetType: {}", assetType);
         
-        try {
-            List<Map<String, Object>> response = hanaBankClient.getFundClassesByAssetType(assetType);
-            List<FundClassDetailDto> fundClasses = response.stream()
-                    .map(this::mapToDto)
-                    .collect(Collectors.toList());
-            
-            log.info("자산 유형별 조회 완료 - assetType: {}, 결과: {}건", assetType, fundClasses.size());
-            return fundClasses;
-        } catch (Exception e) {
-            log.error("자산 유형별 조회 실패 - assetType: {}", assetType, e);
-            throw new RuntimeException("펀드 클래스 조회에 실패했습니다: " + e.getMessage(), e);
-        }
+        List<FundClass> fundClasses = fundClassRepository.findByAssetType(assetType);
+        
+        return fundClasses.stream()
+                .map(fc -> {
+                    FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
+                            .orElse(null);
+                    return toDetailDto(fc, latestNav);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -107,18 +104,15 @@ public class FundClassService {
     public List<FundClassDetailDto> getFundClassesByClassCode(String classCode) {
         log.info("클래스 코드별 조회 - classCode: {}", classCode);
         
-        try {
-            List<Map<String, Object>> response = hanaBankClient.getFundClassesByClassCode(classCode);
-            List<FundClassDetailDto> fundClasses = response.stream()
-                    .map(this::mapToDto)
-                    .collect(Collectors.toList());
-            
-            log.info("클래스 코드별 조회 완료 - classCode: {}, 결과: {}건", classCode, fundClasses.size());
-            return fundClasses;
-        } catch (Exception e) {
-            log.error("클래스 코드별 조회 실패 - classCode: {}", classCode, e);
-            throw new RuntimeException("펀드 클래스 조회에 실패했습니다: " + e.getMessage(), e);
-        }
+        List<FundClass> fundClasses = fundClassRepository.findByClassCode(classCode);
+        
+        return fundClasses.stream()
+                .map(fc -> {
+                    FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
+                            .orElse(null);
+                    return toDetailDto(fc, latestNav);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -127,30 +121,87 @@ public class FundClassService {
     public List<FundClassDetailDto> getFundClassesByMaxAmount(int maxAmount) {
         log.info("최소 투자금액 {}원 이하 펀드 조회", maxAmount);
         
-        try {
-            List<Map<String, Object>> response = hanaBankClient.getFundClassesByMaxAmount(maxAmount);
-            List<FundClassDetailDto> fundClasses = response.stream()
-                    .map(this::mapToDto)
-                    .collect(Collectors.toList());
-            
-            log.info("최소 투자금액 이하 펀드 조회 완료 - maxAmount: {}, 결과: {}건", maxAmount, fundClasses.size());
-            return fundClasses;
-        } catch (Exception e) {
-            log.error("최소 투자금액 이하 펀드 조회 실패 - maxAmount: {}", maxAmount, e);
-            throw new RuntimeException("펀드 클래스 조회에 실패했습니다: " + e.getMessage(), e);
-        }
+        List<FundClass> fundClasses = fundClassRepository.findBySaleStatusOrderByChildFundCdAsc("ON").stream()
+                .filter(fc -> fc.getFundRules() != null && 
+                             fc.getFundRules().getMinInitialAmount() != null &&
+                             fc.getFundRules().getMinInitialAmount().intValue() <= maxAmount)
+                .collect(Collectors.toList());
+        
+        return fundClasses.stream()
+                .map(fc -> {
+                    FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
+                            .orElse(null);
+                    return toDetailDto(fc, latestNav);
+                })
+                .collect(Collectors.toList());
     }
 
     /**
-     * Map -> FundClassDetailDto 변환
+     * FundClass Entity -> FundClassDetailDto 변환
      */
-    private FundClassDetailDto mapToDto(Map<String, Object> map) {
-        try {
-            return objectMapper.convertValue(map, FundClassDetailDto.class);
-        } catch (Exception e) {
-            log.error("DTO 변환 실패", e);
-            throw new RuntimeException("데이터 변환에 실패했습니다: " + e.getMessage(), e);
+    private FundClassDetailDto toDetailDto(FundClass entity, FundNav latestNav) {
+        FundClassDetailDto.FundClassDetailDtoBuilder builder = FundClassDetailDto.builder()
+                .childFundCd(entity.getChildFundCd())
+                .classCode(entity.getClassCode())
+                .loadType(entity.getLoadType())
+                .taxCategory(entity.getTaxCategory())
+                .saleStatus(entity.getSaleStatus())
+                .sourceUrl(entity.getSourceUrl());
+
+        // 모펀드 정보
+        if (entity.getFundMaster() != null) {
+            builder.fundMaster(FundClassDetailDto.FundMasterDto.builder()
+                    .fundCd(entity.getFundMaster().getFundCd())
+                    .fundName(entity.getFundMaster().getFundName())
+                    .fundGb(entity.getFundMaster().getFundGb())
+                    .assetType(entity.getFundMaster().getAssetType())
+                    .riskGrade(entity.getFundMaster().getRiskGrade())
+                    .currency(entity.getFundMaster().getCurrency())
+                    .isActive(entity.getFundMaster().getIsActive())
+                    .build());
         }
+
+        // 거래 규칙
+        if (entity.getFundRules() != null) {
+            builder.rules(FundClassDetailDto.FundRulesDto.builder()
+                    .cutoffTime(entity.getFundRules().getCutoffTime())
+                    .navPublishTime(entity.getFundRules().getNavPublishTime())
+                    .buySettleDays(entity.getFundRules().getBuySettleDays())
+                    .redeemSettleDays(entity.getFundRules().getRedeemSettleDays())
+                    .unitType(entity.getFundRules().getUnitType())
+                    .minInitialAmount(entity.getFundRules().getMinInitialAmount())
+                    .minAdditional(entity.getFundRules().getMinAdditional())
+                    .incrementAmount(entity.getFundRules().getIncrementAmount())
+                    .allowSip(entity.getFundRules().getAllowSip())
+                    .allowSwitch(entity.getFundRules().getAllowSwitch())
+                    .redemptionFeeRate(entity.getFundRules().getRedemptionFeeRate())
+                    .redemptionFeeDays(entity.getFundRules().getRedemptionFeeDays())
+                    .build());
+        }
+
+        // 수수료
+        if (entity.getFundFees() != null) {
+            builder.fees(FundClassDetailDto.FundFeesDto.builder()
+                    .mgmtFeeBps(entity.getFundFees().getMgmtFeeBps())
+                    .salesFeeBps(entity.getFundFees().getSalesFeeBps())
+                    .trusteeFeeBps(entity.getFundFees().getTrusteeFeeBps())
+                    .adminFeeBps(entity.getFundFees().getAdminFeeBps())
+                    .frontLoadPct(entity.getFundFees().getFrontLoadPct())
+                    .totalFeeBps(entity.getFundFees().getTotalFeeBps())
+                    .mgmtFeePercent(entity.getFundFees().getMgmtFeePercent())
+                    .salesFeePercent(entity.getFundFees().getSalesFeePercent())
+                    .trusteeFeePercent(entity.getFundFees().getTrusteeFeePercent())
+                    .adminFeePercent(entity.getFundFees().getAdminFeePercent())
+                    .totalFeePercent(entity.getFundFees().getTotalFeePercent())
+                    .build());
+        }
+
+        // 최신 기준가
+        if (latestNav != null) {
+            builder.latestNav(latestNav.getNav())
+                   .latestNavDate(latestNav.getNavDate());
+        }
+
+        return builder.build();
     }
 }
-
