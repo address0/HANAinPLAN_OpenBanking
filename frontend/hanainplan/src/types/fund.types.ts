@@ -13,6 +13,13 @@ export interface FundClassDetail {
   fees: FundFees | null;
   latestNav: number | null;
   latestNavDate: string | null;
+
+  // 수익률 정보 (펀드 상품 조회 시 포함)
+  return1month?: number;
+  return3month?: number;
+  return6month?: number;
+  return1year?: number;
+  return3year?: number;
 }
 
 // 모펀드 정보
@@ -24,6 +31,8 @@ export interface FundMaster {
   riskGrade: string | null;
   currency: string;
   isActive: boolean;
+  managementCompany?: string;
+  trustCompany?: string;
 }
 
 // 펀드 규칙

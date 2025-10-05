@@ -6,7 +6,7 @@ export interface User {
   userId: number;
   phoneNumber: string;
   name: string;
-  userType: 'GENERAL' | 'CONSULTANT';
+  userType: 'GENERAL' | 'COUNSELOR';
   ci?: string; // 실명인증 CI값
   isActive: boolean;
   createdAt: string;

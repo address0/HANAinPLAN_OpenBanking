@@ -12,7 +12,7 @@ function Layout({ children, showFloatingButtons = false }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       <Nav />
-      <main className="flex-1 pt-[80px] bg-[#F6F6F6]">
+      <main className="flex-1 pt-16 sm:pt-20 lg:pt-24 bg-[#F6F6F6]">
         {children}
       </main>
       <Footer />

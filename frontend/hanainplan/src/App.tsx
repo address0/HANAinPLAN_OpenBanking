@@ -10,7 +10,6 @@ import MyAccount from './pages/MyAccount'
 import UserProfile from './pages/UserProfile'
 import KakaoCallback from './pages/KakaoCallback'
 import DepositProducts from './pages/products/DepositProducts'
-import SavingsProducts from './pages/products/SavingsProducts'
 import IrpProducts from './pages/products/IrpProducts'
 import InsuranceProducts from './pages/products/InsuranceProducts'
 import ConsultationStaff from './pages/consultation/ConsultationStaff'
@@ -18,6 +17,11 @@ import ConsultationRequest from './pages/consultation/ConsultationRequest'
 import FundList from './pages/FundList'
 import FundDetail from './pages/FundDetail'
 import FundMy from './pages/FundMy'
+
+// 상담사용자용 페이지들
+import ConsultantIrpProducts from './pages/consultant/IrpProducts'
+import ConsultantDepositProducts from './pages/consultant/DepositProducts'
+import ConsultantFundProducts from './pages/consultant/FundProducts'
 
 function Landing() {
   const [isLoading, setIsLoading] = useState(true)
@@ -103,7 +107,6 @@ function App() {
         <Route path="/my-account" element={<MyAccount />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/products/deposit" element={<DepositProducts />} />
-        <Route path="/products/savings" element={<SavingsProducts />} />
         <Route path="/products/irp" element={<IrpProducts />} />
         <Route path="/products/insurance" element={<InsuranceProducts />} />
         <Route path="/consultation/staff" element={<ConsultationStaff />} />
@@ -113,7 +116,12 @@ function App() {
         <Route path="/funds" element={<FundList />} />
         <Route path="/fund/:fundCode" element={<FundDetail />} />
         <Route path="/fund/my" element={<FundMy />} />
-        
+
+        {/* 상담사용자용 라우트 */}
+        <Route path="/consultant/products/irp" element={<ConsultantIrpProducts />} />
+        <Route path="/consultant/products/deposit" element={<ConsultantDepositProducts />} />
+        <Route path="/consultant/products/fund" element={<ConsultantFundProducts />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

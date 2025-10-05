@@ -265,3 +265,4 @@ export const getTransactionByNumber = async (transactionNumber: string): Promise
   const response = await httpGet<Transaction>(`/banking/transactions/number/${transactionNumber}`);
   return response;
 };
+
