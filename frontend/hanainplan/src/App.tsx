@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './App.css'
 import Login from './pages/Login'
 import VideoCall from './pages/VideoCall'
@@ -21,6 +22,18 @@ import FundMy from './pages/FundMy'
 // 상담사용자용 페이지들
 import ConsultantIrpProducts from './pages/consultant/IrpProducts'
 import ConsultantDepositProducts from './pages/consultant/DepositProducts'
+import ConsultantSchedule from './pages/consultant/Schedule'
+
+// React Query Client 생성
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5분
+    },
+  },
+})
 
 function Landing() {
   const [isLoading, setIsLoading] = useState(true)
@@ -92,39 +105,42 @@ function Landing() {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
-        <Route path="/auth/kakao/callback/*" element={<KakaoCallback />} />
-        <Route path="/test-callback" element={<KakaoCallback />} />
-        <Route path="/webrtc" element={<VideoCall />} />
-        <Route path="/main" element={<Main />} />
-        <Route path="/portfolio" element={<Portfolio />} />
-        <Route path="/pension-calculator" element={<PensionCalculator />} />
-        <Route path="/my-account" element={<MyAccount />} />
-        <Route path="/user-profile" element={<UserProfile />} />
-        <Route path="/products/deposit" element={<DepositProducts />} />
-        <Route path="/products/irp" element={<IrpProducts />} />
-        <Route path="/products/insurance" element={<InsuranceProducts />} />
-        <Route path="/consultation/staff" element={<ConsultationStaff />} />
-        <Route path="/consultation/request" element={<ConsultationRequest />} />
-        
-        {/* 펀드 라우트 */}
-        <Route path="/funds" element={<FundList />} />
-        <Route path="/fund/:fundCode" element={<FundDetail />} />
-        <Route path="/fund/my" element={<FundMy />} />
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
+          <Route path="/auth/kakao/callback/*" element={<KakaoCallback />} />
+          <Route path="/test-callback" element={<KakaoCallback />} />
+          <Route path="/webrtc" element={<VideoCall />} />
+          <Route path="/main" element={<Main />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/pension-calculator" element={<PensionCalculator />} />
+          <Route path="/my-account" element={<MyAccount />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          <Route path="/products/deposit" element={<DepositProducts />} />
+          <Route path="/products/irp" element={<IrpProducts />} />
+          <Route path="/products/insurance" element={<InsuranceProducts />} />
+          <Route path="/consultation/staff" element={<ConsultationStaff />} />
+          <Route path="/consultation/request" element={<ConsultationRequest />} />
+          
+          {/* 펀드 라우트 */}
+          <Route path="/funds" element={<FundList />} />
+          <Route path="/fund/:fundCode" element={<FundDetail />} />
+          <Route path="/fund/my" element={<FundMy />} />
 
-        {/* 상담사용자용 라우트 */}
-        <Route path="/consultant/products/irp" element={<ConsultantIrpProducts />} />
-        <Route path="/consultant/products/deposit" element={<ConsultantDepositProducts />} />
-        {/* 펀드는 일반 고객과 동일한 페이지 사용 (매수/매도 버튼만 조건부 표시) */}
-        <Route path="/consultant/products/fund" element={<FundList />} />
+          {/* 상담사용자용 라우트 */}
+          <Route path="/consultant/products/irp" element={<ConsultantIrpProducts />} />
+          <Route path="/consultant/products/deposit" element={<ConsultantDepositProducts />} />
+          {/* 펀드는 일반 고객과 동일한 페이지 사용 (매수/매도 버튼만 조건부 표시) */}
+          <Route path="/consultant/products/fund" element={<FundList />} />
+          <Route path="/consultant/schedule" element={<ConsultantSchedule />} />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </QueryClientProvider>
   )
 }
 
