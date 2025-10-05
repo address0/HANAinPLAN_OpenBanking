@@ -44,6 +44,9 @@ public interface FundTransactionRepository extends JpaRepository<FundTransaction
     @Query("SELECT t FROM FundTransaction t WHERE t.userId = :userId ORDER BY t.transactionDate DESC LIMIT :limit")
     List<FundTransaction> findRecentTransactions(@Param("userId") Long userId, @Param("limit") int limit);
 
+    // description에 특정 문자열 포함 여부 확인 (동기화 중복 방지용)
+    boolean existsByDescriptionContaining(String description);
+
     // 사용자의 거래 건수
     long countByUserId(Long userId);
 

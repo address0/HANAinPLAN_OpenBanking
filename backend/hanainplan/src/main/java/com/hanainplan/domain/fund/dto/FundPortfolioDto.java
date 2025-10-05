@@ -28,8 +28,10 @@ public class FundPortfolioDto {
     private String bankName;
 
     // 펀드 정보
-    private String fundCode;
+    private String fundCode; // 모펀드 코드
+    private String childFundCd; // 클래스 펀드 코드
     private String fundName;
+    private String classCode; // 클래스 코드 (A/C/P)
     private String fundType;
     private String riskLevel;
 
@@ -72,7 +74,9 @@ public class FundPortfolioDto {
                 .bankCode(entity.getBankCode())
                 .bankName(entity.getBankName())
                 .fundCode(entity.getFundCode())
+                .childFundCd(entity.getChildFundCd())
                 .fundName(entity.getFundName())
+                .classCode(entity.getClassCode())
                 .fundType(entity.getFundType())
                 .riskLevel(entity.getRiskLevel())
                 .purchaseDate(entity.getPurchaseDate())

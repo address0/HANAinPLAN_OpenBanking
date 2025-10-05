@@ -32,6 +32,9 @@ public interface FundPortfolioRepository extends JpaRepository<FundPortfolio, Lo
     // 고객 CI로 조회
     List<FundPortfolio> findByCustomerCiOrderByCreatedAtDesc(String customerCi);
 
+    // 고객 CI와 가입 ID로 조회 (동기화용)
+    Optional<FundPortfolio> findByCustomerCiAndSubscriptionId(String customerCi, Long subscriptionId);
+
     // 고객 CI로 활성 포트폴리오 조회
     @Query("SELECT f FROM FundPortfolio f WHERE f.customerCi = :customerCi AND f.status IN ('ACTIVE', 'PARTIAL_SOLD') ORDER BY f.createdAt DESC")
     List<FundPortfolio> findActivePortfoliosByCustomerCi(@Param("customerCi") String customerCi);

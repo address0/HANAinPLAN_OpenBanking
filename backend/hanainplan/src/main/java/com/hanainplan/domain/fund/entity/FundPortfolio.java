@@ -50,16 +50,22 @@ public class FundPortfolio {
 
     // 펀드 정보
     @Column(name = "fund_code", nullable = false, length = 20)
-    private String fundCode; // 펀드 코드
+    private String fundCode; // 모펀드 코드
+
+    @Column(name = "child_fund_cd", length = 16)
+    private String childFundCd; // 클래스 펀드 코드 (실제 매수 코드)
 
     @Column(name = "fund_name", nullable = false, length = 100)
     private String fundName; // 펀드명
 
-    @Column(name = "fund_type", nullable = false, length = 50)
+    @Column(name = "class_code", length = 8)
+    private String classCode; // 클래스 코드 (A/C/P 등)
+
+    @Column(name = "fund_type", length = 50)
     private String fundType; // 펀드 유형
 
-    @Column(name = "risk_level", nullable = false, length = 20)
-    private String riskLevel; // 위험등급
+    @Column(name = "risk_level", length = 20)
+    private String riskLevel; // 위험등급 (nullable)
 
     // 매수 정보
     @Column(name = "purchase_date", nullable = false)

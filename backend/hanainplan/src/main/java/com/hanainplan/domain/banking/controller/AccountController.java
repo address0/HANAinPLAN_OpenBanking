@@ -68,7 +68,7 @@ public class AccountController {
         // 동기화가 활성화되어 있으면 먼저 하나은행 서버와 동기화
         if (sync) {
             try {
-                accountSyncService.syncUserAccounts(userId);
+                accountSyncService.syncUserAccountsByUserId(userId);
                 log.info("계좌 동기화 완료 - 사용자 ID: {}", userId);
             } catch (Exception e) {
                 log.error("계좌 동기화 실패 - 사용자 ID: {}, 오류: {}", userId, e.getMessage());
@@ -88,7 +88,7 @@ public class AccountController {
         log.info("계좌 수동 동기화 API 호출 - 사용자 ID: {}", userId);
         
         try {
-            accountSyncService.syncUserAccounts(userId);
+            accountSyncService.syncUserAccountsByUserId(userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

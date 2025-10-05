@@ -18,14 +18,14 @@ public class FundSyncScheduler {
     private final FundSyncService fundSyncService;
 
     /**
-     * 매일 새벽 2시에 펀드 상품 동기화
-     * - 시스템 부하가 적은 시간대에 실행
+     * 매일 오후 6시에 펀드 상품 동기화
+     * - 장 마감 후 데이터 업데이트
      * - cron 표현식: "초 분 시 일 월 요일"
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "0 0 18 * * ?")
     public void scheduleFundProductSync() {
         log.info("====================================================");
-        log.info("펀드 상품 동기화 스케줄러 실행 시작");
+        log.info("펀드 상품 동기화 스케줄러 실행 시작 (매일 오후 6시)");
         log.info("====================================================");
         
         try {

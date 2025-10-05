@@ -18,9 +18,12 @@ import java.time.LocalDate;
 public class FundTransactionDto {
 
     private Long transactionId;
+    private Long portfolioId;            // 포트폴리오 ID (내부용)
+    private Long userId;                 // 사용자 ID
     private String customerCi;
-    private Long subscriptionId;
-    private String childFundCd;
+    private Long subscriptionId;         // 가입 ID (프론트엔드용)
+    private String fundCode;             // 펀드 코드
+    private String childFundCd;          // 클래스 펀드 코드
     private String fundName;
     private String classCode;
     
@@ -44,4 +47,7 @@ public class FundTransactionDto {
     
     private String status;
     private String note;
+    private String description;          // 거래 설명
+    
+    private java.time.LocalDateTime createdAt;
 }

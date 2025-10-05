@@ -916,7 +916,7 @@
       <AutoIntrospectionLevel>3</AutoIntrospectionLevel>
       <Current>1</Current>
       <LastIntrospectionLevel>3</LastIntrospectionLevel>
-      <LastIntrospectionLocalTimestamp>2025-10-05.08:28:59</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2025-10-05.09:18:16</LastIntrospectionLocalTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <user id="291" parent="1" name="hana_user"/>
