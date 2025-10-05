@@ -4,9 +4,11 @@ import { fundProductApi } from '../api/fundApi';
 import type { FundClassDetail } from '../types/fund.types';
 import Layout from '../components/layout/Layout';
 import { formatAmount, formatPercent, getRiskColor } from '../utils/fundUtils';
+import { useUserStore } from '../store/userStore';
 
 const FundList = () => {
   const navigate = useNavigate();
+  const { user } = useUserStore();
   const [fundClasses, setFundClasses] = useState<FundClassDetail[]>([]);
   const [filteredFunds, setFilteredFunds] = useState<FundClassDetail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,11 @@ const FundList = () => {
       {/* 헤더 */}
       <div className="mb-8">
         <h1 className="text-3xl font-hana-bold text-gray-900 mb-2">펀드 상품</h1>
-        <p className="text-gray-600 font-hana-regular">IRP 계좌로 투자 가능한 펀드 상품을 확인하세요</p>
+        <p className="text-gray-600 font-hana-regular">
+          {user?.userType === 'COUNSELOR' 
+            ? '고객님께 추천할 수 있는 펀드 상품을 확인하세요'
+            : 'IRP 계좌로 투자 가능한 펀드 상품을 확인하세요'}
+        </p>
       </div>
 
       {/* 필터 */}

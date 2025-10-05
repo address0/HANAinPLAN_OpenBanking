@@ -5,10 +5,12 @@ import type { FundClassDetail } from '../types/fund.types';
 import Layout from '../components/layout/Layout';
 import FundPurchaseModal from '../components/fund/FundPurchaseModal';
 import { formatAmount, formatPercent } from '../utils/fundUtils';
+import { useUserStore } from '../store/userStore';
 
 const FundDetail = () => {
   const { fundCode } = useParams<{ fundCode: string }>();
   const navigate = useNavigate();
+  const { user } = useUserStore();
   const [fund, setFund] = useState<FundClassDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,12 +118,14 @@ const FundDetail = () => {
                   공식 페이지
                 </a>
               )}
-              <button
-                onClick={() => setShowPurchaseModal(true)}
-                className="px-6 py-3 bg-hana-green text-white rounded-lg hover:bg-green-600 font-hana-bold transition-colors"
-              >
-                매수하기
-              </button>
+              {user?.userType !== 'COUNSELOR' && (
+                <button
+                  onClick={() => setShowPurchaseModal(true)}
+                  className="px-6 py-3 bg-hana-green text-white rounded-lg hover:bg-green-600 font-hana-bold transition-colors"
+                >
+                  매수하기
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -290,8 +294,8 @@ const FundDetail = () => {
         </div>
       </div>
 
-      {/* 매수 모달 */}
-      {showPurchaseModal && (
+      {/* 매수 모달 (일반 고객만) */}
+      {user?.userType !== 'COUNSELOR' && showPurchaseModal && (
         <FundPurchaseModal
           isOpen={showPurchaseModal}
           onClose={() => setShowPurchaseModal(false)}

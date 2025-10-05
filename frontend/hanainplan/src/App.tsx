@@ -21,7 +21,6 @@ import FundMy from './pages/FundMy'
 // 상담사용자용 페이지들
 import ConsultantIrpProducts from './pages/consultant/IrpProducts'
 import ConsultantDepositProducts from './pages/consultant/DepositProducts'
-import ConsultantFundProducts from './pages/consultant/FundProducts'
 
 function Landing() {
   const [isLoading, setIsLoading] = useState(true)
@@ -120,7 +119,8 @@ function App() {
         {/* 상담사용자용 라우트 */}
         <Route path="/consultant/products/irp" element={<ConsultantIrpProducts />} />
         <Route path="/consultant/products/deposit" element={<ConsultantDepositProducts />} />
-        <Route path="/consultant/products/fund" element={<ConsultantFundProducts />} />
+        {/* 펀드는 일반 고객과 동일한 페이지 사용 (매수/매도 버튼만 조건부 표시) */}
+        <Route path="/consultant/products/fund" element={<FundList />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
