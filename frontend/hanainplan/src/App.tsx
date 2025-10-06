@@ -23,6 +23,7 @@ import FundMy from './pages/FundMy'
 import ConsultantIrpProducts from './pages/consultant/IrpProducts'
 import ConsultantDepositProducts from './pages/consultant/DepositProducts'
 import ConsultantSchedule from './pages/consultant/Schedule'
+import ConsultationManagement from './pages/consultant/ConsultationManagement'
 
 // React Query Client 생성
 const queryClient = new QueryClient({
@@ -136,6 +137,7 @@ function App() {
           {/* 펀드는 일반 고객과 동일한 페이지 사용 (매수/매도 버튼만 조건부 표시) */}
           <Route path="/consultant/products/fund" element={<FundList />} />
           <Route path="/consultant/schedule" element={<ConsultantSchedule />} />
+          <Route path="/consultant/consultations" element={<ConsultationManagement />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
