@@ -43,20 +43,20 @@ public class FundSyncScheduler {
      * - 개발 환경에서 테스트 시 유용
      * - 운영 환경에서는 주석 처리하거나 프로파일로 제어
      */
-    @Scheduled(initialDelay = 10000) // 10초 후 최초 1회 실행
-    public void initialSync() {
-        log.info("====================================================");
-        log.info("펀드 상품 초기 동기화 시작");
-        log.info("====================================================");
-        
-        try {
-            fundSyncService.syncFundProducts();
-            log.info("펀드 상품 초기 동기화 완료");
-        } catch (Exception e) {
-            log.error("펀드 상품 초기 동기화 중 오류 발생", e);
-        }
-        
-        log.info("====================================================");
-    }
+//    @Scheduled(initialDelay = 10000) // 10초 후 최초 1회 실행
+//    public void initialSync() {
+//        log.info("====================================================");
+//        log.info("펀드 상품 초기 동기화 시작");
+//        log.info("====================================================");
+//
+//        try {
+//            fundSyncService.syncFundProducts();
+//            log.info("펀드 상품 초기 동기화 완료");
+//        } catch (Exception e) {
+//            log.error("펀드 상품 초기 동기화 중 오류 발생", e);
+//        }
+//
+//        log.info("====================================================");
+//    }
 }
 
