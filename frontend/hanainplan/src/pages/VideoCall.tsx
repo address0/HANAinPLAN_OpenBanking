@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import WebSocketService from '../services/WebSocketService';
 import WebRTCService from '../services/WebRTCService';
+import { onMessageListener } from '../services/FirebaseService';
+import { useUserStore } from '../store/userStore';
 import type { CallState } from '../services/WebRTCService';
 import type { CallRequestMessage, WebRTCMessage } from '../services/WebSocketService';
 import InsuranceDashboard from '../components/consultation/InsuranceDashboard';
@@ -36,13 +38,37 @@ interface HighlightInfo {
 }
 
 const VideoCall: React.FC = () => {
+  // 로그인된 사용자 정보 가져오기
+  const { user } = useUserStore();
+  
+  // 로그인 안 된 경우 처리
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">로그인이 필요합니다</h2>
+          <p className="text-gray-600 mb-6">상담 서비스를 이용하려면 로그인해주세요.</p>
+          <button
+            onClick={() => window.location.href = '/login'}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
+          >
+            로그인 페이지로 이동
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // userType에 따라 역할 자동 설정
+  const userRole: UserRole = user.userType === 'COUNSELOR' ? 'counselor' : 'customer';
+  
   // 상태 관리
-  const [currentUser, setCurrentUser] = useState<UserInfo>({
-    id: 1,
-    name: '김상담',
-    role: 'counselor',
-    department: '자산관리팀',
-    certification: 'AFP, CFP'
+  const [currentUser] = useState<UserInfo>({
+    id: user.userId,
+    name: user.name,
+    role: userRole,
+    department: userRole === 'counselor' ? '자산관리팀' : undefined,
+    certification: userRole === 'counselor' ? 'AFP, CFP' : undefined
   });
   
   // 상대방 사용자 설정 (현재 사용자 역할에 따라 동적으로 결정)
@@ -81,6 +107,7 @@ const VideoCall: React.FC = () => {
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState<boolean>(true);
   const [isMediaInitialized, setIsMediaInitialized] = useState<boolean>(false);
+  const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
   const [consultationStartTime, setConsultationStartTime] = useState<Date | null>(null);
   const [consultationNotes, setConsultationNotes] = useState<string>('');
   const [highlights, setHighlights] = useState<HighlightInfo[]>([]);
@@ -93,6 +120,7 @@ const VideoCall: React.FC = () => {
   // 초기화 및 이벤트 리스너 설정
   useEffect(() => {
     setupEventListeners();
+    setupFCMListener();
     return () => {
       cleanup();
     };
@@ -121,6 +149,37 @@ const VideoCall: React.FC = () => {
   useEffect(() => {
     setIsMediaInitialized(!!callState.localStream);
   }, [callState.localStream]);
+
+  // 화면 공유 상태 동기화
+  useEffect(() => {
+    setIsScreenSharing(callState.isScreenSharing);
+  }, [callState.isScreenSharing]);
+
+  // FCM 포그라운드 메시지 리스너 설정
+  const setupFCMListener = () => {
+    onMessageListener()
+      .then((payload: any) => {
+        console.log('Received foreground message:', payload);
+        
+        // 알림 표시
+        const notificationTitle = payload.notification?.title || '새 알림';
+        const notificationBody = payload.notification?.body || '';
+        
+        // 브라우저 알림 표시
+        if (Notification.permission === 'granted') {
+          new Notification(notificationTitle, {
+            body: notificationBody,
+            icon: '/logo/hana-logo.png',
+            badge: '/logo/hana-symbol.png'
+          });
+        }
+        
+        // 에러 메시지로 표시 (UI에 표시)
+        setError(`📬 ${notificationTitle}: ${notificationBody}`);
+        setTimeout(() => setError(''), 5000);
+      })
+      .catch((err) => console.error('Failed to receive foreground message:', err));
+  };
 
   // 이벤트 리스너 설정
   const setupEventListeners = () => {
@@ -192,6 +251,7 @@ const VideoCall: React.FC = () => {
     try {
       await WebSocketService.connect(currentUser.id);
       setError('');
+      // FCM 토큰은 App.tsx에서 로그인 시 자동 등록됨
     } catch (error) {
       console.error('Connection failed:', error);
       setError('WebSocket 연결에 실패했습니다.');
@@ -209,16 +269,22 @@ const VideoCall: React.FC = () => {
     try {
       setConsultationInfo(prev => ({ ...prev, status: 'in-progress' }));
       
-      const response = await fetch('http://localhost:8080/api/webrtc/call/request', {
+      // 고객인 경우: 자동 매칭 API 사용
+      // 상담원인 경우: 직접 지정 API 사용 (기존 방식)
+      const apiUrl = currentUser.role === 'customer' 
+        ? 'http://localhost:8080/api/webrtc/consultation/request'
+        : 'http://localhost:8080/api/webrtc/call/request';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           callerId: currentUser.id,
-          calleeId: targetUser.id,
+          calleeId: currentUser.role === 'customer' ? undefined : targetUser.id,
           callerName: currentUser.name,
-          calleeName: targetUser.name,
+          calleeName: currentUser.role === 'customer' ? undefined : targetUser.name,
           consultationType: consultationInfo.type
         }),
       });
@@ -226,12 +292,24 @@ const VideoCall: React.FC = () => {
       const data = await response.json();
       
       if (data.success) {
-        await WebRTCService.startCall(data.roomId, targetUser.id);
+        // 자동 매칭 성공 - 매칭된 상담원 정보 표시
+        if (currentUser.role === 'customer' && data.consultantId) {
+          console.log('매칭된 상담원:', data.consultantId, data.consultantName);
+          setError(`상담원과 연결되었습니다. (${data.consultantName || data.consultantId})`);
+          setTimeout(() => setError(''), 3000);
+        }
+        
+        await WebRTCService.startCall(data.roomId, data.consultantId || targetUser.id);
         setConsultationStartTime(new Date());
-        setError('');
       } else {
+        // 매칭 실패 (대기열에 추가됨)
         setError(data.message || '상담 요청에 실패했습니다.');
         setConsultationInfo(prev => ({ ...prev, status: 'scheduled' }));
+        
+        // 대기열에 추가된 경우, 일정 시간 후 자동으로 메시지 제거
+        if (data.message && data.message.includes('대기열')) {
+          setTimeout(() => setError(''), 5000);
+        }
       }
     } catch (error) {
       console.error('Error starting call:', error);
@@ -382,6 +460,17 @@ const VideoCall: React.FC = () => {
   // 미디어 중지
   const handleStopMedia = () => {
     WebRTCService.stopMediaForTest();
+  };
+
+  // 화면 공유 토글
+  const handleToggleScreenShare = async () => {
+    try {
+      await WebRTCService.toggleScreenShare();
+    } catch (error) {
+      console.error('Error toggling screen share:', error);
+      setError('화면 공유 전환에 실패했습니다.');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   // 형광펜 추가
@@ -699,7 +788,7 @@ const VideoCall: React.FC = () => {
                 상담 제어 및 기록
               </h2>
               
-              {/* 상담 유형 및 역할 선택 */}
+              {/* 상담 유형 선택 및 사용자 정보 표시 */}
               <div className="space-y-3 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-blue-700 mb-1">상담 유형</label>
@@ -719,78 +808,19 @@ const VideoCall: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-blue-700 mb-1">나의 역할</label>
-                  <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="userRole"
-                      value="counselor"
-                      checked={currentUser.role === 'counselor'}
-                      onChange={async () => {
-                        // 기존 연결 해제
-                        if (isConnected) {
-                          WebSocketService.disconnect();
-                        }
-                        
-                        // 새로운 사용자 정보로 설정
-                        const newUser = {
-                          id: 1,
-                          name: '김상담',
-                          role: 'counselor' as UserRole,
-                          department: '자산관리팀',
-                          certification: 'AFP, CFP'
-                        };
-                        setCurrentUser(newUser);
-                        
-                        // 새 사용자로 WebSocket 재연결
-                        if (isConnected) {
-                          try {
-                            await WebSocketService.connect(newUser.id);
-                          } catch (error) {
-                            console.error('WebSocket 재연결 실패:', error);
-                          }
-                        }
-                      }}
-                      className="mr-1"
-                      disabled={isConnected}
-                    />
-                    <span className="text-sm">상담사</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="userRole"
-                      value="customer"
-                      checked={currentUser.role === 'customer'}
-                      onChange={async () => {
-                        // 기존 연결 해제
-                        if (isConnected) {
-                          WebSocketService.disconnect();
-                        }
-                        
-                        // 새로운 사용자 정보로 설정
-                        const newUser = {
-                          id: 2,
-                          name: '이고객',
-                          role: 'customer' as UserRole
-                        };
-                        setCurrentUser(newUser);
-                        
-                        // 새 사용자로 WebSocket 재연결
-                        if (isConnected) {
-                          try {
-                            await WebSocketService.connect(newUser.id);
-                          } catch (error) {
-                            console.error('WebSocket 재연결 실패:', error);
-                          }
-                        }
-                      }}
-                      className="mr-1"
-                      disabled={isConnected}
-                    />
-                    <span className="text-sm">고객</span>
-                  </label>
-                </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-block w-3 h-3 rounded-full ${
+                        currentUser.role === 'counselor' ? 'bg-blue-600' : 'bg-green-600'
+                      }`}></span>
+                      <span className="text-sm font-medium text-gray-800">
+                        {currentUser.role === 'counselor' ? '상담원' : '고객'} ({currentUser.name})
+                      </span>
+                    </div>
+                    {currentUser.department && (
+                      <p className="text-xs text-gray-600 mt-1 ml-5">{currentUser.department}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -859,27 +889,50 @@ const VideoCall: React.FC = () => {
 
               {/* 미디어 제어 버튼 (테스트 중이거나 상담 중일 때) */}
               {(isMediaInitialized || callState.isInCall) && (
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  <button
-                    onClick={handleToggleMicrophone}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      isAudioEnabled
-                        ? `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
-                        : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                    }`}
-                  >
-                    {isAudioEnabled ? '마이크 끄기' : '마이크 켜기'}
-                  </button>
-                  <button
-                    onClick={handleToggleVideo}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      isVideoEnabled
-                        ? `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
-                        : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                    }`}
-                  >
-                    {isVideoEnabled ? '카메라 끄기' : '카메라 켜기'}
-                  </button>
+                <div className="space-y-2 mb-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleToggleMicrophone}
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                        isAudioEnabled
+                          ? `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
+                          : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                      }`}
+                    >
+                      {isAudioEnabled ? '마이크 끄기' : '마이크 켜기'}
+                    </button>
+                    <button
+                      onClick={handleToggleVideo}
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                        isVideoEnabled
+                          ? `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
+                          : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                      }`}
+                    >
+                      {isVideoEnabled ? '카메라 끄기' : '카메라 켜기'}
+                    </button>
+                  </div>
+                  
+                  {/* 화면 공유 버튼 (상담 중일 때만) */}
+                  {callState.isInCall && (
+                    <button
+                      onClick={handleToggleScreenShare}
+                      className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center space-x-2 ${
+                        isScreenSharing
+                          ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                          : `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={
+                          isScreenSharing
+                            ? "M6 18L18 6M6 6l12 12"
+                            : "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        } />
+                      </svg>
+                      <span>{isScreenSharing ? '화면 공유 중지' : '화면 공유'}</span>
+                    </button>
+                  )}
                 </div>
               )}
 

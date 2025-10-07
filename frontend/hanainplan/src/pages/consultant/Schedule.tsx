@@ -153,12 +153,44 @@ function ConsultantSchedule() {
     }
   };
 
+  // 이벤트 색상 가져오기
+  const getEventColor = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'consultation':
+        return {
+          backgroundColor: '#008485', // 청록색 (teal-500)
+          borderColor: '#008490', // 진한 청록색 (teal-600)
+        };
+      case 'meeting':
+        return {
+          backgroundColor: '#3b82f6', // 파랑색 (blue-500)
+          borderColor: '#2563eb', // 진한 파랑색 (blue-600)
+        };
+      case 'other':
+        return {
+          backgroundColor: '#6b7280', // 회색 (gray-500)
+          borderColor: '#4b5563', // 진한 회색 (gray-600)
+        };
+      default:
+        return {
+          backgroundColor: '#6b7280',
+          borderColor: '#4b5563',
+        };
+    }
+  };
+
+  // 이벤트에 색상 적용
+  const scheduleEvents = schedules.map(schedule => ({
+    ...schedule,
+    ...getEventColor(schedule.type || 'other')
+  }));
+
   // 이벤트 렌더링 커스터마이즈
   const renderEventContent = (eventContent: EventContentArg) => {
     return (
       <div className="p-1">
-        <div className="font-hana-medium text-xs">{eventContent.timeText}</div>
-        <div className="font-hana-bold text-sm truncate">{eventContent.event.title}</div>
+        <div className="font-hana-medium text-xs text-white">{eventContent.timeText}</div>
+        <div className="font-hana-bold text-sm truncate text-white">{eventContent.event.title}</div>
       </div>
     );
   };
@@ -181,12 +213,7 @@ function ConsultantSchedule() {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* 헤더 */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-hana-bold text-gray-900 mb-3">일정 관리</h1>
-            <p className="text-gray-600 font-hana-regular">
-              상담 일정과 회의를 관리하고 확인할 수 있습니다.
-            </p>
-          </div>
+          <h1 className="text-3xl font-hana-bold text-gray-900 mb-4">위클리 일정 관리</h1>  
 
           {/* 캘린더 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
@@ -208,7 +235,7 @@ function ConsultantSchedule() {
               selectMirror={true}
               dayMaxEvents={true}
               weekends={true}
-              events={schedules}
+              events={scheduleEvents}
               select={handleDateSelect}
               eventClick={handleEventClick}
               eventContent={renderEventContent}

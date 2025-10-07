@@ -10,12 +10,16 @@ export interface CallState {
   callerId: number | null;
   calleeId: number | null;
   isCaller: boolean;
+  isScreenSharing: boolean;
+  screenStream: MediaStream | null;
 }
 
 class WebRTCService {
   private peerConnection: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
+  private screenStream: MediaStream | null = null;
+  private videoSender: RTCRtpSender | null = null; // 비디오 트랙 Sender 저장
   
   // ICE candidate 큐 (remote description 설정 전에 도착한 candidate들 저장)
   private pendingIceCandidates: ICECandidateMessage[] = [];
@@ -28,7 +32,9 @@ class WebRTCService {
     remoteStream: null,
     callerId: null,
     calleeId: null,
-    isCaller: false
+    isCaller: false,
+    isScreenSharing: false,
+    screenStream: null
   };
 
   // 콜백 함수들
@@ -162,7 +168,11 @@ class WebRTCService {
         this.peerConnection = this.createPeerConnection();
         if (this.localStream) {
           this.localStream.getTracks().forEach(track => {
-            this.peerConnection!.addTrack(track, this.localStream!);
+            const sender = this.peerConnection!.addTrack(track, this.localStream!);
+            // 비디오 트랙의 Sender 저장 (화면 공유 시 교체용)
+            if (track.kind === 'video') {
+              this.videoSender = sender;
+            }
           });
         }
       }
@@ -197,7 +207,11 @@ class WebRTCService {
       
       // 로컬 스트림을 PeerConnection에 추가
       this.localStream!.getTracks().forEach(track => {
-        this.peerConnection!.addTrack(track, this.localStream!);
+        const sender = this.peerConnection!.addTrack(track, this.localStream!);
+        // 비디오 트랙의 Sender 저장 (화면 공유 시 교체용)
+        if (track.kind === 'video') {
+          this.videoSender = sender;
+        }
       });
 
       // 통화 상태 설정
@@ -232,7 +246,11 @@ class WebRTCService {
         
         // 로컬 스트림 추가
         this.localStream!.getTracks().forEach(track => {
-          this.peerConnection!.addTrack(track, this.localStream!);
+          const sender = this.peerConnection!.addTrack(track, this.localStream!);
+          // 비디오 트랙의 Sender 저장 (화면 공유 시 교체용)
+          if (track.kind === 'video') {
+            this.videoSender = sender;
+          }
         });
         
         // 통화 상태 업데이트 (수신자로 설정)
@@ -350,6 +368,11 @@ class WebRTCService {
 
   // 통화 종료
   endCall(): void {
+    // 화면 공유 중이면 중지
+    if (this.screenStream) {
+      this.stopScreenShare();
+    }
+
     // 로컬 스트림 정리
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
@@ -374,10 +397,13 @@ class WebRTCService {
       remoteStream: null,
       callerId: null,
       calleeId: null,
-      isCaller: false
+      isCaller: false,
+      isScreenSharing: false,
+      screenStream: null
     };
 
     this.remoteStream = null;
+    this.videoSender = null;
     this.notifyCallStateChange();
   }
 
@@ -454,6 +480,91 @@ class WebRTCService {
       this.localStream = null;
       this.callState.localStream = null;
       this.notifyCallStateChange();
+    }
+  }
+
+  // 화면 공유 시작
+  async startScreenShare(): Promise<void> {
+    try {
+      if (!this.peerConnection) {
+        throw new Error('통화 중이 아닙니다.');
+      }
+
+      if (this.callState.isScreenSharing) {
+        throw new Error('이미 화면 공유 중입니다.');
+      }
+
+      // 화면 캡처 시작
+      this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          cursor: 'always' as any
+        },
+        audio: false
+      });
+
+      // 화면 공유 트랙 가져오기
+      const screenTrack = this.screenStream.getVideoTracks()[0];
+
+      // 기존 비디오 트랙을 화면 공유 트랙으로 교체
+      if (this.videoSender) {
+        await this.videoSender.replaceTrack(screenTrack);
+      }
+
+      // 화면 공유 중지 이벤트 리스너 (사용자가 브라우저에서 공유 중지 버튼 클릭 시)
+      screenTrack.onended = () => {
+        this.stopScreenShare();
+      };
+
+      this.callState.isScreenSharing = true;
+      this.callState.screenStream = this.screenStream;
+      this.notifyCallStateChange();
+
+      console.log('Screen sharing started');
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      this.onErrorCallback?.(new Error('화면 공유를 시작할 수 없습니다.'));
+      throw error;
+    }
+  }
+
+  // 화면 공유 중지
+  async stopScreenShare(): Promise<void> {
+    try {
+      if (!this.callState.isScreenSharing || !this.screenStream) {
+        return;
+      }
+
+      // 화면 공유 스트림 중지
+      this.screenStream.getTracks().forEach(track => track.stop());
+      this.screenStream = null;
+
+      // 원래 카메라 비디오로 복구
+      if (this.videoSender && this.localStream) {
+        const videoTrack = this.localStream.getVideoTracks()[0];
+        if (videoTrack) {
+          await this.videoSender.replaceTrack(videoTrack);
+        }
+      }
+
+      this.callState.isScreenSharing = false;
+      this.callState.screenStream = null;
+      this.notifyCallStateChange();
+
+      console.log('Screen sharing stopped');
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+      this.onErrorCallback?.(new Error('화면 공유를 중지할 수 없습니다.'));
+    }
+  }
+
+  // 화면 공유 토글
+  async toggleScreenShare(): Promise<boolean> {
+    if (this.callState.isScreenSharing) {
+      await this.stopScreenShare();
+      return false;
+    } else {
+      await this.startScreenShare();
+      return true;
     }
   }
 }

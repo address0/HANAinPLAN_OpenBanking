@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useUserStore } from './store/userStore'
+import { registerFCMToken } from './services/FirebaseService'
 import './App.css'
 import Login from './pages/Login'
 import VideoCall from './pages/VideoCall'
@@ -105,6 +107,30 @@ function Landing() {
 }
 
 function App() {
+  const { user, isLoggedIn } = useUserStore();
+
+  // 상담원 로그인 시 자동으로 FCM 토큰 등록
+  useEffect(() => {
+    const registerCounselorFCM = async () => {
+      if (isLoggedIn && user && user.userType === 'COUNSELOR') {
+        try {
+          console.log('상담원 로그인 감지 - FCM 토큰 등록 시도');
+          const registered = await registerFCMToken(user.userId);
+          if (registered) {
+            console.log('✅ 상담원 FCM 토큰 자동 등록 완료');
+          } else {
+            console.warn('⚠️ FCM 토큰 등록 실패 - 알림을 받지 못할 수 있습니다');
+          }
+        } catch (error) {
+          console.error('FCM 토큰 등록 중 에러:', error);
+          // 에러가 발생해도 앱 사용은 가능하도록 함
+        }
+      }
+    };
+
+    registerCounselorFCM();
+  }, [isLoggedIn, user]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
