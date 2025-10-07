@@ -1,5 +1,7 @@
 package com.hanainplan.domain.webrtc.service;
 
+import com.hanainplan.domain.user.entity.Consultant;
+import com.hanainplan.domain.user.repository.ConsultantRepository;
 import com.hanainplan.domain.webrtc.entity.VideoCallRoom;
 import com.hanainplan.domain.webrtc.repository.VideoCallRoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WebRTCService {
 
     private final VideoCallRoomRepository videoCallRoomRepository;
+    private final ConsultantRepository consultantRepository;
+    private final ConsultationMatchingService consultationMatchingService;
     
     // 온라인 사용자 관리 (실제 환경에서는 Redis 등을 사용할 수 있습니다)
     private final Map<Long, Boolean> onlineUsers = new ConcurrentHashMap<>();
@@ -96,6 +100,9 @@ public class WebRTCService {
         callRoom.endCall();
         videoCallRoomRepository.save(callRoom);
         log.info("Call ended for roomId: {}", roomId);
+
+        // 상담 종료 후 상담원 상태 업데이트 및 대기 고객 매칭
+        consultationMatchingService.onConsultationEnd(roomId);
     }
 
     /**
@@ -107,6 +114,7 @@ public class WebRTCService {
 
     /**
      * 사용자 온라인 상태 설정 (세션 ID와 함께)
+     * - 상담원인 경우, ConsultationStatus도 함께 업데이트
      */
     public void setUserOnline(Long userId, String sessionId, boolean online) {
         if (online) {
@@ -114,10 +122,24 @@ public class WebRTCService {
             if (sessionId != null) {
                 sessionUserMap.put(sessionId, userId);
             }
+
+            // 상담원인 경우, 상태를 AVAILABLE로 변경하고 대기 중인 고객과 매칭 시도
+            Optional<Consultant> consultantOpt = consultantRepository.findById(userId);
+            if (consultantOpt.isPresent()) {
+                consultationMatchingService.updateConsultantStatus(userId, Consultant.ConsultationStatus.AVAILABLE);
+                log.info("Consultant {} is now AVAILABLE and ready for consultation", userId);
+            }
         } else {
             onlineUsers.remove(userId);
             if (sessionId != null) {
                 sessionUserMap.remove(sessionId);
+            }
+
+            // 상담원인 경우, 상태를 OFFLINE로 변경
+            Optional<Consultant> consultantOpt = consultantRepository.findById(userId);
+            if (consultantOpt.isPresent()) {
+                consultationMatchingService.updateConsultantStatus(userId, Consultant.ConsultationStatus.OFFLINE);
+                log.info("Consultant {} is now OFFLINE", userId);
             }
         }
         log.debug("User {} is now {} (sessionId: {})", userId, online ? "online" : "offline", sessionId);

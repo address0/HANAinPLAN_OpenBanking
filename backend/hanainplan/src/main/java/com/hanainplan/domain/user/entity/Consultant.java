@@ -91,6 +91,11 @@ public class Consultant {
     @Builder.Default
     private Integer totalConsultations = 0; // 총 상담 건수
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "consultation_status")
+    @Builder.Default
+    private ConsultationStatus consultationStatus = ConsultationStatus.OFFLINE; // 실시간 상담 가능 상태
+
     // 연락처 정보
     @Column(name = "office_phone", length = 15)
     private String officePhone; // 사무실 전화번호
@@ -123,6 +128,23 @@ public class Consultant {
         private final String description;
 
         WorkStatus(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    /**
+     * 실시간 상담 가능 상태 enum 정의
+     */
+    public enum ConsultationStatus {
+        AVAILABLE("상담 가능"), BUSY("상담 중"), OFFLINE("오프라인");
+
+        private final String description;
+
+        ConsultationStatus(String description) {
             this.description = description;
         }
 
@@ -198,6 +220,22 @@ public class Consultant {
     public void incrementConsultationCount() {
         this.totalConsultations = (this.totalConsultations != null) ? this.totalConsultations + 1 : 1;
         this.updatedDate = LocalDateTime.now();
+    }
+
+    /**
+     * 상담 상태 변경
+     */
+    public void updateConsultationStatus(ConsultationStatus status) {
+        this.consultationStatus = status;
+        this.updatedDate = LocalDateTime.now();
+    }
+
+    /**
+     * 상담 가능 여부 확인
+     */
+    public boolean isAvailableForConsultation() {
+        return this.workStatus == WorkStatus.ACTIVE 
+                && this.consultationStatus == ConsultationStatus.AVAILABLE;
     }
 
     /**

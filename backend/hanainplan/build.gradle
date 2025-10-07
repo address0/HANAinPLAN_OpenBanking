@@ -47,6 +47,12 @@ dependencies {
 	// OpenFeign (REST API 클라이언트)
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	
+	// Firebase Admin SDK (FCM 푸시 알림)
+	implementation 'com.google.firebase:firebase-admin:9.2.0'
+	
+	// 이메일 발송 (JavaMailSender)
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	
 	// 개발 도구
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'

@@ -5,6 +5,21 @@ spring:
   application:
     name: hanainplan
 
+  # 이메일 설정 (개발 환경용 - 실제 발송되지 않음)
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    default-encoding: UTF-8
+
 server:
   port: 8080
 
@@ -12,6 +27,7 @@ logging:
   level:
     com.hanainplan: DEBUG
     org.springframework.web: DEBUG
+    com.hanainplan.config.FirebaseConfig: WARN  # Firebase 초기화 경고 레벨로 변경
 
 # 카카오 OAuth 설정
 kakao:
@@ -24,3 +40,13 @@ kakao:
 user:
   server:
     url: ${USER_SERVER_URL:http://localhost:8084}
+
+# 애플리케이션 설정
+app:
+  name: 하나인플랜
+  base-url: ${APP_BASE_URL:http://localhost:5173}
+
+# Firebase 설정 (개발 환경에서는 파일 없어도 작동)
+firebase:
+  config:
+    file: ${FIREBASE_CONFIG_FILE:firebase-service-account.json}

@@ -1,15 +1,19 @@
 package com.hanainplan.domain.webrtc.controller;
 
+import com.hanainplan.domain.notification.service.FCMService;
+import com.hanainplan.domain.notification.service.FCMTokenService;
 import com.hanainplan.domain.webrtc.dto.CallRequestMessage;
 import com.hanainplan.domain.webrtc.controller.WebRTCSignalController;
 import com.hanainplan.domain.webrtc.entity.VideoCallRoom;
 import com.hanainplan.domain.webrtc.repository.VideoCallRoomRepository;
+import com.hanainplan.domain.webrtc.service.ConsultationMatchingService;
 import com.hanainplan.domain.webrtc.service.WebRTCService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,9 +26,12 @@ public class WebRTCController {
     private final WebRTCService webRTCService;
     private final VideoCallRoomRepository videoCallRoomRepository;
     private final WebRTCSignalController signalController;
+    private final ConsultationMatchingService consultationMatchingService;
+    private final FCMService fcmService;
+    private final FCMTokenService fcmTokenService;
 
     /**
-     * 통화 요청 생성 (REST API)
+     * 통화 요청 생성 (직접 지정) - 기존 방식
      */
     @PostMapping("/call/request")
     public ResponseEntity<?> createCallRequest(@RequestBody CallRequestMessage request) {
@@ -50,6 +57,111 @@ public class WebRTCController {
                 "message", "통화 요청 생성 중 오류가 발생했습니다."
             ));
         }
+    }
+
+    /**
+     * 고객 상담 요청 (자동 매칭)
+     * - 고객이 상담을 요청하면 대기 중인 상담원과 자동으로 매칭
+     */
+    @PostMapping("/consultation/request")
+    public ResponseEntity<?> requestConsultation(@RequestBody Map<String, Object> request) {
+        try {
+            Long customerId = Long.valueOf(request.get("callerId").toString());
+            String customerName = request.get("callerName").toString();
+            String consultationType = request.getOrDefault("consultationType", "일반상담").toString();
+
+            // 상담 매칭 요청
+            ConsultationMatchingService.MatchingResult result = 
+                consultationMatchingService.requestConsultation(customerId, customerName, consultationType);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", result.isSuccess());
+            response.put("message", result.getMessage());
+
+            if (result.isSuccess()) {
+                // 매칭 성공 - 상담원에게 알림 전송
+                response.put("roomId", result.getRoomId());
+                response.put("consultantId", result.getConsultant().getConsultantId());
+                response.put("consultantName", result.getConsultant().getEmployeeId()); // 또는 User 테이블에서 이름 조회
+                
+                Long consultantId = result.getConsultant().getConsultantId();
+                
+                // WebSocket으로 상담원에게 알림
+                CallRequestMessage callRequest = new CallRequestMessage();
+                callRequest.setCallerId(customerId);
+                callRequest.setCalleeId(consultantId);
+                callRequest.setCallerName(customerName);
+                callRequest.setCalleeName("상담원"); // TODO: User 테이블에서 상담원 이름 조회
+                callRequest.setConsultationType(consultationType);
+                callRequest.setRoomId(result.getRoomId());
+                
+                signalController.notifyCallRequest(callRequest, result.getRoomId());
+                
+                // FCM 푸시 알림 전송 (상담원에게)
+                try {
+                    List<String> consultantTokens = fcmTokenService.getActiveDeviceTokens(consultantId);
+                    if (!consultantTokens.isEmpty()) {
+                        fcmService.sendConsultationRequestNotification(
+                                consultantTokens.get(0), // 첫 번째 토큰 사용
+                                customerName,
+                                consultationType,
+                                result.getRoomId()
+                        );
+                        log.info("FCM notification sent to consultant {}", consultantId);
+                    } else {
+                        log.warn("No FCM tokens found for consultant {}", consultantId);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to send FCM notification to consultant {}", consultantId, e);
+                    // FCM 실패해도 상담은 진행되도록 예외를 던지지 않음
+                }
+                
+                log.info("Customer {} matched with consultant {} for consultation", 
+                        customerId, consultantId);
+            } else {
+                // 매칭 실패 (대기열에 추가됨)
+                log.info("Customer {} added to waiting queue", customerId);
+            }
+
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error requesting consultation", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "상담 요청 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 고객 상담 요청 취소
+     */
+    @PostMapping("/consultation/cancel")
+    public ResponseEntity<?> cancelConsultationRequest(@RequestBody Map<String, Object> request) {
+        try {
+            Long customerId = Long.valueOf(request.get("customerId").toString());
+            boolean cancelled = consultationMatchingService.cancelRequest(customerId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", cancelled,
+                "message", cancelled ? "상담 요청이 취소되었습니다." : "취소할 상담 요청이 없습니다."
+            ));
+        } catch (Exception e) {
+            log.error("Error cancelling consultation request", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "상담 요청 취소 중 오류가 발생했습니다."
+            ));
+        }
+    }
+
+    /**
+     * 상담 대기열 정보 조회 (관리자/디버깅용)
+     */
+    @GetMapping("/consultation/queue")
+    public ResponseEntity<?> getQueueInfo() {
+        return ResponseEntity.ok(consultationMatchingService.getQueueInfo());
     }
 
     /**
