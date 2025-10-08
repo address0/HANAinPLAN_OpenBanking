@@ -66,5 +66,3 @@ public class FCMToken extends BaseTimeEntity {
         this.lastUsedAt = LocalDateTime.now();
     }
 }
-
-

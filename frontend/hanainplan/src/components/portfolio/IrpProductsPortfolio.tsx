@@ -230,9 +230,3 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
 }
 
 export default IrpProductsPortfolio;
-
-
-
-
-
-

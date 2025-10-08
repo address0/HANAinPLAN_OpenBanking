@@ -217,5 +217,3 @@ public class FCMService {
         return sendNotificationToDevice(deviceToken, title, message, null);
     }
 }
-
-

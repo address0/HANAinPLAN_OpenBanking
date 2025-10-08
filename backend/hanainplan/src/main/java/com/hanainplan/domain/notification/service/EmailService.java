@@ -289,5 +289,3 @@ public class EmailService {
         return sendHtmlEmail(customerEmail, subject, htmlContent);
     }
 }
-
-
