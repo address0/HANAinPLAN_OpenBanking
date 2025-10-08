@@ -118,10 +118,14 @@ public class SignUpService {
                 .ci(request.getCi()) // CI값 저장
                 .isPhoneVerified(true); // 인증번호 확인 완료 가정
 
+        // 이메일 추가 (있는 경우)
+        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
+            userBuilder.email(request.getEmail());
+        }
+
         // 로그인 타입에 따른 처리
         if (request.isKakaoLogin()) {
             userBuilder.kakaoId(request.getKakaoId())
-                      .email(request.getEmail())
                       .loginType(User.LoginType.KAKAO);
         } else {
             userBuilder.password(passwordEncoder.encode(request.getPassword()))

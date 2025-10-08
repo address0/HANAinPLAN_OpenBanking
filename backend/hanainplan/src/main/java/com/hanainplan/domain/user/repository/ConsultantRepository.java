@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,4 +53,25 @@ public interface ConsultantRepository extends JpaRepository<Consultant, Long> {
      */
     @Query("SELECT COUNT(c) FROM Consultant c WHERE c.workStatus = 'ACTIVE' AND c.consultationStatus = 'AVAILABLE'")
     Long countAvailableConsultants();
+
+    /**
+     * 특정 시간대에 일정이 없는 상담원 목록 조회
+     * - ACTIVE 상태의 상담원 중에서
+     * - 해당 시간대에 겹치는 일정(CANCELLED가 아닌)이 없는 상담원
+     * - 평점 높은 순, 상담 건수 적은 순으로 정렬
+     */
+    @Query("SELECT DISTINCT c FROM Consultant c " +
+           "WHERE c.workStatus = 'ACTIVE' " +
+           "AND c.consultantId NOT IN (" +
+           "    SELECT s.consultantId FROM Schedule s " +
+           "    WHERE s.status != 'CANCELLED' " +
+           "    AND ((s.startTime <= :startTime AND s.endTime > :startTime) " +
+           "    OR (s.startTime < :endTime AND s.endTime >= :endTime) " +
+           "    OR (s.startTime >= :startTime AND s.endTime <= :endTime))" +
+           ") " +
+           "ORDER BY c.consultationRating DESC, c.totalConsultations ASC")
+    List<Consultant> findAvailableConsultantsAtTime(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
 }

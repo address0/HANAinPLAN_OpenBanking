@@ -3,6 +3,7 @@ package com.hanainplan.domain.webrtc.controller;
 import com.hanainplan.domain.notification.service.EmailService;
 import com.hanainplan.domain.notification.service.FCMService;
 import com.hanainplan.domain.notification.service.FCMTokenService;
+import com.hanainplan.domain.schedule.service.ScheduleService;
 import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
 import com.hanainplan.domain.webrtc.dto.CallRequestMessage;
@@ -20,6 +21,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +35,7 @@ public class WebRTCSignalController {
     private final EmailService emailService;
     private final FCMService fcmService;
     private final FCMTokenService fcmTokenService;
+    private final ScheduleService scheduleService;
     private final UserRepository userRepository;
     private final VideoCallRoomRepository videoCallRoomRepository;
 
@@ -56,7 +59,7 @@ public class WebRTCSignalController {
         webRTCService.acceptCall(message.getRoomId());
         messagingTemplate.convertAndSendToUser(String.valueOf(message.getReceiverId()), "/queue/call-accept", message);
 
-        // 상담 수락 시 고객에게 알림 발송
+        // 상담 수락 시 고객에게 알림 발송 및 일정 추가
         try {
             Optional<VideoCallRoom> callRoomOpt = videoCallRoomRepository.findByRoomId(message.getRoomId());
             if (callRoomOpt.isPresent()) {
@@ -71,6 +74,24 @@ public class WebRTCSignalController {
                 if (customerOpt.isPresent() && consultantOpt.isPresent()) {
                     User customer = customerOpt.get();
                     User consultant = consultantOpt.get();
+
+                    // 상담 일정 자동 생성 (현재 시간부터 1시간)
+                    LocalDateTime startTime = LocalDateTime.now();
+                    LocalDateTime endTime = startTime.plusHours(1);
+                    
+                    try {
+                        scheduleService.createConsultationSchedule(
+                                consultantId, 
+                                customerId, 
+                                customer.getUserName(), 
+                                startTime, 
+                                endTime
+                        );
+                        log.info("상담 일정 자동 생성 완료 - consultantId: {}, customerId: {}", consultantId, customerId);
+                    } catch (Exception e) {
+                        log.error("상담 일정 자동 생성 실패", e);
+                        // 일정 생성 실패해도 상담은 계속 진행
+                    }
 
                     // 이메일 발송 (고객에게)
                     if (customer.getEmail() != null && !customer.getEmail().isEmpty()) {

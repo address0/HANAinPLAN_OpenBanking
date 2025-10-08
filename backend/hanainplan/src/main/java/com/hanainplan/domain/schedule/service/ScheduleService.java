@@ -210,5 +210,44 @@ public class ScheduleService {
                 .map(ScheduleDto::fromEntity)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 특정 시간대에 일정이 있는지 확인
+     */
+    public boolean hasScheduleAt(Long consultantId, LocalDateTime startTime, LocalDateTime endTime) {
+        List<Schedule> overlappingSchedules = scheduleRepository.findOverlappingSchedules(
+                consultantId, startTime, endTime
+        );
+        
+        return !overlappingSchedules.isEmpty();
+    }
+
+    /**
+     * 상담 수락 시 자동으로 일정 추가
+     */
+    @Transactional
+    public ScheduleDto createConsultationSchedule(Long consultantId, Long clientId, String clientName, 
+                                                   LocalDateTime startTime, LocalDateTime endTime) {
+        log.info("상담 일정 자동 생성 - consultantId: {}, clientId: {}, clientName: {}", 
+                consultantId, clientId, clientName);
+        
+        Schedule schedule = Schedule.builder()
+                .consultantId(consultantId)
+                .title(clientName + "님 상담")
+                .description("고객 상담")
+                .scheduleType(ScheduleType.CONSULTATION)
+                .clientName(clientName)
+                .clientId(clientId)
+                .startTime(startTime)
+                .endTime(endTime)
+                .isAllDay(false)
+                .status(Schedule.ScheduleStatus.SCHEDULED)
+                .build();
+        
+        Schedule savedSchedule = scheduleRepository.save(schedule);
+        
+        log.info("상담 일정 자동 생성 완료 - scheduleId: {}", savedSchedule.getScheduleId());
+        return ScheduleDto.fromEntity(savedSchedule);
+    }
 }
 
