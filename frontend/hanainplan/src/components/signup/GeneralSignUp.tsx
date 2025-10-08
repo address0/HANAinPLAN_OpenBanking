@@ -20,6 +20,7 @@ interface SignUpData {
   socialNumber: string;
   phoneNumber: string;
   verificationCode: string;
+  email?: string;
   ci?: string;
   isPhoneVerified?: boolean;
   password: string;
@@ -73,6 +74,7 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
     socialNumber: '',
     phoneNumber: '',
     verificationCode: '',
+    email: '',
     password: '',
     confirmPassword: '',
     healthInfo: {
@@ -172,6 +174,8 @@ function GeneralSignUp({ onBackToLogin, onBackToUserTypeSelection }: GeneralSign
         socialNumber: signUpData.socialNumber,
         phoneNumber: signUpData.phoneNumber,
         verificationCode: signUpData.verificationCode,
+        ci: signUpData.ci,
+        email: signUpData.email,
         password: signUpData.password,
         confirmPassword: signUpData.confirmPassword,
         healthInfo: {

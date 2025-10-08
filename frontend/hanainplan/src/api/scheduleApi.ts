@@ -171,5 +171,28 @@ export const deleteSchedule = async (eventId: string): Promise<void> => {
   }
 };
 
+/**
+ * 특정 시간대에 가능한 상담사 목록 조회
+ */
+export const fetchAvailableConsultantsAtTime = async (
+  startTime: string,
+  endTime: string
+): Promise<number[]> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/consultants/available-at-time`, {
+      params: {
+        startTime,
+        endTime
+      }
+    });
+    
+    // 상담사 ID 배열 반환 (ConsultantDto의 consultantId 필드)
+    return response.data.map((consultant: any) => consultant.consultantId);
+  } catch (error) {
+    console.error('가능한 상담사 조회 실패:', error);
+    throw error;
+  }
+};
+
 
 

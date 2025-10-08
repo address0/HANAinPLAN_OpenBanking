@@ -7,6 +7,7 @@ interface SignUpData {
   socialNumber: string;
   phoneNumber: string;
   verificationCode: string;
+  email?: string;
   ci?: string;
   isPhoneVerified?: boolean;
 }
@@ -23,6 +24,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   const [isCodeFocused, setIsCodeFocused] = useState(false)
   const [isNameFocused, setIsNameFocused] = useState(false)
   const [isSocialFocused, setIsSocialFocused] = useState(false)
+  const [isEmailFocused, setIsEmailFocused] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const [isVerified, setIsVerified] = useState(false)
   const [isCiVerified, setIsCiVerified] = useState(false)
@@ -127,6 +129,10 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
 
   const handleVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onDataChange({ verificationCode: e.target.value })
+  }
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onDataChange({ email: e.target.value })
   }
 
   // 인증번호 전송
@@ -267,6 +273,12 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   const isSocialNumberValid = () => {
     const numbers = signUpData.socialNumber.replace(/[^\d]/g, '')
     return numbers.length === 13
+  }
+
+  const isEmailValid = () => {
+    if (!signUpData.email) return false
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    return emailRegex.test(signUpData.email)
   }
 
 
@@ -527,6 +539,35 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
           인증번호 재전송
         </button>
       )}
+
+      {/* 이메일 입력 필드 */}
+      <div className="w-[400px] flex items-center gap-4 mt-4">
+        <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
+          이메일
+        </label>
+        <div className={`w-[280px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
+          isEmailFocused 
+            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+            : 'border-[#E0E0E0] hover:border-[#008485]/50'
+        }`}>
+          <input
+            type="email"
+            value={signUpData.email || ''}
+            onChange={handleEmailChange}
+            onFocus={() => setIsEmailFocused(true)}
+            onBlur={() => setIsEmailFocused(false)}
+            placeholder="example@email.com"
+            className="w-full bg-transparent font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700"
+          />
+          {isEmailValid() && (
+            <div className="text-green-600 text-sm">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* AlertModal */}
       <AlertModal
