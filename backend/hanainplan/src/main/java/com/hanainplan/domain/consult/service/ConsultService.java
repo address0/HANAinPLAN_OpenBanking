@@ -4,7 +4,10 @@ import com.hanainplan.domain.consult.dto.ConsultationRequestDto;
 import com.hanainplan.domain.consult.dto.ConsultationResponseDto;
 import com.hanainplan.domain.consult.entity.Consult;
 import com.hanainplan.domain.consult.repository.ConsultRepository;
+import com.hanainplan.domain.notification.dto.NotificationDto;
+import com.hanainplan.domain.notification.entity.NotificationType;
 import com.hanainplan.domain.notification.service.EmailService;
+import com.hanainplan.domain.notification.service.NotificationService;
 import com.hanainplan.domain.schedule.service.ScheduleService;
 import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
@@ -31,6 +34,7 @@ public class ConsultService {
     private final UserRepository userRepository;
     private final ScheduleService scheduleService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     /**
      * 상담 신청
@@ -79,8 +83,16 @@ public class ConsultService {
             // 일정 생성 실패해도 상담 신청은 계속 진행
         }
 
+        // 상담 신청 시 상담사에게 알림 생성
+        try {
+            createConsultationNotificationForConsultant(savedConsult, "새로운 상담 신청이 있습니다.");
+        } catch (Exception e) {
+            log.error("상담 신청 알림 생성 실패 - consultId: {}", consultId, e);
+            // 알림 생성 실패해도 상담 신청은 계속 진행
+        }
+
         // 상담 신청 시에는 이메일을 보내지 않음 (상담사가 확정할 때 보냄)
-        log.info("상담 예약 신청 완료 - consultId: {}, customerId: {}, consultantId: {}", 
+        log.info("상담 예약 신청 완료 - consultId: {}, customerId: {}, consultantId: {}",
                 consultId, customer.getUserId(), consultant.getUserId());
 
         // DTO 변환
@@ -180,14 +192,19 @@ public class ConsultService {
         
         Consult updatedConsult = consultRepository.save(consult);
         
-        // 상담사가 예약을 확정했을 때 고객에게 이메일 전송
+        // 상담사가 예약을 확정했을 때 고객에게 이메일 전송 및 알림 생성
         if ("예약확정".equals(newStatus)) {
             try {
+                // 이메일 전송
                 sendConsultationConfirmationEmail(consult);
-                log.info("상담 예약 확정 이메일 전송 완료 - consultId: {}", consultId);
+
+                // 앱 내 알림 생성
+                createConsultationNotificationForCustomer(consult, "상담 예약이 확정되었습니다.");
+
+                log.info("상담 예약 확정 이메일 전송 및 알림 생성 완료 - consultId: {}", consultId);
             } catch (Exception e) {
-                log.error("상담 예약 확정 이메일 전송 실패 - consultId: {}", consultId, e);
-                // 이메일 전송 실패해도 상태 변경은 계속 진행
+                log.error("상담 예약 확정 이메일 전송 또는 알림 생성 실패 - consultId: {}", consultId, e);
+                // 이메일/알림 생성 실패해도 상태 변경은 계속 진행
             }
         }
         
@@ -386,6 +403,75 @@ public class ConsultService {
                 </body>
                 </html>
                 """, customerName, consultId, consultationTypeKorean, consultantName, formattedDateTime);
+    }
+
+    /**
+     * 고객에게 상담 관련 알림 생성
+     */
+    private void createConsultationNotificationForCustomer(Consult consult, String customMessage) {
+        try {
+            Long customerId = Long.valueOf(consult.getCustomerId());
+
+            String title = "상담 예약 알림";
+            String content = String.format("%s\n상담 일시: %s\n상담 유형: %s",
+                customMessage,
+                consult.getReservationDatetime().format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH:mm")),
+                convertConsultationTypeToKorean(consult.getConsultType()));
+
+            NotificationDto.CreateRequest notificationRequest = NotificationDto.CreateRequest.builder()
+                    .userId(customerId)
+                    .title(title)
+                    .content(content)
+                    .type(NotificationType.CONSULTATION)
+                    .build();
+
+            notificationService.createNotification(notificationRequest);
+            log.info("고객 상담 알림 생성 완료 - customerId: {}, consultId: {}", customerId, consult.getConsultId());
+        } catch (Exception e) {
+            log.error("고객 상담 알림 생성 실패 - consultId: {}", consult.getConsultId(), e);
+        }
+    }
+
+    /**
+     * 상담사에게 상담 관련 알림 생성
+     */
+    private void createConsultationNotificationForConsultant(Consult consult, String customMessage) {
+        try {
+            Long consultantId = Long.valueOf(consult.getConsultantId());
+
+            String title = "상담 신청 알림";
+            String content = String.format("%s\n고객명: %s\n상담 일시: %s\n상담 유형: %s",
+                customMessage,
+                getCustomerNameById(consult.getCustomerId()),
+                consult.getReservationDatetime().format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH:mm")),
+                convertConsultationTypeToKorean(consult.getConsultType()));
+
+            NotificationDto.CreateRequest notificationRequest = NotificationDto.CreateRequest.builder()
+                    .userId(consultantId)
+                    .title(title)
+                    .content(content)
+                    .type(NotificationType.CONSULTATION)
+                    .build();
+
+            notificationService.createNotification(notificationRequest);
+            log.info("상담사 상담 알림 생성 완료 - consultantId: {}, consultId: {}", consultantId, consult.getConsultId());
+        } catch (Exception e) {
+            log.error("상담사 상담 알림 생성 실패 - consultId: {}", consult.getConsultId(), e);
+        }
+    }
+
+    /**
+     * 고객 ID로 고객 이름 조회
+     */
+    private String getCustomerNameById(String customerIdStr) {
+        try {
+            Long customerId = Long.valueOf(customerIdStr);
+            return userRepository.findById(customerId)
+                    .map(User::getUserName)
+                    .orElse("알 수 없는 고객");
+        } catch (Exception e) {
+            return "알 수 없는 고객";
+        }
     }
 
     /**

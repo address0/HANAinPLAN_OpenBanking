@@ -27,7 +27,7 @@ public class Consult {
     @Column(name = "consult_id", length = 20)
     private String consultId;
 
-    @Column(name = "consult_type", length = 10, nullable = false)
+    @Column(name = "consult_type", length = 20, nullable = false)
     private String consultType;
 
     @Column(name = "reservation_datetime", nullable = false)
