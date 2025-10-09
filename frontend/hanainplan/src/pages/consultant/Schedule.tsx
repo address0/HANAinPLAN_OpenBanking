@@ -185,11 +185,24 @@ function ConsultantSchedule() {
     ...getEventColor(schedule.type || 'other')
   }));
 
+  // 시간을 24시간제로 포맷팅하는 함수
+  const formatTime24Hour = (date: Date | null) => {
+    if (!date) return '';
+    return date.toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
   // 이벤트 렌더링 커스터마이즈
   const renderEventContent = (eventContent: EventContentArg) => {
+    const startTime = formatTime24Hour(eventContent.event.start);
+    const endTime = formatTime24Hour(eventContent.event.end);
+
     return (
       <div className="p-1">
-        <div className="font-hana-medium text-xs text-white">{eventContent.timeText}</div>
+        <div className="font-hana-medium text-xs text-white">{startTime}{endTime ? ` - ${endTime}` : ''}</div>
         <div className="font-hana-bold text-sm truncate text-white">{eventContent.event.title}</div>
       </div>
     );

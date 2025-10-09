@@ -43,7 +43,7 @@ function KakaoLogin({ onError }: KakaoLoginProps) {
     <button
       onClick={handleKakaoLogin}
       disabled={isLoading}
-      className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg font-['Hana2.0_M'] text-sm font-medium transition-colors duration-200 ${
+      className={`w-[360px] flex items-center justify-center gap-3 px-4 py-3 rounded-lg font-['Hana2.0_M'] text-sm font-medium transition-colors duration-200 ${
         isLoading
           ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
           : 'bg-[#FEE500] hover:bg-[#FDD835] text-black cursor-pointer'

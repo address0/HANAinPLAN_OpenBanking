@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../../store/userStore';
+import NotificationIcon from '../notification/NotificationIcon';
 
 interface MenuItem {
   label: string;
@@ -102,6 +103,13 @@ function Nav() {
     setActiveDropdown(null); // 다른 드롭다운이 열려있으면 닫기
   };
 
+  const handleNotificationClick = (e: React.MouseEvent) => {
+    // 알림 클릭 시 다른 드롭다운이 열려있으면 닫기
+    e.stopPropagation();
+    setActiveDropdown(null);
+    setIsUserMenuOpen(false);
+  };
+
   const handleUserMenuClick = (path: string) => {
     navigate(path);
     setIsUserMenuOpen(false);
@@ -111,16 +119,33 @@ function Nav() {
   const handleLogout = () => {
     // 로컬 스토리지에서 사용자 데이터 제거
     localStorage.removeItem('user-storage');
-    
+
     // 사용자 스토어 비우기
     clearUser();
-    
+
     // 사용자 메뉴 닫기
     setIsUserMenuOpen(false);
-    
+
     // 메인 페이지로 이동
     navigate('/main');
   };
+
+  // 클릭 아웃사이드 처리 - 네비게이션 바 외부 클릭 시 모든 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // 네비게이션 바 영역 확인
+      const navElement = document.querySelector('nav');
+      if (navElement && !navElement.contains(event.target as Node)) {
+        setActiveDropdown(null);
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div
@@ -168,8 +193,13 @@ function Nav() {
         {/* User Profile Section */}
         {user ? (
           <div className="relative flex justify-center items-center flex-shrink-0 w-32 sm:w-40 lg:w-48 h-12 sm:h-16 lg:h-20">
+            {/* 알림 아이콘 */}
+            <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
+              <NotificationIcon />
+            </div>
+
             <div
-              className="flex items-center gap-1 sm:gap-2 bg-white cursor-pointer rounded-lg transition-colors px-1 sm:px-2 py-1"
+              className="flex items-center gap-1 sm:gap-2 bg-white cursor-pointer rounded-lg transition-colors px-1 sm:px-2 py-1 ml-8"
               onClick={handleUserMenuToggle}
             >
               <div className="flex flex-col justify-center">

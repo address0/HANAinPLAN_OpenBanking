@@ -539,7 +539,7 @@ function ConsultationRequest() {
                 <button
                   onClick={() => {
                     setShowSuccessModal(false);
-                    window.location.href = '/';
+                    window.location.href = '/main';
                   }}
                   className="w-full px-6 py-3 bg-hana-green text-white rounded-lg hover:bg-green-600 transition-colors font-hana-medium"
                 >

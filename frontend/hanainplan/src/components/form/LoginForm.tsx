@@ -123,7 +123,7 @@ function LoginForm({ onSignUp }: LoginFormProps) {
           userId: response.userId || 0,
           phoneNumber: response.phoneNumber || '',
           name: response.userName || '',
-          userType: response.userType as 'GENERAL' | 'CONSULTANT',
+          userType: response.userType as 'GENERAL' | 'COUNSELOR',
           isActive: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -245,7 +245,7 @@ function LoginForm({ onSignUp }: LoginFormProps) {
       <button 
         onClick={handleLogin}
         disabled={!isFormValid() || isSubmitting}
-        className={`w-[360px] h-[60px] relative rounded-[15px] transition-all duration-200 shadow-sm font-['Hana2.0_M'] text-[18px] leading-[20px] ${
+        className={`w-[360px] px-4 py-3 relative rounded-lg transition-all duration-200 shadow-sm font-['Hana2.0_M'] text-[18px] leading-[20px] ${
           isFormValid() && !isSubmitting
             ? 'bg-[#008485] text-white hover:bg-[#006666] hover:shadow-md cursor-pointer border border-[#008485]'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-300'
