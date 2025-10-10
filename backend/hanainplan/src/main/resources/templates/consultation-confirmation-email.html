@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>상담 예약 확정 - 하나인플랜</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa;">
+    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #008485 0%, #00A091 50%, #00BFA5 100%); padding: 40px 30px; text-align: center; color: white; position: relative;">
+            <div style="margin-bottom: 20px;">
+                <div style="width: 60px; height: 60px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    🏛️
+                </div>
+                <div style="font-size: 28px; font-weight: 700; margin-bottom: 5px; letter-spacing: -0.5px;">
+                    HANAinPLAN
+                </div>
+                <div style="font-size: 14px; opacity: 0.9; font-weight: 300;">
+                    하나인플랜
+                </div>
+            </div>
+            <div style="font-size: 32px; font-weight: 700; margin: 20px 0 10px;">
+                {title}
+            </div>
+            <div style="font-size: 16px; opacity: 0.9; font-weight: 400;">
+                상담 예약이 성공적으로 확정되었습니다
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px; background: white;">
+            <div style="font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 10px;">
+                {customerName}님, 안녕하세요! 👋
+            </div>
+            <div style="font-size: 16px; color: #7f8c8d; margin-bottom: 30px; line-height: 1.7;">
+                신청해주신 상담 예약이 확정되어 안내드립니다.<br>
+                전문 상담사와의 의미 있는 시간이 되시길 바랍니다.
+            </div>
+            
+            <!-- Info Card -->
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; padding: 30px; margin: 30px 0; border: 1px solid #e3f2fd; position: relative; border-top: 4px solid #008485;">
+                <!-- 예약 번호 -->
+                <div style="display: flex; align-items: center; margin: 20px 0; padding: 15px 0; border-bottom: 1px solid rgba(0, 132, 133, 0.1);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #008485 0%, #00A091 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 18px; color: white; flex-shrink: 0;">
+                        🔢
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 14px; color: #7f8c8d; font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            예약 번호
+                        </div>
+                        <div style="font-size: 16px; color: #2c3e50; font-weight: 600;">
+                            {consultId}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 상담 유형 -->
+                <div style="display: flex; align-items: center; margin: 20px 0; padding: 15px 0; border-bottom: 1px solid rgba(0, 132, 133, 0.1);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #008485 0%, #00A091 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 18px; color: white; flex-shrink: 0;">
+                        {consultationIcon}
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 14px; color: #7f8c8d; font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            상담 유형
+                        </div>
+                        <div style="font-size: 16px; color: #2c3e50; font-weight: 600;">
+                            {consultationType}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 담당 상담사 -->
+                <div style="display: flex; align-items: center; margin: 20px 0; padding: 15px 0; border-bottom: 1px solid rgba(0, 132, 133, 0.1);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #008485 0%, #00A091 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 18px; color: white; flex-shrink: 0;">
+                        👱💼
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 14px; color: #7f8c8d; font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            담당 상담사
+                        </div>
+                        <div style="font-size: 16px; color: #2c3e50; font-weight: 600;">
+                            {consultantName}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 상담 일시 -->
+                <div style="display: flex; align-items: center; margin: 20px 0; padding: 15px 0;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #008485 0%, #00A091 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 18px; color: white; flex-shrink: 0;">
+                        📅
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 14px; color: #7f8c8d; font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            상담 일시
+                        </div>
+                        <div style="font-size: 16px; color: #2c3e50; font-weight: 600;">
+                            {reservationDateTime}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Banner -->
+            <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 2px solid #4caf50; border-radius: 16px; padding: 25px; margin: 30px 0; text-align: center; position: relative;">
+                <div style="font-size: 48px; margin-bottom: 15px;">
+                    ✅
+                </div>
+                <div style="font-size: 20px; font-weight: 700; color: #2e7d32; margin-bottom: 8px;">
+                    예약 확정 완료!
+                </div>
+                <div style="font-size: 14px; color: #388e3c; font-weight: 500;">
+                    예약된 시간에 상담이 진행됩니다
+                </div>
+            </div>
+            
+            <!-- Notice Section -->
+            <div style="background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                <div style="font-size: 16px; font-weight: 600; color: #e65100; margin-bottom: 10px;">
+                    📋 상담 안내사항
+                </div>
+                <div style="font-size: 14px; color: #bf360c; line-height: 1.6;">
+                    • 상담 10분 전까지 준비해 주세요<br>
+                    • 상담 유형에 따라 필요한 자료를 미리 준비해 주세요<br>
+                    • 상담 취소는 상담 24시간 전까지 가능합니다
+                </div>
+            </div>
+            
+            <!-- CTA Section -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="#" style="display: inline-block; background: linear-gradient(135deg, #008485 0%, #00A091 100%); color: white; text-decoration: none; padding: 15px 30px; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 20px rgba(0, 132, 133, 0.3);">
+                    상담 준비하기
+                </a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 30px; text-align: center; border-top: 1px solid #dee2e6;">
+            <div style="font-size: 18px; font-weight: 700; color: #008485; margin-bottom: 10px;">
+                HANAinPLAN
+            </div>
+            <div style="font-size: 12px; color: #6c757d; line-height: 1.5; margin-bottom: 15px;">
+                내 삶의 2막을 설계하다
+            </div>
+            <div style="margin-top: 20px;">
+                <a href="#" style="color: #008485; text-decoration: none; font-size: 12px; margin: 0 10px; font-weight: 500;">홈페이지</a>
+                <a href="#" style="color: #008485; text-decoration: none; font-size: 12px; margin: 0 10px; font-weight: 500;">고객센터</a>
+                <a href="#" style="color: #008485; text-decoration: none; font-size: 12px; margin: 0 10px; font-weight: 500;">이용약관</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

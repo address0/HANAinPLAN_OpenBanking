@@ -249,5 +249,37 @@ public class ScheduleService {
         log.info("상담 일정 자동 생성 완료 - scheduleId: {}", savedSchedule.getScheduleId());
         return ScheduleDto.fromEntity(savedSchedule);
     }
+
+    /**
+     * 상담 취소 시 해당 상담 일정 삭제
+     */
+    @Transactional
+    public void deleteConsultationSchedule(Long consultantId, Long clientId, LocalDateTime startTime) {
+        log.info("상담 일정 삭제 - consultantId: {}, clientId: {}, startTime: {}", 
+                consultantId, clientId, startTime);
+        
+        // 상담 일정을 찾기 위해 여러 조건으로 검색
+        List<Schedule> consultationSchedules = scheduleRepository.findByConsultantIdAndClientIdAndScheduleType(
+                consultantId, clientId, ScheduleType.CONSULTATION
+        );
+        
+        // 해당 시간대의 상담 일정 찾기
+        Schedule targetSchedule = null;
+        for (Schedule schedule : consultationSchedules) {
+            if (schedule.getStartTime().equals(startTime)) {
+                targetSchedule = schedule;
+                break;
+            }
+        }
+        
+        if (targetSchedule != null) {
+            scheduleRepository.delete(targetSchedule);
+            log.info("상담 일정 삭제 완료 - scheduleId: {}, title: {}", 
+                    targetSchedule.getScheduleId(), targetSchedule.getTitle());
+        } else {
+            log.warn("삭제할 상담 일정을 찾을 수 없음 - consultantId: {}, clientId: {}, startTime: {}", 
+                    consultantId, clientId, startTime);
+        }
+    }
 }
 

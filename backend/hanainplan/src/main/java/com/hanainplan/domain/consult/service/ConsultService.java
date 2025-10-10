@@ -13,8 +13,13 @@ import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -287,6 +292,51 @@ public class ConsultService {
             LocalDateTime reservationDatetime,
             String consultId
     ) {
+        try {
+            String formattedDateTime = reservationDatetime.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH:mm"));
+            String consultationTypeKorean = convertConsultationTypeToKorean(consultationType);
+            String consultationIcon = getConsultationIcon(consultationType);
+
+            // 템플릿 파일 로드
+            String template = loadEmailTemplate("consultation-confirmation-email.html");
+            
+            // 플레이스홀더 치환
+            return template
+                    .replace("{title}", "🎉 축하합니다!")
+                    .replace("{customerName}", customerName)
+                    .replace("{consultId}", consultId)
+                    .replace("{consultationIcon}", consultationIcon)
+                    .replace("{consultationType}", consultationTypeKorean)
+                    .replace("{consultantName}", consultantName)
+                    .replace("{reservationDateTime}", formattedDateTime);
+                    
+        } catch (Exception e) {
+            log.error("이메일 템플릿 로드 실패", e);
+            // 템플릿 로드 실패 시 기본 템플릿 반환
+            return createFallbackEmailHtml(customerName, consultantName, consultationType, reservationDatetime, consultId);
+        }
+    }
+
+    /**
+     * 이메일 템플릿 로드
+     */
+    private String loadEmailTemplate(String templateName) throws IOException {
+        ClassPathResource resource = new ClassPathResource("templates/" + templateName);
+        try (InputStream inputStream = resource.getInputStream()) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * 템플릿 로드 실패 시 사용할 기본 이메일 HTML
+     */
+    private String createFallbackEmailHtml(
+            String customerName,
+            String consultantName,
+            String consultationType,
+            LocalDateTime reservationDatetime,
+            String consultId
+    ) {
         String formattedDateTime = reservationDatetime.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH:mm"));
         String consultationTypeKorean = convertConsultationTypeToKorean(consultationType);
 
@@ -297,108 +347,59 @@ public class ConsultService {
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>상담 예약 확정</title>
-                    <style>
-                        body {
-                            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-                            line-height: 1.6;
-                            color: #333;
-                            max-width: 600px;
-                            margin: 0 auto;
-                            padding: 20px;
-                        }
-                        .header {
-                            background: linear-gradient(135deg, #008485 0%%, #00A091 100%%);
-                            color: white;
-                            padding: 30px;
-                            text-align: center;
-                            border-radius: 10px 10px 0 0;
-                        }
-                        .header h1 {
-                            margin: 0;
-                            font-size: 24px;
-                        }
-                        .content {
-                            background: #f9f9f9;
-                            padding: 30px;
-                            border: 1px solid #ddd;
-                            border-top: none;
-                        }
-                        .info-box {
-                            background: white;
-                            padding: 20px;
-                            margin: 20px 0;
-                            border-left: 4px solid #008485;
-                            border-radius: 5px;
-                        }
-                        .info-row {
-                            margin: 10px 0;
-                        }
-                        .label {
-                            font-weight: bold;
-                            color: #008485;
-                            display: inline-block;
-                            width: 120px;
-                        }
-                        .value {
-                            color: #333;
-                        }
-                        .status-box {
-                            background: #e8f5e9;
-                            border: 1px solid #4caf50;
-                            padding: 15px;
-                            border-radius: 5px;
-                            margin: 20px 0;
-                            text-align: center;
-                        }
-                        .footer {
-                            text-align: center;
-                            padding: 20px;
-                            color: #666;
-                            font-size: 12px;
-                            border-top: 1px solid #ddd;
-                        }
-                    </style>
                 </head>
-                <body>
-                    <div class="header">
-                        <h1>✅ 상담 예약이 확정되었습니다</h1>
-                    </div>
-                    <div class="content">
-                        <p><strong>%s</strong>님, 안녕하세요!</p>
-                        <p>신청하신 상담 예약이 확정되었습니다.</p>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; margin: 0; padding: 20px;">
+                    <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h1 style="color: #008485; font-size: 28px; margin-bottom: 10px;">🎉 축하합니다!</h1>
+                            <p style="color: #666; font-size: 16px;">상담 예약이 성공적으로 확정되었습니다</p>
+                        </div>
                         
-                        <div class="info-box">
-                            <div class="info-row">
-                                <span class="label">예약 번호:</span>
-                                <span class="value">%s</span>
+                        <div style="margin-bottom: 30px;">
+                            <h2 style="color: #2c3e50; font-size: 20px; margin-bottom: 15px;">%s님, 안녕하세요! 👋</h2>
+                            <p style="color: #666; font-size: 14px; line-height: 1.7;">
+                                신청해주신 상담 예약이 확정되어 안내드립니다.<br>
+                                전문 상담사와의 의미 있는 시간이 되시길 바랍니다.
+                            </p>
+                        </div>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #008485;">예약 번호:</strong> %s
                             </div>
-                            <div class="info-row">
-                                <span class="label">상담 유형:</span>
-                                <span class="value">%s</span>
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #008485;">상담 유형:</strong> %s
                             </div>
-                            <div class="info-row">
-                                <span class="label">담당 상담사:</span>
-                                <span class="value">%s</span>
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: #008485;">담당 상담사:</strong> %s
                             </div>
-                            <div class="info-row">
-                                <span class="label">상담 일시:</span>
-                                <span class="value">%s</span>
+                            <div>
+                                <strong style="color: #008485;">상담 일시:</strong> %s
                             </div>
                         </div>
                         
-                        <div class="status-box">
-                            <strong>✅ 예약이 확정되었습니다!</strong><br>
-                            <span style="font-size: 14px;">예약된 시간에 상담이 진행됩니다.</span>
+                        <div style="text-align: center; background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">✅</div>
+                            <h3 style="color: #2e7d32; margin-bottom: 5px;">예약 확정 완료!</h3>
+                            <p style="color: #388e3c; font-size: 14px;">예약된 시간에 상담이 진행됩니다</p>
                         </div>
                         
-                        <p style="color: #666; font-size: 14px;">
-                            상담 시간 5분 전까지 준비해 주시기 바랍니다.<br>
-                            예약 변경이나 취소가 필요하신 경우 고객센터(1588-1111)로 연락주시기 바랍니다.
-                        </p>
-                    </div>
-                    <div class="footer">
-                        <p>본 메일은 발신 전용입니다. 문의사항은 고객센터를 이용해주세요.</p>
-                        <p>© 2025 하나인플랜. All rights reserved.</p>
+                        <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 30px;">
+                            <h4 style="color: #e65100; margin-bottom: 10px;">📋 상담 안내사항</h4>
+                            <ul style="color: #bf360c; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                                <li>상담 10분 전까지 준비해 주세요</li>
+                                <li>상담 유형에 따라 필요한 자료를 미리 준비해 주세요</li>
+                                <li>상담 취소는 상담 24시간 전까지 가능합니다</li>
+                                <li>문의사항이 있으시면 언제든 연락 주세요</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="text-align: center; border-top: 1px solid #dee2e6; padding-top: 20px;">
+                            <p style="color: #008485; font-weight: bold; margin-bottom: 10px;">HANAinPLAN</p>
+                            <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                                하나인플랜에서 더 나은 금융 계획을 세워보세요
+                            </p>
+                        </div>
                     </div>
                 </body>
                 </html>
@@ -475,6 +476,109 @@ public class ConsultService {
     }
 
     /**
+     * 상담 취소 (고객용)
+     */
+    @Transactional
+    public ConsultationResponseDto cancelConsultation(String consultId, Long customerId) {
+        log.info("상담 취소 - consultId: {}, customerId: {}", consultId, customerId);
+        
+        Consult consult = consultRepository.findById(consultId)
+                .orElseThrow(() -> new IllegalArgumentException("상담을 찾을 수 없습니다. ID: " + consultId));
+        
+        // 고객 본인 확인
+        if (!String.valueOf(customerId).equals(consult.getCustomerId())) {
+            throw new IllegalArgumentException("본인의 상담만 취소할 수 있습니다.");
+        }
+        
+        // 이미 취소된 상담인지 확인
+        if ("취소".equals(consult.getConsultStatus())) {
+            throw new IllegalArgumentException("이미 취소된 상담입니다.");
+        }
+        
+        // 상담이 완료되었거나 진행 중인 경우 취소 불가
+        if ("상담완료".equals(consult.getConsultStatus()) || "상담중".equals(consult.getConsultStatus())) {
+            throw new IllegalArgumentException("완료된 상담이나 진행 중인 상담은 취소할 수 없습니다.");
+        }
+        
+        // 상담 상태를 취소로 변경
+        consult.setConsultStatus("취소");
+        Consult updatedConsult = consultRepository.save(consult);
+        
+        // 상담사의 일정에서 해당 상담 삭제
+        try {
+            deleteConsultationSchedule(consult);
+        } catch (Exception e) {
+            log.error("상담 일정 삭제 실패 - consultId: {}", consultId, e);
+            // 일정 삭제 실패해도 상담 취소는 계속 진행
+        }
+        
+        // 상담사에게 취소 알림 생성
+        try {
+            createCancellationNotificationForConsultant(consult);
+        } catch (Exception e) {
+            log.error("상담 취소 알림 생성 실패 - consultId: {}", consultId, e);
+            // 알림 생성 실패해도 취소는 계속 진행
+        }
+        
+        log.info("상담 취소 완료 - consultId: {}", consultId);
+        return convertToDto(updatedConsult);
+    }
+
+    /**
+     * 상담 일정 삭제
+     */
+    private void deleteConsultationSchedule(Consult consult) {
+        try {
+            Long consultantId = Long.valueOf(consult.getConsultantId());
+            Long customerId = Long.valueOf(consult.getCustomerId());
+            
+            // 상담 일정을 찾아서 삭제
+            // 상담 제목 패턴: "{고객명}님 상담"
+            String customerName = getCustomerNameById(consult.getCustomerId());
+            String expectedTitle = customerName + "님 상담";
+            
+            log.info("상담 일정 삭제 시도 - consultantId: {}, customerId: {}, expectedTitle: {}", 
+                    consultantId, customerId, expectedTitle);
+            
+            // ScheduleService를 통해 해당 상담의 일정을 찾아서 삭제
+            // 실제 구현에서는 ScheduleService에 상담 ID나 고객 정보로 일정을 찾는 메서드가 필요할 수 있음
+            scheduleService.deleteConsultationSchedule(consultantId, customerId, consult.getReservationDatetime());
+            
+            log.info("상담 일정 삭제 완료 - consultantId: {}, customerId: {}", consultantId, customerId);
+        } catch (Exception e) {
+            log.error("상담 일정 삭제 실패 - consultId: {}", consult.getConsultId(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * 상담사에게 상담 취소 알림 생성
+     */
+    private void createCancellationNotificationForConsultant(Consult consult) {
+        try {
+            Long consultantId = Long.valueOf(consult.getConsultantId());
+
+            String title = "상담 취소 알림";
+            String content = String.format("고객이 상담을 취소했습니다.\n고객명: %s\n상담 일시: %s\n상담 유형: %s",
+                getCustomerNameById(consult.getCustomerId()),
+                consult.getReservationDatetime().format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일 HH:mm")),
+                convertConsultationTypeToKorean(consult.getConsultType()));
+
+            NotificationDto.CreateRequest notificationRequest = NotificationDto.CreateRequest.builder()
+                    .userId(consultantId)
+                    .title(title)
+                    .content(content)
+                    .type(NotificationType.CONSULTATION)
+                    .build();
+
+            notificationService.createNotification(notificationRequest);
+            log.info("상담사 취소 알림 생성 완료 - consultantId: {}, consultId: {}", consultantId, consult.getConsultId());
+        } catch (Exception e) {
+            log.error("상담사 취소 알림 생성 실패 - consultId: {}", consult.getConsultId(), e);
+        }
+    }
+
+    /**
      * 상담 유형을 한글로 변환
      */
     private String convertConsultationTypeToKorean(String consultationType) {
@@ -483,6 +587,18 @@ public class ConsultService {
             case "product": return "상품가입";
             case "asset-management": return "자산관리";
             default: return consultationType;
+        }
+    }
+
+    /**
+     * 상담 유형별 아이콘 반환
+     */
+    private String getConsultationIcon(String consultationType) {
+        switch (consultationType) {
+            case "general": return "💬";
+            case "product": return "📋";
+            case "asset-management": return "💰";
+            default: return "💼";
         }
     }
 }

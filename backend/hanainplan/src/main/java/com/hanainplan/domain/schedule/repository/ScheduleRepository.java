@@ -98,5 +98,14 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("consultantId") Long consultantId,
             @Param("now") LocalDateTime now
     );
+
+    /**
+     * 상담사 ID, 고객 ID, 일정 유형으로 상담 일정 조회
+     */
+    List<Schedule> findByConsultantIdAndClientIdAndScheduleType(
+            Long consultantId, 
+            Long clientId, 
+            ScheduleType scheduleType
+    );
 }
 

@@ -158,5 +158,43 @@ public class ConsultationController {
             ));
         }
     }
+
+    /**
+     * 상담 취소 (고객용)
+     */
+    @PostMapping("/{consultId}/cancel")
+    @Operation(summary = "상담 취소", description = "고객이 예약한 상담을 취소합니다.")
+    public ResponseEntity<?> cancelConsultation(
+            @Parameter(description = "상담 ID", required = true)
+            @PathVariable String consultId,
+            
+            @Parameter(description = "고객 ID", required = true)
+            @RequestParam Long customerId
+    ) {
+        try {
+            log.info("POST /api/consultations/{}/cancel - consultId: {}, customerId: {}", 
+                    consultId, consultId, customerId);
+            
+            ConsultationResponseDto response = consultService.cancelConsultation(consultId, customerId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "consultation", response,
+                "message", "상담이 취소되었습니다."
+            ));
+        } catch (IllegalArgumentException e) {
+            log.error("상담 취소 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("상담 취소 중 오류 발생", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "상담 취소 중 오류가 발생했습니다."
+            ));
+        }
+    }
 }
 
