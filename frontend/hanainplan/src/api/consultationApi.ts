@@ -120,3 +120,25 @@ export const updateConsultationStatus = async (consultId: string, status: string
     throw new Error(error.response?.data?.message || error.message || '상담 상태 변경에 실패했습니다.');
   }
 };
+
+/**
+ * 상담 취소 (고객용)
+ */
+export const cancelConsultation = async (consultId: string, customerId: number): Promise<ConsultationResponse> => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api/consultations/${consultId}/cancel`,
+      null,
+      { params: { customerId } }
+    );
+    
+    if (response.data.success) {
+      return response.data.consultation;
+    } else {
+      throw new Error(response.data.message || '상담 취소에 실패했습니다.');
+    }
+  } catch (error: any) {
+    console.error('상담 취소 실패:', error);
+    throw new Error(error.response?.data?.message || error.message || '상담 취소에 실패했습니다.');
+  }
+};

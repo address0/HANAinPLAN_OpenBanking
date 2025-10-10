@@ -4,6 +4,8 @@ import Layout from '../../components/layout/Layout';
 import { fetchAvailableConsultantsAtTime } from '../../api/scheduleApi';
 import { createConsultation } from '../../api/consultationApi';
 import { useUserStore } from '../../store/userStore';
+import { getAllDepositProducts } from '../../api/productApi';
+import { fundProductApi } from '../../api/fundApi';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -31,6 +33,14 @@ interface ConsultationField {
   icon: string;
 }
 
+interface ProductOption {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  type: 'deposit' | 'fund';
+}
+
 const consultationFields: ConsultationField[] = [
   {
     id: 'general',
@@ -52,6 +62,33 @@ const consultationFields: ConsultationField[] = [
   }
 ];
 
+// 상품 아이콘 매핑
+const getFundIcon = (fundName: string) => {
+  if (fundName.includes('글로벌') || fundName.includes('해외')) return '🌍';
+  if (fundName.includes('테크') || fundName.includes('기술')) return '💻';
+  if (fundName.includes('배당')) return '📈';
+  if (fundName.includes('ESG') || fundName.includes('친환경')) return '🌱';
+  if (fundName.includes('균형')) return '⚖️';
+  if (fundName.includes('성장')) return '📊';
+  return '💰';
+};
+
+// 자산관리 상담 옵션
+const assetManagementOptions = [
+  {
+    id: 'rebalancing',
+    name: '자산 리밸런싱',
+    description: '현재 포트폴리오의 자산 배분 조정',
+    icon: '⚖️'
+  },
+  {
+    id: 'fund-portfolio',
+    name: '펀드 포트폴리오',
+    description: '펀드 중심의 새로운 포트폴리오 구성',
+    icon: '📊'
+  }
+];
+
 // 전문 분야 파싱 함수
 const parseSpecialization = (specialization: string | null): string[] => {
   if (!specialization) return [];
@@ -66,6 +103,7 @@ const parseSpecialization = (specialization: string | null): string[] => {
 function ConsultationRequest() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedField, setSelectedField] = useState<string>('');
+  const [selectedSubOption, setSelectedSubOption] = useState<string>(''); // 상품 또는 자산관리 옵션
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedCounselor, setSelectedCounselor] = useState<Counselor | null>(null);
@@ -73,6 +111,7 @@ function ConsultationRequest() {
   const [isLoadingConsultants, setIsLoadingConsultants] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showProductNoticeModal, setShowProductNoticeModal] = useState(false);
   const [consultationId, setConsultationId] = useState<string>('');
   
   const { user } = useUserStore();
@@ -85,6 +124,45 @@ function ConsultationRequest() {
       return response.data;
     }
   });
+
+  // 예금 상품 목록 조회
+  const { data: depositProducts = [] } = useQuery({
+    queryKey: ['depositProducts'],
+    queryFn: async () => {
+      const response = await getAllDepositProducts();
+      return response.products || [];
+    }
+  });
+
+  // 펀드 상품 목록 조회
+  const { data: fundClasses = [] } = useQuery({
+    queryKey: ['fundClasses'],
+    queryFn: async () => {
+      return await fundProductApi.getAllFundClasses();
+    }
+  });
+
+  // 상품 옵션 동적 생성
+  const productOptions: ProductOption[] = [
+    // 예금 상품 (하나은행만 필터링)
+    ...depositProducts
+      .filter(product => product.bankCode === 'HANA')
+      .map(product => ({
+        id: product.depositCode,
+        name: product.name,
+        description: product.description || '안정적인 수익을 위한 정기예금 상품',
+        icon: '🏦',
+        type: 'deposit' as const
+      })),
+    // 펀드 상품 (전체)
+    ...fundClasses.map(fund => ({
+      id: fund.childFundCd,
+      name: fund.fundMaster.fundName,
+      description: `${fund.fundMaster.assetType} | ${fund.classCode}클래스`,
+      icon: getFundIcon(fund.fundMaster.fundName),
+      type: 'fund' as const
+    }))
+  ];
 
   // 다음 7일간의 날짜 생성 (주말 제외)
   const generateDates = () => {
@@ -136,14 +214,57 @@ function ConsultationRequest() {
     }
   };
 
+
+  // 상품/자산관리 옵션 선택이 필요한지 확인
+  const needsSubOption = () => {
+    return selectedField === 'product' || selectedField === 'asset-management';
+  };
+
+  // 상품/자산관리 옵션 목록 반환
+  const getSubOptions = () => {
+    if (selectedField === 'product') return productOptions;
+    if (selectedField === 'asset-management') return assetManagementOptions;
+    return [];
+  };
+
+  // 선택된 옵션의 이름 반환
+  const getSelectedOptionName = () => {
+    if (selectedField === 'product') {
+      return productOptions.find(option => option.id === selectedSubOption)?.name || '';
+    }
+    if (selectedField === 'asset-management') {
+      return assetManagementOptions.find(option => option.id === selectedSubOption)?.name || '';
+    }
+    return '';
+  };
+
   const handleNext = async () => {
-    if (currentStep < 3) {
-      // Step2에서 Step3로 넘어갈 때 상담사 조회
-      if (currentStep === 2 && selectedDate && selectedTimeSlot) {
+    if (currentStep < getTotalSteps()) {
+      // Step 1에서 상품가입 선택 시 안내 모달 표시
+      if (currentStep === 1 && selectedField === 'product') {
+        setShowProductNoticeModal(true);
+        return;
+      }
+      
+      // 날짜/시간 선택 후 다음 단계로 넘어갈 때 상담사 조회
+      // needsSubOption()이 true이면 Step 3 -> Step 4로 넘어갈 때
+      // needsSubOption()이 false이면 Step 2 -> Step 3로 넘어갈 때
+      const isMovingToConsultantStep = needsSubOption() 
+        ? currentStep === 3 
+        : currentStep === 2;
+      
+      if (isMovingToConsultantStep && selectedDate && selectedTimeSlot) {
         await loadAvailableConsultants(selectedDate, selectedTimeSlot);
       }
+      
       setCurrentStep(currentStep + 1);
     }
+  };
+
+  // 상품 가입 안내 확인 후 다음 단계로
+  const handleProductNoticeConfirm = () => {
+    setShowProductNoticeModal(false);
+    setCurrentStep(currentStep + 1);
   };
 
   const handlePrev = () => {
@@ -158,10 +279,26 @@ function ConsultationRequest() {
       return;
     }
 
+    // 상품/자산관리 상담인 경우 추가 옵션 선택 확인
+    if (needsSubOption() && !selectedSubOption) {
+      alert('상품 또는 상담 유형을 선택해주세요.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // 예약 시간 생성
       const reservationDatetime = `${selectedDate}T${selectedTimeSlot}:00`;
+      
+      // detail 필드 생성
+      let detail = '';
+      if (selectedField === 'product') {
+        detail = getSelectedOptionName();
+      } else if (selectedField === 'asset-management') {
+        detail = getSelectedOptionName();
+      } else {
+        detail = `${consultationFields.find(f => f.id === selectedField)?.name} 상담 신청`;
+      }
       
       // 상담 신청 API 호출
       const response = await createConsultation({
@@ -169,7 +306,7 @@ function ConsultationRequest() {
         consultantId: selectedCounselor.consultantId,
         consultationType: selectedField,
         reservationDatetime: reservationDatetime,
-        detail: `${consultationFields.find(f => f.id === selectedField)?.name} 상담 신청`
+        detail: detail
       });
       
       setConsultationId(response.consultId);
@@ -187,6 +324,46 @@ function ConsultationRequest() {
     const date = new Date(dateStr);
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
     return `${date.getMonth() + 1}월 ${date.getDate()}일 (${dayNames[date.getDay()]})`;
+  };
+
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1: return '1단계: 상담 분야 선택';
+      case 2: 
+        if (needsSubOption()) {
+          return selectedField === 'product' ? '2단계: 상품 선택' : '2단계: 상담 유형 선택';
+        }
+        return '2단계: 상담 일시 선택';
+      case 3:
+        if (needsSubOption()) {
+          return '3단계: 상담 일시 선택';
+        }
+        return '3단계: 상담사 선택';
+      case 4: return '4단계: 상담사 선택';
+      default: return '';
+    }
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1: return selectedField !== '';
+      case 2: 
+        if (needsSubOption()) {
+          return selectedSubOption !== '';
+        }
+        return selectedDate !== '' && selectedTimeSlot !== '';
+      case 3:
+        if (needsSubOption()) {
+          return selectedDate !== '' && selectedTimeSlot !== '';
+        }
+        return selectedCounselor !== null;
+      case 4: return selectedCounselor !== null;
+      default: return false;
+    }
+  };
+
+  const getTotalSteps = () => {
+    return needsSubOption() ? 4 : 3;
   };
 
   const renderStep1 = () => (
@@ -216,77 +393,190 @@ function ConsultationRequest() {
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담 일시를 선택해주세요</h2>
-        <p className="text-gray-600">원하는 날짜와 시간을 선택해주세요</p>
-      </div>
-      
-      <div className="space-y-6">
-        {/* 날짜 선택 */}
-        <div>
-          <h3 className="text-lg font-hana-bold text-gray-900 mb-3">날짜 선택</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {dates.map((date) => {
-              const dateObj = new Date(date);
-              const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-              const dayName = dayNames[dateObj.getDay()];
-              
-              return (
-                <button
-                  key={date}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedDate === date
-                      ? 'border-hana-green bg-hana-green/5 text-hana-green'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => {
-                    setSelectedDate(date);
-                    setSelectedTimeSlot('');
-                    setSelectedCounselor(null);
-                  }}
-                >
-                  <div className="font-hana-medium">{dayName}</div>
-                  <div className="text-sm text-gray-600">
-                    {dateObj.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                  </div>
-                </button>
-              );
-            })}
+  const renderStep2 = () => {
+    // 상품/자산관리 옵션 선택이 필요한 경우
+    if (needsSubOption()) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">
+              {selectedField === 'product' ? '상품을 선택해주세요' : '상담 유형을 선택해주세요'}
+            </h2>
+            <p className="text-gray-600">
+              {selectedField === 'product' 
+                ? '가입을 원하는 상품을 선택해주세요' 
+                : '원하는 자산관리 상담 유형을 선택해주세요'}
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+            {getSubOptions().map((option) => (
+              <div
+                key={option.id}
+                className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                  selectedSubOption === option.id
+                    ? 'border-hana-green bg-hana-green/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => setSelectedSubOption(option.id)}
+              >
+                <div className="text-4xl mb-3 text-center">{option.icon}</div>
+                <h3 className="text-lg font-hana-bold text-gray-900 mb-2 text-center">{option.name}</h3>
+                <p className="text-sm text-gray-600 text-center">{option.description}</p>
+              </div>
+            ))}
           </div>
         </div>
+      );
+    }
 
-        {/* 시간 선택 */}
-        {selectedDate && (
+    // 일반 상담의 경우 날짜/시간 선택
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담 일시를 선택해주세요</h2>
+          <p className="text-gray-600">원하는 날짜와 시간을 선택해주세요</p>
+        </div>
+        
+        <div className="space-y-6">
+          {/* 날짜 선택 */}
           <div>
-            <h3 className="text-lg font-hana-bold text-gray-900 mb-3">시간 선택</h3>
+            <h3 className="text-lg font-hana-bold text-gray-900 mb-3">날짜 선택</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {timeSlots.map((time) => (
-                <button
-                  key={time}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    selectedTimeSlot === time
-                      ? 'border-hana-green bg-hana-green/5 text-hana-green'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => {
-                    setSelectedTimeSlot(time);
-                    setSelectedCounselor(null);
-                  }}
-                >
-                  <div className="font-hana-medium">{time}</div>
-                  <div className="text-xs text-gray-500">예약 가능</div>
-                </button>
-              ))}
+              {dates.map((date) => {
+                const dateObj = new Date(date);
+                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                const dayName = dayNames[dateObj.getDay()];
+                
+                return (
+                  <button
+                    key={date}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      selectedDate === date
+                        ? 'border-hana-green bg-hana-green/5 text-hana-green'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      setSelectedTimeSlot('');
+                      setSelectedCounselor(null);
+                    }}
+                  >
+                    <div className="font-hana-medium">{dayName}</div>
+                    <div className="text-sm text-gray-600">
+                      {dateObj.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        )}
+
+          {/* 시간 선택 */}
+          {selectedDate && (
+            <div>
+              <h3 className="text-lg font-hana-bold text-gray-900 mb-3">시간 선택</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {timeSlots.map((time) => (
+                  <button
+                    key={time}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      selectedTimeSlot === time
+                        ? 'border-hana-green bg-hana-green/5 text-hana-green'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => {
+                      setSelectedTimeSlot(time);
+                      setSelectedCounselor(null);
+                    }}
+                  >
+                    <div className="font-hana-medium">{time}</div>
+                    <div className="text-xs text-gray-500">예약 가능</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep3 = () => {
+    // 상품/자산관리 옵션 선택이 필요한 경우 날짜/시간 선택
+    if (needsSubOption()) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담 일시를 선택해주세요</h2>
+            <p className="text-gray-600">원하는 날짜와 시간을 선택해주세요</p>
+          </div>
+          
+          <div className="space-y-6">
+            {/* 날짜 선택 */}
+            <div>
+              <h3 className="text-lg font-hana-bold text-gray-900 mb-3">날짜 선택</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {dates.map((date) => {
+                  const dateObj = new Date(date);
+                  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                  const dayName = dayNames[dateObj.getDay()];
+                  
+                  return (
+                    <button
+                      key={date}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        selectedDate === date
+                          ? 'border-hana-green bg-hana-green/5 text-hana-green'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedDate(date);
+                        setSelectedTimeSlot('');
+                        setSelectedCounselor(null);
+                      }}
+                    >
+                      <div className="font-hana-medium">{dayName}</div>
+                      <div className="text-sm text-gray-600">
+                        {dateObj.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 시간 선택 */}
+            {selectedDate && (
+              <div>
+                <h3 className="text-lg font-hana-bold text-gray-900 mb-3">시간 선택</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {timeSlots.map((time) => (
+                    <button
+                      key={time}
+                      className={`p-3 rounded-lg border-2 transition-all ${
+                        selectedTimeSlot === time
+                          ? 'border-hana-green bg-hana-green/5 text-hana-green'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedTimeSlot(time);
+                        setSelectedCounselor(null);
+                      }}
+                    >
+                      <div className="font-hana-medium">{time}</div>
+                      <div className="text-xs text-gray-500">예약 가능</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // 일반 상담의 경우 상담사 선택
     if (isLoadingConsultants) {
       return (
         <div className="flex justify-center items-center py-12">
@@ -385,22 +675,103 @@ function ConsultationRequest() {
     );
   };
 
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case 1: return '1단계: 상담 분야 선택';
-      case 2: return '2단계: 상담 일시 선택';
-      case 3: return '3단계: 상담사 선택';
-      default: return '';
+  const renderStep4 = () => {
+    if (isLoadingConsultants) {
+      return (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hana-green mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-hana-regular">가능한 상담사를 조회하는 중...</p>
+          </div>
+        </div>
+      );
     }
-  };
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1: return selectedField !== '';
-      case 2: return selectedDate !== '' && selectedTimeSlot !== '';
-      case 3: return selectedCounselor !== null;
-      default: return false;
-    }
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담사를 선택해주세요</h2>
+          <p className="text-gray-600">선택하신 시간에 가능한 전문 상담사입니다 ({availableConsultants.length}명)</p>
+        </div>
+        
+        {availableConsultants.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">선택한 시간에 가능한 상담사가 없습니다.</p>
+            <p className="text-sm text-gray-500 mt-2">다른 시간을 선택해 주세요.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {availableConsultants.map((counselor) => {
+              const specialties = parseSpecialization(counselor.specialization);
+              return (
+                <div
+                  key={counselor.consultantId}
+                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${
+                    selectedCounselor?.consultantId === counselor.consultantId
+                      ? 'border-hana-green bg-hana-green/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedCounselor(counselor)}
+                >
+                  <div className="flex items-center mb-4">
+                    <div className="w-16 h-16 rounded-full bg-hana-green/10 flex items-center justify-center mr-4">
+                      <span className="text-2xl font-hana-bold text-hana-green">
+                        {counselor.userName?.charAt(0) || '상'}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-hana-bold text-gray-900">{counselor.userName || '상담사'}</h3>
+                      <p className="text-gray-600">{counselor.department || '일반상담팀'}</p>
+                      <p className="text-sm text-gray-500">{counselor.position || '상담사'}</p>
+                      <div className="flex items-center mt-1">
+                        <span className="text-yellow-500 text-sm">★</span>
+                        <span className="text-sm text-gray-600 ml-1">
+                          {counselor.consultationRating?.toFixed(1) || '0.0'} ({counselor.totalConsultations || 0}회 상담)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {specialties.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-500">전문분야</p>
+                        <div className="flex flex-wrap gap-2">
+                          {specialties.slice(0, 4).map((specialty, index) => (
+                            <span key={index} className="bg-hana-green/10 text-hana-green px-2 py-1 rounded-full text-xs font-hana-medium">
+                              {specialty}
+                            </span>
+                          ))}
+                          {specialties.length > 4 && (
+                            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-hana-medium">
+                              +{specialties.length - 4}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {counselor.experienceYears && (
+                      <div>
+                        <p className="text-sm text-gray-500">경력</p>
+                        <p className="text-gray-700 font-hana-medium">{counselor.experienceYears}</p>
+                      </div>
+                    )}
+                    
+                    {counselor.branchName && (
+                      <div>
+                        <p className="text-sm text-gray-500">소속 지점</p>
+                        <p className="text-gray-700 font-hana-medium">{counselor.branchName}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -411,11 +782,11 @@ function ConsultationRequest() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-2xl font-hana-bold text-gray-900">{getStepTitle()}</h1>
-              <span className="text-sm text-gray-500">{currentStep}/3 단계</span>
+              <span className="text-sm text-gray-500">{currentStep}/{getTotalSteps()} 단계</span>
             </div>
             
             <div className="flex items-center space-x-4">
-              {[1, 2, 3].map((step) => (
+              {Array.from({ length: getTotalSteps() }, (_, i) => i + 1).map((step) => (
                 <div key={step} className="flex items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-hana-medium ${
                     step <= currentStep 
@@ -424,7 +795,7 @@ function ConsultationRequest() {
                   }`}>
                     {step}
                   </div>
-                  {step < 3 && (
+                  {step < getTotalSteps() && (
                     <div className={`w-12 h-1 ml-2 ${
                       step < currentStep ? 'bg-hana-green' : 'bg-gray-200'
                     }`} />
@@ -440,6 +811,7 @@ function ConsultationRequest() {
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8">
@@ -456,7 +828,7 @@ function ConsultationRequest() {
             </button>
 
             <div className="flex space-x-4">
-              {currentStep < 3 ? (
+              {currentStep < getTotalSteps() ? (
                 <button
                   onClick={handleNext}
                   disabled={!canProceed()}
@@ -484,6 +856,77 @@ function ConsultationRequest() {
             </div>
           </div>
         </div>
+
+        {/* 상품 가입 안내 모달 */}
+        {showProductNoticeModal && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setShowProductNoticeModal(false)}
+          >
+            <div 
+              className="bg-white rounded-xl p-8 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                
+                <h2 className="text-2xl font-hana-bold text-gray-900 mb-4">
+                  상품 가입 상담 안내
+                </h2>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-left space-y-3">
+                  <div className="flex items-start">
+                    <span className="text-yellow-600 mr-2 mt-0.5">📋</span>
+                    <div>
+                      <p className="font-hana-medium text-gray-900 mb-1">본인 확인 필수</p>
+                      <p className="text-sm text-gray-700">
+                        상품 가입 상담은 <span className="font-hana-bold text-hana-green">본인이 직접</span> 상담을 받으셔야 합니다.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <span className="text-yellow-600 mr-2 mt-0.5">🪪</span>
+                    <div>
+                      <p className="font-hana-medium text-gray-900 mb-1">신분증 준비</p>
+                      <p className="text-sm text-gray-700">
+                        상담 시 <span className="font-hana-bold text-hana-green">신분증(주민등록증, 운전면허증 등)</span>을 반드시 지참해 주세요.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <span className="text-yellow-600 mr-2 mt-0.5">ℹ️</span>
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        대리인을 통한 상담은 불가능합니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowProductNoticeModal(false)}
+                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-hana-medium"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleProductNoticeConfirm}
+                    className="flex-1 px-6 py-3 bg-hana-green text-white rounded-lg hover:bg-green-600 transition-colors font-hana-medium"
+                  >
+                    확인했습니다
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 상담 신청 완료 모달 */}
         {showSuccessModal && (
@@ -520,6 +963,14 @@ function ConsultationRequest() {
                       {consultationFields.find(f => f.id === selectedField)?.name}
                     </span>
                   </div>
+                  {needsSubOption() && selectedSubOption && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">
+                        {selectedField === 'product' ? '선택 상품' : '상담 유형'}
+                      </span>
+                      <span className="font-hana-medium">{getSelectedOptionName()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">상담사</span>
                     <span className="font-hana-medium">{selectedCounselor?.userName}</span>

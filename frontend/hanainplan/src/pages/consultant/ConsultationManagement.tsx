@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Layout from '../../components/layout/Layout';
 import {
@@ -15,27 +15,29 @@ type TabType = 'today' | 'requests' | 'all';
 function ConsultationManagement() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmedConsultation, setConfirmedConsultation] = useState<ConsultationResponse | null>(null);
   const queryClient = useQueryClient();
   
   const { user } = useUserStore();
   const consultantId = user?.userId;
 
   // 오늘의 상담 조회
-  const { data: todayConsultations = [], isLoading: todayLoading, refetch: refetchToday } = useQuery({
+  const { data: todayConsultations = [], isLoading: todayLoading } = useQuery({
     queryKey: ['todayConsultations', consultantId],
     queryFn: () => consultantId ? getTodayConsultations(consultantId) : Promise.resolve([]),
     enabled: !!consultantId
   });
 
   // 요청 내역 조회
-  const { data: consultationRequests = [], isLoading: requestsLoading, refetch: refetchRequests } = useQuery({
+  const { data: consultationRequests = [], isLoading: requestsLoading } = useQuery({
     queryKey: ['consultationRequests', consultantId],
     queryFn: () => consultantId ? getConsultationRequests(consultantId) : Promise.resolve([]),
     enabled: !!consultantId
   });
 
   // 전체 상담 조회
-  const { data: allConsultationsData = [], isLoading: allLoading, refetch: refetchAll } = useQuery({
+  const { data: allConsultationsData = [], isLoading: allLoading } = useQuery({
     queryKey: ['consultations', consultantId],
     queryFn: () => consultantId ? getConsultantConsultations(consultantId) : Promise.resolve([]),
     enabled: !!consultantId
@@ -58,11 +60,18 @@ function ConsultationManagement() {
   const statusMutation = useMutation({
     mutationFn: ({ consultId, status }: { consultId: string; status: string }) => 
       updateConsultationStatus(consultId, status),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['todayConsultations'] });
       queryClient.invalidateQueries({ queryKey: ['consultationRequests'] });
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
-      alert('상담 상태가 변경되었습니다.');
+      
+      // 상담 확정 시 모달 표시
+      if (variables.status === '예약확정') {
+        setConfirmedConsultation(data);
+        setShowConfirmModal(true);
+      } else {
+        alert('상담 상태가 변경되었습니다.');
+      }
     },
     onError: (error: any) => {
       alert(error.message || '상태 변경에 실패했습니다.');
@@ -412,6 +421,93 @@ function ConsultationManagement() {
           </div>
         </div>
       </div>
+
+      {/* 상담 확정 모달 */}
+      {showConfirmModal && confirmedConsultation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+            {/* 성공 아이콘 */}
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-hana-bold text-gray-900 mb-2">상담 확정 완료!</h3>
+              <p className="text-gray-600 font-hana-regular">고객에게 예약 확정 알림이 전송되었습니다.</p>
+            </div>
+
+            {/* 상담 정보 */}
+            <div className="bg-gray-50 rounded-xl p-6 mb-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-hana-green rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 font-hana-regular">고객명</p>
+                    <p className="text-base font-hana-bold text-gray-900">{confirmedConsultation.customerName}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 font-hana-regular">상담 일시</p>
+                    <p className="text-base font-hana-bold text-gray-900">{formatDateTime(confirmedConsultation.reservationDatetime)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 font-hana-regular">상담 유형</p>
+                    <p className="text-base font-hana-bold text-gray-900">{getConsultationTypeText(confirmedConsultation.consultType)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 안내 메시지 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm text-blue-800 font-hana-medium">알림 전송 완료</p>
+                  <p className="text-xs text-blue-600 font-hana-regular mt-1">
+                    고객님에게 상담 정보 메일이 전송되었습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 버튼 */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmedConsultation(null);
+                }}
+                className="flex-1 px-6 py-3 bg-hana-green text-white rounded-xl hover:bg-green-600 transition-colors font-hana-bold text-lg"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

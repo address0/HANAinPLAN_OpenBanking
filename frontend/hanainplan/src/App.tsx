@@ -17,6 +17,7 @@ import IrpProducts from './pages/products/IrpProducts'
 import InsuranceProducts from './pages/products/InsuranceProducts'
 import ConsultationStaff from './pages/consultation/ConsultationStaff'
 import ConsultationRequest from './pages/consultation/ConsultationRequest'
+import MyConsultations from './pages/consultation/MyConsultations'
 import FundList from './pages/FundList'
 import FundDetail from './pages/FundDetail'
 import FundMy from './pages/FundMy'
@@ -151,6 +152,7 @@ function App() {
           <Route path="/products/insurance" element={<InsuranceProducts />} />
           <Route path="/consultation/staff" element={<ConsultationStaff />} />
           <Route path="/consultation/request" element={<ConsultationRequest />} />
+          <Route path="/consultation/my" element={<MyConsultations />} />
           
           {/* 펀드 라우트 */}
           <Route path="/funds" element={<FundList />} />
