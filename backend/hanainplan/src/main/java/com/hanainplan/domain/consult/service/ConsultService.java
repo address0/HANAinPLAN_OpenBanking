@@ -56,8 +56,8 @@ public class ConsultService {
         User consultant = userRepository.findById(request.getConsultantId())
                 .orElseThrow(() -> new IllegalArgumentException("상담사를 찾을 수 없습니다."));
 
-        // 상담 ID 생성 (날짜 + 순번 형식)
-        String consultId = generateConsultId();
+        // 상담 ID 생성 (상담 종류별 접두사 + 날짜시간)
+        String consultId = generateConsultId(request.getConsultationType());
 
         // 상담 엔터티 생성
         Consult consult = Consult.builder()
@@ -111,10 +111,30 @@ public class ConsultService {
 
     /**
      * 상담 ID 생성
+     * - 일반(general): COM + 날짜시간
+     * - 상품가입(product): PRO + 날짜시간
+     * - 자산관리(asset-management): ASM + 날짜시간
      */
-    private String generateConsultId() {
+    private String generateConsultId(String consultationType) {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        return "CONS" + datePart;
+        String prefix;
+        
+        switch (consultationType) {
+            case "general":
+                prefix = "COM";
+                break;
+            case "product":
+                prefix = "PRO";
+                break;
+            case "asset-management":
+                prefix = "ASM";
+                break;
+            default:
+                prefix = "COM"; // 기본값은 일반 상담
+                break;
+        }
+        
+        return prefix + datePart;
     }
 
     /**
@@ -473,6 +493,32 @@ public class ConsultService {
         } catch (Exception e) {
             return "알 수 없는 고객";
         }
+    }
+
+    /**
+     * 상담 상세 정보 조회 (화상 상담 입장용)
+     */
+    public ConsultationResponseDto getConsultationDetails(String consultId) {
+        log.info("상담 상세 정보 조회 - consultId: {}", consultId);
+        
+        Consult consult = consultRepository.findById(consultId)
+                .orElseThrow(() -> new IllegalArgumentException("상담을 찾을 수 없습니다. ID: " + consultId));
+        
+        ConsultationResponseDto dto = convertToDto(consult);
+        
+        // 상담사 부서 정보 추가
+        try {
+            Long consultantId = Long.valueOf(consult.getConsultantId());
+            userRepository.findById(consultantId).ifPresent(consultant -> {
+                // Consultant 엔티티가 있다면 부서 정보 조회
+                // 현재는 User 엔티티만 사용하므로 기본값 설정
+                dto.setConsultantDepartment("상담팀");
+            });
+        } catch (Exception e) {
+            log.warn("상담사 부서 정보 조회 실패 - consultId: {}", consultId, e);
+        }
+        
+        return dto;
     }
 
     /**

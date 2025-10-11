@@ -23,11 +23,16 @@ public class WebRTCMessage {
         CALL_ACCEPT,      // 통화 수락
         CALL_REJECT,      // 통화 거절
         CALL_END,         // 통화 종료
+        CONSULTATION_START, // 상담 시작 (예약 상담용)
         
         // WebRTC signaling
         OFFER,            // SDP offer
         ANSWER,           // SDP answer
         ICE_CANDIDATE,    // ICE candidate
+        
+        // Consultation sync
+        CONSULTATION_STEP_SYNC,  // 상담 단계 동기화
+        CONSULTATION_NOTE_SYNC,  // 상담 메모 동기화
         
         // Connection status
         USER_JOINED,      // 사용자 입장

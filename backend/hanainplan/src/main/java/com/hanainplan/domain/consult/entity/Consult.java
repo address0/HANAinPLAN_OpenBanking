@@ -61,6 +61,14 @@ public class Consult {
     @Column(name = "consultant_id", length = 20, nullable = false)
     private String consultantId;
 
+    @Column(name = "notification_sent_10min")
+    @Builder.Default
+    private Boolean notificationSent10min = false;
+
+    @Column(name = "notification_sent_ontime")
+    @Builder.Default
+    private Boolean notificationSentOntime = false;
+
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @JoinColumn(name = "branch_code", referencedColumnName = "branch_code", insertable = false, updatable = false)
 //    private BranchCode branch;
@@ -169,5 +177,19 @@ public class Consult {
      */
     public void cancelConsult() {
         this.consultStatus = "취소";
+    }
+
+    /**
+     * 10분 전 알림 발송 완료 표시
+     */
+    public void markNotification10minSent() {
+        this.notificationSent10min = true;
+    }
+
+    /**
+     * 정각 알림 발송 완료 표시
+     */
+    public void markNotificationOntimeSent() {
+        this.notificationSentOntime = true;
     }
 }

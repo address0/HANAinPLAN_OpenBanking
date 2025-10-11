@@ -160,6 +160,36 @@ public class ConsultationController {
     }
 
     /**
+     * 상담 상세 정보 조회 (화상 상담 입장용)
+     */
+    @GetMapping("/{consultId}/details")
+    @Operation(summary = "상담 상세 정보 조회", description = "화상 상담 입장을 위한 상담 상세 정보를 조회합니다.")
+    public ResponseEntity<?> getConsultationDetails(
+            @Parameter(description = "상담 ID", required = true)
+            @PathVariable String consultId
+    ) {
+        try {
+            log.info("GET /api/consultations/{}/details - consultId: {}", consultId, consultId);
+            
+            ConsultationResponseDto response = consultService.getConsultationDetails(consultId);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("상담 상세 정보 조회 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("상담 상세 정보 조회 중 오류 발생", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "상담 상세 정보 조회 중 오류가 발생했습니다."
+            ));
+        }
+    }
+
+    /**
      * 상담 취소 (고객용)
      */
     @PostMapping("/{consultId}/cancel")

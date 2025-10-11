@@ -233,7 +233,7 @@ public class AccountController {
     }
 
     @GetMapping("/irp/account/{customerCi}")
-    @Operation(summary = "IRP 계좌 정보 조회", description = "특정 고객의 IRP 계좌 정보를 조회합니다")
+    @Operation(summary = "IRP 계좌 정보 조회 (CI)", description = "특정 고객의 IRP 계좌 정보를 CI로 조회합니다")
     public ResponseEntity<?> getIrpAccount(
             @Parameter(description = "고객 CI") @PathVariable String customerCi) {
 
@@ -249,6 +249,27 @@ public class AccountController {
 
         } catch (Exception e) {
             log.error("IRP 계좌 정보 조회 실패 - 고객 CI: {}", customerCi, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/irp/account/user/{userId}")
+    @Operation(summary = "IRP 계좌 정보 조회 (사용자 ID)", description = "사용자 ID로 IRP 계좌 정보를 조회합니다")
+    public ResponseEntity<?> getIrpAccountByUserId(
+            @Parameter(description = "사용자 ID") @PathVariable Long userId) {
+
+        log.info("IRP 계좌 정보 조회 API 호출 - 사용자 ID: {}", userId);
+
+        try {
+            var account = irpIntegrationService.getCustomerIrpAccountByUserId(userId);
+            if (account != null) {
+                return ResponseEntity.ok(account);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+
+        } catch (Exception e) {
+            log.error("IRP 계좌 정보 조회 실패 - 사용자 ID: {}", userId, e);
             return ResponseEntity.internalServerError().build();
         }
     }

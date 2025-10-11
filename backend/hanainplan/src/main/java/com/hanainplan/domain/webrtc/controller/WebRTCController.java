@@ -1,5 +1,7 @@
 package com.hanainplan.domain.webrtc.controller;
 
+import com.hanainplan.domain.consult.entity.Consult;
+import com.hanainplan.domain.consult.repository.ConsultRepository;
 import com.hanainplan.domain.notification.service.FCMService;
 import com.hanainplan.domain.notification.service.FCMTokenService;
 import com.hanainplan.domain.webrtc.dto.CallRequestMessage;
@@ -29,6 +31,7 @@ public class WebRTCController {
     private final ConsultationMatchingService consultationMatchingService;
     private final FCMService fcmService;
     private final FCMTokenService fcmTokenService;
+    private final ConsultRepository consultRepository;
 
     /**
      * 통화 요청 생성 (직접 지정) - 기존 방식
@@ -311,5 +314,99 @@ public class WebRTCController {
             "onlineUsers", webRTCService.getOnlineUsers(),
             "sessionCount", webRTCService.getSessionCount()
         ));
+    }
+
+    /**
+     * 예약 상담 화상 입장
+     * - consultationId를 roomId로 사용
+     * - 상담 상태를 "상담중"으로 변경
+     */
+    @PostMapping("/consultation/{consultationId}/join")
+    public ResponseEntity<?> joinConsultationRoom(
+            @PathVariable String consultationId,
+            @RequestBody Map<String, Object> request
+    ) {
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            log.info("POST /api/webrtc/consultation/{}/join - userId: {}", consultationId, userId);
+            
+            // 상담 정보 조회
+            Consult consult = consultRepository.findById(consultationId)
+                    .orElseThrow(() -> new IllegalArgumentException("상담을 찾을 수 없습니다. ID: " + consultationId));
+            
+            // 상담 상태 확인 (예약확정 또는 상담중 상태만 입장 가능)
+            if (!"예약확정".equals(consult.getConsultStatus()) && !"상담중".equals(consult.getConsultStatus())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "예약 확정되거나 진행 중인 상담만 입장할 수 있습니다. 현재 상태: " + consult.getConsultStatus()
+                ));
+            }
+            
+            // 사용자 권한 확인 (고객 또는 상담사만 입장 가능)
+            String customerIdStr = consult.getCustomerId();
+            String consultantIdStr = consult.getConsultantId();
+            
+            if (!userId.equals(Long.valueOf(customerIdStr)) && !userId.equals(Long.valueOf(consultantIdStr))) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "해당 상담의 참여자가 아닙니다."
+                ));
+            }
+            
+            // VideoCallRoom 조회 또는 생성 (roomId = consultationId)
+            VideoCallRoom callRoom = videoCallRoomRepository.findByRoomId(consultationId)
+                    .orElseGet(() -> {
+                        // 새로운 방 생성
+                        VideoCallRoom newRoom = VideoCallRoom.builder()
+                                .roomId(consultationId)
+                                .callerId(Long.valueOf(customerIdStr))
+                                .calleeId(Long.valueOf(consultantIdStr))
+                                .status(VideoCallRoom.CallStatus.WAITING)
+                                .build();
+                        return videoCallRoomRepository.save(newRoom);
+                    });
+            
+            // 상담 상태를 "상담중"으로 변경 (처음 입장하는 경우)
+            if ("예약확정".equals(consult.getConsultStatus())) {
+                consult.startConsult();
+                consultRepository.save(consult);
+                log.info("상담 시작 - consultId: {}", consultationId);
+            }
+            
+            // 방 상태 업데이트
+            if (callRoom.getStatus() == VideoCallRoom.CallStatus.WAITING) {
+                callRoom.updateStatus(VideoCallRoom.CallStatus.CONNECTED);
+                videoCallRoomRepository.save(callRoom);
+            }
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "roomId", consultationId,
+                "consultationId", consultationId,
+                "callerId", callRoom.getCallerId(),
+                "calleeId", callRoom.getCalleeId(),
+                "status", callRoom.getStatus(),
+                "message", "상담 방에 입장했습니다."
+            ));
+            
+        } catch (NumberFormatException e) {
+            log.error("Invalid user ID format", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "잘못된 사용자 ID 형식입니다."
+            ));
+        } catch (IllegalArgumentException e) {
+            log.error("Consultation not found: {}", consultationId);
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Error joining consultation room: {}", consultationId, e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "상담 방 입장 중 오류가 발생했습니다."
+            ));
+        }
     }
 } 

@@ -33,6 +33,7 @@ public class ConsultationResponseDto {
     // 추가 정보
     private String customerName;
     private String consultantName;
+    private String consultantDepartment;
 
     /**
      * Entity -> DTO 변환

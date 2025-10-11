@@ -415,6 +415,32 @@ public class IrpIntegrationServiceImpl implements IrpIntegrationService {
         IrpAccount account = accounts.get(0);
         return convertToDto(account);
     }
+    
+    @Override
+    public IrpAccountDto getCustomerIrpAccountByUserId(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("사용자를 찾을 수 없습니다 - 사용자 ID: {}", userId);
+            return null;
+        }
+
+        User user = userOpt.get();
+        if (user.getCi() == null || user.getCi().isEmpty()) {
+            log.warn("사용자의 CI 정보가 없습니다 - 사용자 ID: {}", userId);
+            return null;
+        }
+
+        List<IrpAccount> accounts = irpAccountRepository.findByCustomerCiOrderByCreatedDateDesc(user.getCi());
+
+        if (accounts.isEmpty()) {
+            log.info("IRP 계좌가 없습니다 - 사용자 ID: {}, CI: {}", userId, user.getCi());
+            return null;
+        }
+
+        // 최신 계좌 하나만 반환 (사용자는 하나의 IRP 계좌만 보유 가능)
+        IrpAccount account = accounts.get(0);
+        return convertToDto(account);
+    }
 
     @Override
     public long getActiveIrpAccountCount(String customerCi) {

@@ -1,5 +1,7 @@
 package com.hanainplan.domain.webrtc.service;
 
+import com.hanainplan.domain.consult.entity.Consult;
+import com.hanainplan.domain.consult.repository.ConsultRepository;
 import com.hanainplan.domain.user.entity.Consultant;
 import com.hanainplan.domain.user.repository.ConsultantRepository;
 import com.hanainplan.domain.webrtc.entity.VideoCallRoom;
@@ -24,6 +26,7 @@ public class WebRTCService {
     private final VideoCallRoomRepository videoCallRoomRepository;
     private final ConsultantRepository consultantRepository;
     private final ConsultationMatchingService consultationMatchingService;
+    private final ConsultRepository consultRepository;
     
     // 온라인 사용자 관리 (실제 환경에서는 Redis 등을 사용할 수 있습니다)
     private final Map<Long, Boolean> onlineUsers = new ConcurrentHashMap<>();
@@ -100,6 +103,21 @@ public class WebRTCService {
         callRoom.endCall();
         videoCallRoomRepository.save(callRoom);
         log.info("Call ended for roomId: {}", roomId);
+
+        // roomId가 consultationId인 경우 상담 상태 업데이트
+        try {
+            Optional<Consult> consultOpt = consultRepository.findById(roomId);
+            if (consultOpt.isPresent()) {
+                Consult consult = consultOpt.get();
+                if ("상담중".equals(consult.getConsultStatus())) {
+                    consult.setConsultStatus("상담완료");
+                    consultRepository.save(consult);
+                    log.info("Consultation completed - consultId: {}", roomId);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update consultation status for roomId: {}", roomId, e);
+        }
 
         // 상담 종료 후 상담원 상태 업데이트 및 대기 고객 매칭
         consultationMatchingService.onConsultationEnd(roomId);

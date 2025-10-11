@@ -159,5 +159,69 @@ public class WebRTCSignalController {
         log.debug("ICE from {} to {}, room {}", ice.getSenderId(), ice.getReceiverId(), ice.getRoomId());
         messagingTemplate.convertAndSendToUser(String.valueOf(ice.getReceiverId()), "/queue/webrtc-ice", ice);
     }
+
+    /**
+     * 상담 시작 메시지 처리
+     * - 상담사가 상담 시작 버튼을 누르면 호출됨
+     * - 고객에게 상담 시작 메시지 전송
+     */
+    @MessageMapping("/consultation.start")
+    public void handleConsultationStart(@Payload WebRTCMessage message) {
+        log.info("🔔 Consultation start from consultant {} to customer {}, room {}", 
+                message.getSenderId(), message.getReceiverId(), message.getRoomId());
+        
+        log.info("전송할 메시지 내용: type={}, roomId={}, senderId={}, receiverId={}", 
+                message.getType(), message.getRoomId(), message.getSenderId(), message.getReceiverId());
+        
+        // 고객에게 상담 시작 메시지 전송
+        String destination = "/queue/consultation-start";
+        String userIdStr = String.valueOf(message.getReceiverId());
+        
+        log.info("메시지 전송 - 목적지: /user/{}{}", userIdStr, destination);
+        
+        messagingTemplate.convertAndSendToUser(
+                userIdStr, 
+                destination, 
+                message
+        );
+        
+        log.info("✅ Consultation start message sent to customer {}", message.getReceiverId());
+    }
+
+    /**
+     * 상담 단계 동기화 처리
+     * - 상담사가 단계를 변경하면 고객에게 전송
+     */
+    @MessageMapping("/consultation.step-sync")
+    public void handleConsultationStepSync(@Payload WebRTCMessage message) {
+        log.info("🔄 Consultation step sync from {} to {}, room {}, step: {}", 
+                message.getSenderId(), message.getReceiverId(), message.getRoomId(), message.getData());
+        
+        messagingTemplate.convertAndSendToUser(
+                String.valueOf(message.getReceiverId()), 
+                "/queue/consultation-step-sync", 
+                message
+        );
+        
+        log.info("✅ Consultation step sync sent to {}", message.getReceiverId());
+    }
+
+    /**
+     * 상담 메모 동기화 처리
+     * - 상담사가 공유 메모를 저장하면 고객에게 전송
+     */
+    @MessageMapping("/consultation.note-sync")
+    public void handleConsultationNoteSync(@Payload WebRTCMessage message) {
+        log.info("📝 Consultation note sync from {} to {}, room {}", 
+                message.getSenderId(), message.getReceiverId(), message.getRoomId());
+        
+        messagingTemplate.convertAndSendToUser(
+                String.valueOf(message.getReceiverId()), 
+                "/queue/consultation-note-sync", 
+                message
+        );
+        
+        log.info("✅ Consultation note sync sent to {}", message.getReceiverId());
+    }
 }
 

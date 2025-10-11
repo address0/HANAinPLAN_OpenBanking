@@ -59,5 +59,27 @@ public interface ConsultRepository extends JpaRepository<Consult, String> {
      */
     List<Consult> findByConsultantIdAndConsultStatusInOrderByReservationDatetimeAsc(
             String consultantId, List<String> statuses);
+
+    /**
+     * 10분 후 예정된 상담 중 알림 미전송 상담 조회
+     */
+    @Query("SELECT c FROM Consult c WHERE c.consultStatus = '예약확정' " +
+           "AND c.notificationSent10min = false " +
+           "AND c.reservationDatetime BETWEEN :startTime AND :endTime")
+    List<Consult> findConsultationsFor10MinNotification(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
+
+    /**
+     * 정각에 시작하는 상담 중 알림 미전송 상담 조회
+     */
+    @Query("SELECT c FROM Consult c WHERE c.consultStatus = '예약확정' " +
+           "AND c.notificationSentOntime = false " +
+           "AND c.reservationDatetime BETWEEN :startTime AND :endTime")
+    List<Consult> findConsultationsForOntimeNotification(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime
+    );
 }
 

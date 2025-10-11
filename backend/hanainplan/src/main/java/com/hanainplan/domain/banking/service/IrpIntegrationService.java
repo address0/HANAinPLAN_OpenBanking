@@ -77,6 +77,11 @@ public interface IrpIntegrationService {
      * 고객 IRP 계좌 정보 조회 (고객 ID 기반, 단일 계좌)
      */
     IrpAccountDto getCustomerIrpAccountByCustomerId(Long customerId);
+    
+    /**
+     * 고객 IRP 계좌 정보 조회 (사용자 ID 기반, 단일 계좌)
+     */
+    IrpAccountDto getCustomerIrpAccountByUserId(Long userId);
 
     /**
      * 활성화된 IRP 계좌 수 조회 (CI 기반)
