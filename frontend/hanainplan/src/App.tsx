@@ -142,6 +142,7 @@ function App() {
           <Route path="/auth/kakao/callback/*" element={<KakaoCallback />} />
           <Route path="/test-callback" element={<KakaoCallback />} />
           <Route path="/webrtc" element={<VideoCall />} />
+          <Route path="/video-call" element={<VideoCall />} />
           <Route path="/main" element={<Main />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/pension-calculator" element={<PensionCalculator />} />

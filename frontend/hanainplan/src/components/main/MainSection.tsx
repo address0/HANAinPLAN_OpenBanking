@@ -79,41 +79,9 @@ function MainSection() {
 
   return (
     <>
-      {/* 보험 상담 섹션 */}
-      <section 
-        ref={introRef}
-        className="container mx-auto px-4 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center overflow-hidden"
-      >
-        {/* Left: Texts */}
-        <div className={`transition-all duration-1000 ease-out ${
-          isVisible.intro ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
-        }`}>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-hana-bold text-gray-900 text-left">
-            전문가와의 상담, 이제 집에서 편하게
-          </h2>
-          <div className="mt-8 text-gray-600 font-hana-medium text-base sm:text-lg leading-6 flex flex-col gap-2 text-left max-w-md">
-            <p>전문 상담사와 실시간 화상 상담을 통해,</p>
-            <p>내 상황에 맞춘 자산관리 솔루션을 편리하게 받아보세요.</p>
-          </div>
-          <div className="mt-6">
-            <CTAButton label="상담 신청하러 가기 →" href="#consult" className="w-full sm:w-[320px] h-[56px]" />
-          </div>
-        </div>
 
-        {/* Right: Image */}
-        <div className={`flex justify-center transition-all duration-1000 ease-out ${
-          isVisible.intro ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'
-        }`}>
-          <img
-            src="/character/counselor.png"
-            alt="상담사 일러스트"
-            className="w-[360px] h-[360px] max-w-full object-contain"
-          />
-        </div>
-      </section>
-
-      {/* 건강·생활·노후 섹션 */}
-      <section 
+    {/* 건강·생활·노후 섹션 */}
+    <section 
         ref={categoryRef}
         className="container mx-auto px-4 py-20 overflow-hidden"
       >
@@ -122,7 +90,7 @@ function MainSection() {
           <div className={`flex justify-center transition-all duration-1000 ease-out ${
             isVisible.category ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
           }`}>
-            <img src="/character/docter.png" alt="의사 캐릭터" className="w-[360px] h-[360px] max-w-full object-contain" />
+            <img src="/character/irp.png" alt="IRP 캐릭터" className="w-[360px] h-[360px] max-w-full object-contain" />
           </div>
 
           {/* Right: Headline + Text */}
@@ -131,14 +99,14 @@ function MainSection() {
           }`}>
             <div className="max-w-lg">
               <h3 className="text-2xl sm:text-3xl font-hana-bold text-gray-900 text-left">
-                건강·생활·노후까지, 한 번에 해결하다
+                복잡한 연금관리, 이제는 하나의 계좌로
               </h3>
               <div className="mt-8 text-gray-600 font-hana-medium text-base sm:text-lg leading-6 text-left">
-                <p>요양보험, 유병자보험, 연금보험, 간병보험까지</p>
-                <p>은퇴자에게 꼭 필요한 다양한 보장을 한눈에 비교하세요.</p>
+                <p>IRP 계좌를 개설하고 자동이체를 설정하면,</p>
+                <p>연 900만원까지 소득에 대한 세제혜택을 받을 수 있어요.</p>
                 <br />
-                <p>HANAinPLAN에서는 건강 상태와 생활 패턴에 맞춰 추천받고,</p>
-                <p>클릭 한 번으로 가입 신청할 수 있어요.</p>
+                <p>IRP 계좌 안에서 정기예금, 펀드를 가입하고</p>
+                <p>HANAinPLAN에서 내 자산을 관리받아 보세요.</p>
               </div>
             </div>
           </div>
@@ -204,6 +172,42 @@ function MainSection() {
           ))}
         </div>
       </section>
+
+
+      {/* 상담 섹션 */}
+      <section 
+        ref={introRef}
+        className="container mx-auto px-4 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center overflow-hidden"
+      >
+        {/* Left: Texts */}
+        <div className={`transition-all duration-1000 ease-out ${
+          isVisible.intro ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
+        }`}>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-hana-bold text-gray-900 text-left">
+            전문가와의 상담, 이제 집에서 편하게
+          </h2>
+          <div className="mt-8 text-gray-600 font-hana-medium text-base sm:text-lg leading-6 flex flex-col gap-2 text-left max-w-md">
+            <p>전문 상담사와 실시간 화상 상담을 통해,</p>
+            <p>내 상황에 맞춘 자산관리 솔루션을 편리하게 받아보세요.</p>
+          </div>
+          <div className="mt-6">
+            <CTAButton label="상담 신청하러 가기 →" href="/consultation/request" className="w-full sm:w-[320px] h-[56px]" />
+          </div>
+        </div>
+
+        {/* Right: Image */}
+        <div className={`flex justify-center transition-all duration-1000 ease-out ${
+          isVisible.intro ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'
+        }`}>
+          <img
+            src="/character/counselor.png"
+            alt="상담사 일러스트"
+            className="w-[360px] h-[360px] max-w-full object-contain"
+          />
+        </div>
+      </section>
+
+      
 
       {/* 연금 계산 섹션 */}
       <section 

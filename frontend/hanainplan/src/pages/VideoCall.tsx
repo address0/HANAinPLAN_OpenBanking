@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import WebSocketService from '../services/WebSocketService';
 import WebRTCService from '../services/WebRTCService';
 import { onMessageListener } from '../services/FirebaseService';
 import { useUserStore } from '../store/userStore';
 import type { CallState } from '../services/WebRTCService';
 import type { CallRequestMessage, WebRTCMessage } from '../services/WebSocketService';
-import InsuranceDashboard from '../components/consultation/InsuranceDashboard';
+import { getConsultationDetails, joinConsultationRoom } from '../api/consultationApi';
+import GeneralConsultation from '../components/consultation/GeneralConsultation';
+import ProductConsultation from '../components/consultation/ProductConsultation';
+import AssetConsultation from '../components/consultation/AssetConsultation';
 
 // 사용자 역할 타입 정의
 type UserRole = 'counselor' | 'customer';
@@ -22,22 +26,15 @@ interface UserInfo {
 interface ConsultationInfo {
   id?: string;
   type: string;
-  duration: number;
-  notes: string;
+  detail?: string;
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
 }
 
-interface HighlightInfo {
-  id: string;
-  text: string;
-  blockId: string;
-  startIndex: number;
-  endIndex: number;
-  color: string;
-  author: 'counselor' | 'customer';
-}
-
 const VideoCall: React.FC = () => {
+  // URL 파라미터에서 consultationId 가져오기
+  const [searchParams] = useSearchParams();
+  const consultationId = searchParams.get('consultationId');
+  
   // 로그인된 사용자 정보 가져오기
   const { user } = useUserStore();
   
@@ -71,8 +68,8 @@ const VideoCall: React.FC = () => {
     certification: userRole === 'counselor' ? 'AFP, CFP' : undefined
   });
   
-  // 상대방 사용자 설정 (현재 사용자 역할에 따라 동적으로 결정)
-  const targetUser: UserInfo = currentUser.role === 'counselor' 
+  // 상대방 사용자 정보 (초기값 - 상담 정보 로드 후 업데이트됨)
+  const [targetUser, setTargetUser] = useState<UserInfo>(currentUser.role === 'counselor' 
     ? {
     id: 2,
     name: '이고객',
@@ -84,14 +81,13 @@ const VideoCall: React.FC = () => {
         role: 'counselor',
         department: '자산관리팀',
         certification: 'AFP, CFP'
-      };
+      });
   const [consultationInfo, setConsultationInfo] = useState<ConsultationInfo>({
     type: '금융상담',
-    duration: 0,
-    notes: '',
     status: 'scheduled'
   });
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [showWaitingRoomModal, setShowWaitingRoomModal] = useState<boolean>(false);
   const [callState, setCallState] = useState<CallState>({
     isInCall: false,
     roomId: null,
@@ -100,7 +96,9 @@ const VideoCall: React.FC = () => {
     remoteStream: null,
     callerId: null,
     calleeId: null,
-    isCaller: false
+    isCaller: false,
+    isScreenSharing: false,
+    screenStream: null
   });
   const [incomingCall, setIncomingCall] = useState<CallRequestMessage | null>(null);
   const [error, setError] = useState<string>('');
@@ -109,13 +107,80 @@ const VideoCall: React.FC = () => {
   const [isMediaInitialized, setIsMediaInitialized] = useState<boolean>(false);
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
   const [consultationStartTime, setConsultationStartTime] = useState<Date | null>(null);
-  const [consultationNotes, setConsultationNotes] = useState<string>('');
-  const [highlights, setHighlights] = useState<HighlightInfo[]>([]);
-  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [isWaitingForConsultant, setIsWaitingForConsultant] = useState<boolean>(false); // 상담사 시작 대기
 
   // Video 요소 참조
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  // 상담 종류 파악 (consultationId 앞 3글자 기준)
+  const getConsultationType = () => {
+    if (!consultationId) return consultationInfo.type;
+    
+    const prefix = consultationId.substring(0, 3);
+    switch (prefix) {
+      case 'COM': return 'general';
+      case 'PRO': return 'product';
+      case 'ASM': return 'asset-management';
+      default: return consultationInfo.type;
+    }
+  };
+
+  const consultationTypeFromId = getConsultationType();
+
+  // 상담 종류별 색상 테마
+  const getThemeColors = () => {
+    const type = consultationTypeFromId;
+    
+    switch (type) {
+      case 'general':
+        return {
+          primary: 'blue',
+          gradient: 'from-blue-600 to-blue-700',
+          bg: 'bg-blue-600',
+          bgHover: 'bg-blue-700',
+          text: 'text-blue-800',
+          border: 'border-blue-200',
+          bgLight: 'bg-blue-50',
+          icon: '💬'
+        };
+      case 'product':
+        return {
+          primary: 'green',
+          gradient: 'from-green-600 to-green-700',
+          bg: 'bg-green-600',
+          bgHover: 'bg-green-700',
+          text: 'text-green-800',
+          border: 'border-green-200',
+          bgLight: 'bg-green-50',
+          icon: '📋'
+        };
+      case 'asset-management':
+        return {
+          primary: 'purple',
+          gradient: 'from-purple-600 to-purple-700',
+          bg: 'bg-purple-600',
+          bgHover: 'bg-purple-700',
+          text: 'text-purple-800',
+          border: 'border-purple-200',
+          bgLight: 'bg-purple-50',
+          icon: '💰'
+        };
+      default:
+        return {
+          primary: 'blue',
+          gradient: 'from-blue-600 to-blue-700',
+          bg: 'bg-blue-600',
+          bgHover: 'bg-blue-700',
+          text: 'text-blue-800',
+          border: 'border-blue-200',
+          bgLight: 'bg-blue-50',
+          icon: '💼'
+        };
+    }
+  };
+
+  const themeColors = getThemeColors();
 
   // 초기화 및 이벤트 리스너 설정
   useEffect(() => {
@@ -125,6 +190,13 @@ const VideoCall: React.FC = () => {
       cleanup();
     };
   }, []);
+
+  // URL 파라미터로 상담 정보 로드
+  useEffect(() => {
+    if (consultationId) {
+      loadConsultationDetails(consultationId);
+    }
+  }, [consultationId]);
 
   // 로컬 비디오 스트림 설정
   useEffect(() => {
@@ -181,6 +253,7 @@ const VideoCall: React.FC = () => {
       .catch((err) => console.error('Failed to receive foreground message:', err));
   };
 
+
   // 이벤트 리스너 설정
   const setupEventListeners = () => {
     // WebSocket 이벤트
@@ -208,6 +281,18 @@ const VideoCall: React.FC = () => {
       handleEndCall();
     });
 
+    // 상담 시작 이벤트 (상담사가 시작 버튼을 눌렀을 때)
+    WebSocketService.onConsultationStart(async () => {
+      if (currentUser.role === 'customer') {
+        // 고객은 대기 상태만 해제하고, 상담사가 Offer를 보낼 때까지 기다림
+        setIsWaitingForConsultant(false);
+        setShowWaitingRoomModal(false);
+        setConsultationInfo(prev => ({ ...prev, status: 'in-progress' }));
+        setError('✅ 상담이 시작되었습니다! 상담사와 연결 중입니다...');
+        setTimeout(() => setError(''), 3000);
+      }
+    });
+
     // WebRTC 이벤트
     WebRTCService.onCallStateChange((state) => {
       setCallState(state);
@@ -223,19 +308,38 @@ const VideoCall: React.FC = () => {
       setTimeout(() => setError(''), 5000);
     });
 
-    // 형광펜 동기화 이벤트
-    WebSocketService.onHighlightSync((message) => {
-      if (message.type === 'HIGHLIGHT_ADD') {
-        setHighlights(prev => [...prev, message.data]);
-      } else if (message.type === 'HIGHLIGHT_REMOVE') {
-        setHighlights(prev => prev.filter(h => h.id !== message.data.highlightId));
+    // WebRTC Offer 수신 (고객이 상담사로부터 받음)
+    WebSocketService.onOffer(async (offer) => {
+      try {
+        // 미디어가 초기화되지 않았다면 초기화
+        if (!callState.localStream) {
+          await WebRTCService.initializeMedia();
+        }
+        
+        // Offer 처리 및 Answer 전송
+        await WebRTCService.handleOffer(offer);
+      } catch (error) {
+        console.error('Offer 처리 실패:', error);
+        setError('연결에 실패했습니다.');
       }
     });
 
-    // 단계 동기화 이벤트
-    WebSocketService.onStepSync((message) => {
-      if (message.type === 'STEP_SYNC') {
-        setCurrentStep(message.data.step);
+    // WebRTC Answer 수신 (상담사가 고객으로부터 받음)
+    WebSocketService.onAnswer(async (answer) => {
+      try {
+        await WebRTCService.handleAnswer(answer);
+      } catch (error) {
+        console.error('Answer 처리 실패:', error);
+        setError('연결에 실패했습니다.');
+      }
+    });
+
+    // ICE Candidate 수신
+    WebSocketService.onIceCandidate(async (candidate) => {
+      try {
+        await WebRTCService.handleIceCandidate(candidate);
+      } catch (error) {
+        console.error('ICE Candidate 처리 실패:', error);
       }
     });
   };
@@ -258,62 +362,134 @@ const VideoCall: React.FC = () => {
     }
   };
 
-  // WebSocket 연결 해제
-  const handleDisconnect = () => {
-    WebSocketService.disconnect();
-    setIncomingCall(null);
+
+  // 상담 정보 로드 (URL 파라미터 기반)
+  const loadConsultationDetails = async (consultId: string) => {
+    try {
+      const details = await getConsultationDetails(consultId);
+      
+      // 상담 정보 업데이트
+      setConsultationInfo({
+        id: details.consultId,
+        type: details.consultType,
+        detail: details.detail,
+        status: 'scheduled'
+      });
+      
+      // 상대방 정보 설정
+      if (currentUser.role === 'counselor') {
+        // 상담사인 경우 고객 정보 설정
+        setTargetUser({
+          id: Number(details.customerId),
+          name: details.customerName || '고객',
+          role: 'customer'
+        });
+      } else {
+        // 고객인 경우 상담사 정보 설정
+        setTargetUser({
+          id: Number(details.consultantId),
+          name: details.consultantName || '상담사',
+          role: 'counselor',
+          department: details.consultantDepartment || '상담팀'
+        });
+      }
+      
+    } catch (error) {
+      console.error('상담 정보 로드 실패:', error);
+      setError('상담 정보를 불러올 수 없습니다.');
+    }
   };
 
-  // 상담 시작
+  // 상담 시작 (상담사만 가능)
   const handleStartCall = async () => {
     try {
+      // 고객인 경우 준비 완료 후 대기실 모달 표시
+      if (currentUser.role === 'customer' && consultationId) {
+        setIsWaitingForConsultant(true);
+        setShowWaitingRoomModal(true);
+        return;
+      }
+
       setConsultationInfo(prev => ({ ...prev, status: 'in-progress' }));
       
-      // 고객인 경우: 자동 매칭 API 사용
-      // 상담원인 경우: 직접 지정 API 사용 (기존 방식)
-      const apiUrl = currentUser.role === 'customer' 
-        ? 'http://localhost:8080/api/webrtc/consultation/request'
-        : 'http://localhost:8080/api/webrtc/call/request';
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          callerId: currentUser.id,
-          calleeId: currentUser.role === 'customer' ? undefined : targetUser.id,
-          callerName: currentUser.name,
-          calleeName: currentUser.role === 'customer' ? undefined : targetUser.name,
-          consultationType: consultationInfo.type
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        // 자동 매칭 성공 - 매칭된 상담원 정보 표시
-        if (currentUser.role === 'customer' && data.consultantId) {
-          console.log('매칭된 상담원:', data.consultantId, data.consultantName);
-          setError(`상담원과 연결되었습니다. (${data.consultantName || data.consultantId})`);
+      // consultationId가 있으면 예약 상담 시작 (상담사만)
+      if (consultationId) {
+        
+        // 화상 상담 방 입장 API 호출
+        const result = await joinConsultationRoom(consultationId, currentUser.id);
+        
+        if (result.success) {
+          // WebRTC 연결 시작 (roomId = consultationId)
+          await WebRTCService.startCall(consultationId, targetUser.id);
+          setConsultationStartTime(new Date());
+          
+          // WebSocket으로 고객에게 상담 시작 알림
+          const startMessage: WebRTCMessage = {
+            type: 'CONSULTATION_START',
+            roomId: consultationId,
+            senderId: currentUser.id,
+            receiverId: targetUser.id,
+            data: { consultationId }
+          };
+          
+          WebSocketService.sendConsultationStart(startMessage);
+          
+          // 상담사가 고객에게 Offer 전송
+          await WebRTCService.sendOffer(consultationId, targetUser.id);
+          
+          setError('상담이 시작되었습니다. 고객에게 시작 알림을 전송했습니다.');
           setTimeout(() => setError(''), 3000);
+        } else {
+          throw new Error(result.message || '상담 방 입장에 실패했습니다.');
         }
-        
-        await WebRTCService.startCall(data.roomId, data.consultantId || targetUser.id);
-        setConsultationStartTime(new Date());
       } else {
-        // 매칭 실패 (대기열에 추가됨)
-        setError(data.message || '상담 요청에 실패했습니다.');
-        setConsultationInfo(prev => ({ ...prev, status: 'scheduled' }));
+        // consultationId가 없으면 즉시 상담 (기존 로직)
+        // 고객인 경우: 자동 매칭 API 사용
+        // 상담원인 경우: 직접 지정 API 사용 (기존 방식)
+        const apiUrl = currentUser.role === 'customer' 
+          ? 'http://localhost:8080/api/webrtc/consultation/request'
+          : 'http://localhost:8080/api/webrtc/call/request';
         
-        // 대기열에 추가된 경우, 일정 시간 후 자동으로 메시지 제거
-        if (data.message && data.message.includes('대기열')) {
-          setTimeout(() => setError(''), 5000);
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            callerId: currentUser.id,
+            calleeId: currentUser.role === 'customer' ? undefined : targetUser.id,
+            callerName: currentUser.name,
+            calleeName: currentUser.role === 'customer' ? undefined : targetUser.name,
+            consultationType: consultationInfo.type
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // 자동 매칭 성공 - 매칭된 상담원 정보 표시
+          if (currentUser.role === 'customer' && data.consultantId) {
+            console.log('매칭된 상담원:', data.consultantId, data.consultantName);
+            setError(`상담원과 연결되었습니다. (${data.consultantName || data.consultantId})`);
+            setTimeout(() => setError(''), 3000);
+          }
+          
+          await WebRTCService.startCall(data.roomId, data.consultantId || targetUser.id);
+          setConsultationStartTime(new Date());
+        } else {
+          // 매칭 실패 (대기열에 추가됨)
+          setError(data.message || '상담 요청에 실패했습니다.');
+          setConsultationInfo(prev => ({ ...prev, status: 'scheduled' }));
+          
+          // 대기열에 추가된 경우, 일정 시간 후 자동으로 메시지 제거
+          if (data.message && data.message.includes('대기열')) {
+            setTimeout(() => setError(''), 5000);
+          }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting call:', error);
-      setError('상담을 시작할 수 없습니다.');
+      setError(error.message || '상담을 시작할 수 없습니다.');
       setConsultationInfo(prev => ({ ...prev, status: 'scheduled' }));
     }
   };
@@ -394,45 +570,6 @@ const VideoCall: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // 상담 메모 저장
-  const handleSaveNotes = async () => {
-    try {
-    // 실제로는 서버에 저장하는 API 호출
-      const response = await fetch('http://localhost:8080/api/consultation/notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          consultationId: callState.roomId,
-          counselorId: currentUser.id,
-          customerId: targetUser.id,
-          consultationType: consultationInfo.type,
-          notes: consultationNotes,
-          duration: consultationStartTime ? Math.floor((new Date().getTime() - consultationStartTime.getTime()) / 1000) : 0,
-          timestamp: new Date().toISOString()
-        }),
-      });
-
-      if (response.ok) {
-        console.log('상담 메모 저장 성공:', consultationNotes);
-        alert('상담 기록이 성공적으로 저장되었습니다.');
-      } else {
-        console.error('상담 메모 저장 실패');
-        alert('상담 기록 저장에 실패했습니다. 다시 시도해주세요.');
-      }
-    } catch (error) {
-      console.error('Error saving consultation notes:', error);
-      // 오프라인 모드에서는 로컬 스토리지에 저장
-      localStorage.setItem(`consultation_notes_${callState.roomId}`, JSON.stringify({
-        consultationId: callState.roomId,
-        notes: consultationNotes,
-        timestamp: new Date().toISOString(),
-        consultationType: consultationInfo.type
-      }));
-      alert('상담 기록이 임시 저장되었습니다. (오프라인 모드)');
-    }
-  };
 
   // 마이크 토글
   const handleToggleMicrophone = () => {
@@ -457,11 +594,6 @@ const VideoCall: React.FC = () => {
     }
   };
 
-  // 미디어 중지
-  const handleStopMedia = () => {
-    WebRTCService.stopMediaForTest();
-  };
-
   // 화면 공유 토글
   const handleToggleScreenShare = async () => {
     try {
@@ -473,70 +605,10 @@ const VideoCall: React.FC = () => {
     }
   };
 
-  // 형광펜 추가
-  const handleHighlightAdd = (highlight: Omit<HighlightInfo, 'id'>) => {
-    const newHighlight: HighlightInfo = {
-      ...highlight,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
-    };
-    
-    setHighlights(prev => [...prev, newHighlight]);
-    
-    // WebSocket으로 다른 사용자에게 동기화
-    if (callState.roomId) {
-      const syncMessage: WebRTCMessage = {
-        type: 'HIGHLIGHT_ADD',
-        roomId: callState.roomId,
-        senderId: currentUser.id,
-        receiverId: targetUser.id,
-        data: newHighlight
-      };
-      WebSocketService.sendHighlightSync(syncMessage);
-    }
-  };
-
-  // 형광펜 제거
-  const handleHighlightRemove = (highlightId: string) => {
-    setHighlights(prev => prev.filter(h => h.id !== highlightId));
-    
-    // WebSocket으로 다른 사용자에게 동기화
-    if (callState.roomId) {
-      const syncMessage: WebRTCMessage = {
-        type: 'HIGHLIGHT_REMOVE',
-        roomId: callState.roomId,
-        senderId: currentUser.id,
-        receiverId: targetUser.id,
-        data: { highlightId }
-      };
-      WebSocketService.sendHighlightSync(syncMessage);
-    }
-  };
-
-  // 단계 변경
-  const handleStepChange = (step: number) => {
-    setCurrentStep(step);
-    
-    // WebSocket으로 다른 사용자에게 동기화
-    if (callState.roomId) {
-      const syncMessage: WebRTCMessage = {
-        type: 'STEP_SYNC',
-        roomId: callState.roomId,
-        senderId: currentUser.id,
-        receiverId: targetUser.id,
-        data: { step }
-      };
-      WebSocketService.sendStepSync(syncMessage);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="bg-gray-50">
       {/* 헤더 */}
-      <div className={`shadow-sm border-b ${
-        currentUser.role === 'counselor' 
-          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
-          : 'bg-gradient-to-r from-green-600 to-green-700 text-white'
-      }`}>
+      <div className={`shadow-sm border-b bg-gradient-to-r ${themeColors.gradient} text-white`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -547,7 +619,7 @@ const VideoCall: React.FC = () => {
                 </div>
                 
                 <div>
-                  <h1 className="text-2xl font-bold">
+                  <h1 className="text-2xl font-bold flex items-center gap-2">
                     {currentUser.role === 'counselor' ? '전문상담사' : '고객상담'} 시스템
                   </h1>
                   <div className="flex items-center space-x-4 mt-1">
@@ -693,37 +765,17 @@ const VideoCall: React.FC = () => {
           </div>
         )}
 
-        {/* 새로운 레이아웃: 좌측 대시보드, 우측 비디오들 */}
-        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-200px)]">
-          {/* 좌측: 보험상품 대시보드 (더 넓게) */}
-          <div className="col-span-8">
-            <InsuranceDashboard
-              selectedProduct={null}
-              highlights={highlights}
-              onHighlightAdd={handleHighlightAdd}
-              onHighlightRemove={handleHighlightRemove}
-              currentStep={currentStep}
-              onStepChange={handleStepChange}
-              userRole={currentUser.role}
-            />
-          </div>
-
-          {/* 우측: 상담사와 고객 비디오 세로 정렬 */}
-          <div className="col-span-4 flex flex-col space-y-4">
-            {/* 상담사 비디오 화면 */}
-            <div className="bg-white rounded-xl shadow-lg p-4">
-              <h3 className={`text-lg font-bold mb-4 flex items-center ${
-                currentUser.role === 'counselor' ? 'text-blue-800' : 'text-green-800'
-              }`}>
-                <svg className={`w-5 h-5 mr-2 ${
-                  currentUser.role === 'counselor' ? 'text-blue-600' : 'text-green-600'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+        {/* 새로운 레이아웃: 좌측 화상 채팅, 우측 상담별 컨텐츠 */}
+        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-180px)] min-h-[600px]">
+          {/* 좌측: 화상 채팅 영역 */}
+          <div className="col-span-5 flex flex-col space-y-4">
+            {/* 내 비디오 */}
+            <div className="bg-white rounded-xl shadow-lg p-4 flex-1">
+              <h3 className={`text-sm font-bold mb-3 flex items-center ${themeColors.text}`}>
                 {currentUser.role === 'counselor' ? '상담사' : '고객'} ({currentUser.name})
               </h3>
               
-              <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
+              <div className="relative bg-gray-900 rounded-lg overflow-hidden h-[calc(100%-2rem)]">
                 <video
                   ref={localVideoRef}
                   autoPlay
@@ -744,20 +796,13 @@ const VideoCall: React.FC = () => {
               </div>
             </div>
 
-            {/* 고객 비디오 화면 */}
-            <div className="bg-white rounded-xl shadow-lg p-4">
-              <h3 className={`text-lg font-bold mb-4 flex items-center ${
-                targetUser.role === 'counselor' ? 'text-blue-800' : 'text-green-800'
-              }`}>
-                <svg className={`w-5 h-5 mr-2 ${
-                  targetUser.role === 'counselor' ? 'text-blue-600' : 'text-green-600'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            {/* 상대방 비디오 */}
+            <div className="bg-white rounded-xl shadow-lg p-4 flex-1">
+              <h3 className={`text-sm font-bold mb-3 flex items-center ${themeColors.text}`}>
                 {targetUser.role === 'counselor' ? '상담사' : '고객'} ({targetUser.name})
               </h3>
               
-              <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
+              <div className="relative bg-gray-900 rounded-lg overflow-hidden h-[calc(100%-2rem)]">
                 <video
                   ref={remoteVideoRef}
                   autoPlay
@@ -779,222 +824,195 @@ const VideoCall: React.FC = () => {
               </div>
             </div>
 
-            {/* 상담 기록 및 제어 통합 컴포넌트 */}
-            <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl shadow-lg p-4 border border-blue-200 flex-1 flex flex-col">
-              <h2 className="text-lg font-bold mb-4 text-blue-800 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                상담 제어 및 기록
-              </h2>
-              
-              {/* 상담 유형 선택 및 사용자 정보 표시 */}
-              <div className="space-y-3 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-1">상담 유형</label>
-                  <select
-                    value={consultationInfo.type}
-                    onChange={(e) => setConsultationInfo(prev => ({ ...prev, type: e.target.value }))}
-                    className="w-full p-2 rounded-lg border-2 border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    disabled={callState.isInCall}
-                  >
-                    <option value="보험상담">보험상담</option>
-                    <option value="금융상담">금융상담</option>
-                    <option value="투자상담">투자상담</option>
-                    <option value="연금상담">연금상담</option>
-                    <option value="대출상담">대출상담</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-1">나의 역할</label>
-                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex items-center space-x-2">
-                      <span className={`inline-block w-3 h-3 rounded-full ${
-                        currentUser.role === 'counselor' ? 'bg-blue-600' : 'bg-green-600'
-                      }`}></span>
-                      <span className="text-sm font-medium text-gray-800">
-                        {currentUser.role === 'counselor' ? '상담원' : '고객'} ({currentUser.name})
-                      </span>
-                    </div>
-                    {currentUser.department && (
-                      <p className="text-xs text-gray-600 mt-1 ml-5">{currentUser.department}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 연결 및 상담 버튼 */}
-              <div className="space-y-2 mb-4">
+            {/* 미디어 제어 버튼 */}
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <div className="space-y-2">
                 {!isConnected ? (
                   <button
                     onClick={handleConnect}
-                    className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                      currentUser.role === 'counselor' 
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                        : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
+                    className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${themeColors.bg} hover:${themeColors.bgHover} text-white`}
                   >
-                    상담 시스템 연결
+                    {currentUser.role === 'counselor' ? '화상 상담 시작' : '상담 대기실 입장'}
                   </button>
                 ) : (
-                  <div className="space-y-2">
-                  <button
-                    onClick={handleDisconnect}
-                      className="w-full bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"
-                  >
-                    연결 해제
-                  </button>
+                  <>
 
-                {!isMediaInitialized ? (
-                  <button
-                    onClick={handleMediaTest}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"
-                  >
-                    카메라/마이크 확인
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleStopMedia}
-                    disabled={callState.isInCall}
-                        className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"
-                  >
-                    미디어 중지
-                  </button>
-                )}
+                    {!callState.isInCall && !isWaitingForConsultant ? (
+                      <>
+                        {currentUser.role === 'counselor' ? (
+                          <button
+                            onClick={handleStartCall}
+                            disabled={!isMediaInitialized}
+                            className={`w-full px-4 py-3 rounded-lg font-medium transition-colors disabled:bg-gray-300 ${themeColors.bg} hover:${themeColors.bgHover} text-white`}
+                          >
+                            상담 시작
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleStartCall}
+                            disabled={!isMediaInitialized}
+                            className={`w-full px-4 py-3 rounded-lg font-medium transition-colors disabled:bg-gray-300 ${themeColors.bg} hover:${themeColors.bgHover} text-white`}
+                          >
+                            준비 완료
+                          </button>
+                        )}
+                      </>
+                    ) : callState.isInCall ? (
+                      <button
+                        onClick={handleEndCall}
+                        className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        상담 종료
+                      </button>
+                    ) : null}
+                    
+                    {!isMediaInitialized && !callState.isInCall && !isWaitingForConsultant && (
+                      <button
+                        onClick={handleMediaTest}
+                        className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        {currentUser.role === 'counselor' ? '카메라/마이크 테스트' : '카메라/마이크 준비'}
+                      </button>
+                    )}
 
-                {!callState.isInCall ? (
-                  <button
-                    onClick={handleStartCall}
-                    disabled={!isConnected}
-                        className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-sm disabled:bg-gray-300 ${
-                          currentUser.role === 'counselor' 
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                            : 'bg-green-600 hover:bg-green-700 text-white'
+                    {(isMediaInitialized || callState.isInCall) && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={handleToggleMicrophone}
+                          className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                            isAudioEnabled
+                              ? `${themeColors.bg} hover:${themeColors.bgHover} text-white`
+                              : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                          }`}
+                        >
+                          {isAudioEnabled ? '🎤 ON' : '🎤 OFF'}
+                        </button>
+                        <button
+                          onClick={handleToggleVideo}
+                          className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
+                            isVideoEnabled
+                              ? `${themeColors.bg} hover:${themeColors.bgHover} text-white`
+                              : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                          }`}
+                        >
+                          {isVideoEnabled ? '📹 ON' : '📹 OFF'}
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* 화면 공유 버튼 */}
+                    {callState.isInCall && currentUser.role === 'counselor' && (
+                      <button
+                        onClick={handleToggleScreenShare}
+                        className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center space-x-2 ${
+                          isScreenSharing
+                            ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                            : `${themeColors.bg} hover:${themeColors.bgHover} text-white`
                         }`}
                       >
-                        {currentUser.role === 'counselor' ? '상담 시작' : '상담 요청'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleEndCall}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"
-                  >
-                    상담 종료
-                  </button>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={
+                            isScreenSharing
+                              ? "M6 18L18 6M6 6l12 12"
+                              : "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          } />
+                        </svg>
+                        <span>{isScreenSharing ? '화면 공유 중지' : '화면 공유'}</span>
+                      </button>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
+            </div>
+          </div>
 
-              {/* 미디어 제어 버튼 (테스트 중이거나 상담 중일 때) */}
-              {(isMediaInitialized || callState.isInCall) && (
-                <div className="space-y-2 mb-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={handleToggleMicrophone}
-                      className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                        isAudioEnabled
-                          ? `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
-                          : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                      }`}
-                    >
-                      {isAudioEnabled ? '마이크 끄기' : '마이크 켜기'}
-                    </button>
-                    <button
-                      onClick={handleToggleVideo}
-                      className={`px-3 py-2 rounded-lg font-medium transition-colors text-sm ${
-                        isVideoEnabled
-                          ? `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
-                          : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                      }`}
-                    >
-                      {isVideoEnabled ? '카메라 끄기' : '카메라 켜기'}
-                    </button>
-                  </div>
-                  
-                  {/* 화면 공유 버튼 (상담 중일 때만) */}
-                  {callState.isInCall && (
-                    <button
-                      onClick={handleToggleScreenShare}
-                      className={`w-full px-3 py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center space-x-2 ${
-                        isScreenSharing
-                          ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                          : `${currentUser.role === 'counselor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`
-                      }`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={
-                          isScreenSharing
-                            ? "M6 18L18 6M6 6l12 12"
-                            : "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                        } />
-                      </svg>
-                      <span>{isScreenSharing ? '화면 공유 중지' : '화면 공유'}</span>
-                    </button>
-                  )}
-                </div>
+          {/* 우측: 상담 종류별 컨텐츠 */}
+          <div className="col-span-7 h-full overflow-hidden">
+            <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+              {consultationTypeFromId === 'general' && (
+                <GeneralConsultation
+                  consultationInfo={consultationInfo}
+                  currentUserId={currentUser.id}
+                  currentUserRole={currentUser.role}
+                  targetUserId={targetUser.id}
+                  isInCall={callState.isInCall}
+                />
               )}
-
-              {/* 상담 기록 */}
-              <div className="flex-1 flex flex-col">
-                <label className="block text-sm font-medium text-blue-700 mb-2">상담 기록</label>
-                  <textarea
-                    value={consultationNotes}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 500) {
-                      setConsultationNotes(e.target.value);
-                    }
-                  }}
-                    placeholder="상담 내용을 기록하세요..."
-                  className="flex-1 p-3 border-2 border-blue-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                    disabled={!callState.isInCall}
-                  />
-                  
-                  <button
-                    onClick={handleSaveNotes}
-                    disabled={!consultationNotes.trim() || !callState.isInCall}
-                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-3 py-2 rounded-lg font-medium transition-colors text-sm"
-                  >
-                    메모 저장
-                  </button>
-                
-                {callState.isInCall && (
-                  <div className="mt-2 p-2 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-800">
-                      상담 진행 중 - 실시간 기록 가능
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* 상담 상태 정보 */}
-              <div className="mt-4 pt-3 border-t border-blue-200">
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div className="text-center">
-                    <div className="text-gray-600">미디어</div>
-                    <div className={isMediaInitialized ? 'text-green-600 font-medium' : 'text-red-600'}>
-                      {isMediaInitialized ? '준비' : '미준비'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-gray-600">상담</div>
-                    <div className={callState.isInCall ? 'text-green-600 font-medium' : 'text-gray-500'}>
-                      {consultationInfo.status === 'in-progress' ? '진행' : '대기'}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-gray-600">연결</div>
-                    <div className={isConnected && callState.isConnected ? 'text-green-600 font-medium' : 'text-red-600'}>
-                      {isConnected && callState.isConnected ? '연결' : '끊김'}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              
+              {consultationTypeFromId === 'product' && (
+                <ProductConsultation
+                  consultationInfo={consultationInfo}
+                  currentUserId={currentUser.id}
+                  currentUserRole={currentUser.role}
+                  targetUserId={targetUser.id}
+                  isInCall={callState.isInCall}
+                />
+              )}
+              
+              {consultationTypeFromId === 'asset-management' && (
+                <AssetConsultation
+                  consultationInfo={consultationInfo}
+                  customerId={currentUser.role === 'counselor' ? targetUser.id : currentUser.id}
+                  currentUserId={currentUser.id}
+                  currentUserRole={currentUser.role}
+                  targetUserId={targetUser.id}
+                  isInCall={callState.isInCall}
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* 상담 대기실 모달 */}
+      {showWaitingRoomModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mb-6">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">상담 대기실</h3>
+                <p className="text-gray-600">
+                  준비가 완료되었습니다.<br />
+                  상담사가 시작할 때까지 잠시만 기다려주세요.
+                </p>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-pulse">
+                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-yellow-800">
+                    상담사가 곧 상담을 시작합니다...
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowWaitingRoomModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  대기실 나가기
+                </button>
+                <button
+                  onClick={handleMediaTest}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  카메라/마이크 테스트
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

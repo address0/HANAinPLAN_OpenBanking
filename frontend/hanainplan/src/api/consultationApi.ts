@@ -27,6 +27,7 @@ export interface ConsultationResponse {
   consultantId: string;
   customerName?: string;
   consultantName?: string;
+  consultantDepartment?: string;
 }
 
 /**
@@ -140,5 +141,39 @@ export const cancelConsultation = async (consultId: string, customerId: number):
   } catch (error: any) {
     console.error('상담 취소 실패:', error);
     throw new Error(error.response?.data?.message || error.message || '상담 취소에 실패했습니다.');
+  }
+};
+
+/**
+ * 상담 상세 정보 조회 (화상 상담 입장용)
+ */
+export const getConsultationDetails = async (consultId: string): Promise<ConsultationResponse> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/consultations/${consultId}/details`);
+    return response.data;
+  } catch (error: any) {
+    console.error('상담 상세 정보 조회 실패:', error);
+    throw new Error(error.response?.data?.message || error.message || '상담 상세 정보 조회에 실패했습니다.');
+  }
+};
+
+/**
+ * 화상 상담 방 입장
+ */
+export const joinConsultationRoom = async (consultationId: string, userId: number): Promise<any> => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api/webrtc/consultation/${consultationId}/join`,
+      { userId }
+    );
+    
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || '상담 방 입장에 실패했습니다.');
+    }
+  } catch (error: any) {
+    console.error('상담 방 입장 실패:', error);
+    throw new Error(error.response?.data?.message || error.message || '상담 방 입장에 실패했습니다.');
   }
 };

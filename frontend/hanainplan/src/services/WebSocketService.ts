@@ -15,12 +15,15 @@ export const MessageType = {
   CALL_ACCEPT: 'CALL_ACCEPT',
   CALL_REJECT: 'CALL_REJECT',
   CALL_END: 'CALL_END',
+  CONSULTATION_START: 'CONSULTATION_START',
   OFFER: 'OFFER',
   ANSWER: 'ANSWER',
   ICE_CANDIDATE: 'ICE_CANDIDATE',
   HIGHLIGHT_ADD: 'HIGHLIGHT_ADD',
   HIGHLIGHT_REMOVE: 'HIGHLIGHT_REMOVE',
   STEP_SYNC: 'STEP_SYNC',
+  CONSULTATION_STEP_SYNC: 'CONSULTATION_STEP_SYNC',
+  CONSULTATION_NOTE_SYNC: 'CONSULTATION_NOTE_SYNC',
   USER_JOINED: 'USER_JOINED',
   USER_LEFT: 'USER_LEFT',
   ERROR: 'ERROR'
@@ -63,11 +66,14 @@ class WebSocketService {
   private onCallAcceptCallback?: (message: WebRTCMessage) => void;
   private onCallRejectCallback?: (message: WebRTCMessage) => void;
   private onCallEndCallback?: (message: WebRTCMessage) => void;
+  private onConsultationStartCallback?: (message: WebRTCMessage) => void;
   private onOfferCallback?: (message: SDPMessage) => void;
   private onAnswerCallback?: (message: SDPMessage) => void;
   private onIceCandidateCallback?: (message: ICECandidateMessage) => void;
   private onHighlightSyncCallback?: (message: WebRTCMessage) => void;
   private onStepSyncCallback?: (message: WebRTCMessage) => void;
+  private onConsultationStepSyncCallback?: (message: WebRTCMessage) => void;
+  private onConsultationNoteSyncCallback?: (message: WebRTCMessage) => void;
   private onConnectionStateChangeCallback?: (connected: boolean) => void;
 
   constructor() {
@@ -163,6 +169,12 @@ class WebSocketService {
       this.onCallEndCallback?.(endMessage);
     });
 
+    // 상담 시작 수신 (상담사가 시작 버튼을 눌렀을 때)
+    this.client.subscribe('/user/queue/consultation-start', (message: Message) => {
+      const startMessage: WebRTCMessage = JSON.parse(message.body);
+      this.onConsultationStartCallback?.(startMessage);
+    });
+
     // WebRTC Offer 수신
     this.client.subscribe('/user/queue/webrtc-offer', (message: Message) => {
       const offer: SDPMessage = JSON.parse(message.body);
@@ -181,16 +193,23 @@ class WebSocketService {
       this.onIceCandidateCallback?.(iceCandidate);
     });
 
-    // 형광펜 동기화 수신
-    this.client.subscribe('/user/queue/highlight-sync', (message: Message) => {
-      const syncMessage: WebRTCMessage = JSON.parse(message.body);
-      this.onHighlightSyncCallback?.(syncMessage);
-    });
 
     // 단계 동기화 수신
     this.client.subscribe('/user/queue/step-sync', (message: Message) => {
       const syncMessage: WebRTCMessage = JSON.parse(message.body);
       this.onStepSyncCallback?.(syncMessage);
+    });
+
+    // 상담 단계 동기화 수신
+    this.client.subscribe('/user/queue/consultation-step-sync', (message: Message) => {
+      const syncMessage: WebRTCMessage = JSON.parse(message.body);
+      this.onConsultationStepSyncCallback?.(syncMessage);
+    });
+
+    // 상담 메모 동기화 수신
+    this.client.subscribe('/user/queue/consultation-note-sync', (message: Message) => {
+      const syncMessage: WebRTCMessage = JSON.parse(message.body);
+      this.onConsultationNoteSyncCallback?.(syncMessage);
     });
   }
 
@@ -226,6 +245,14 @@ class WebSocketService {
     if (!this.client || !this.isConnected) return;
     this.client.publish({
       destination: '/app/call.end',
+      body: JSON.stringify(message)
+    });
+  }
+
+  sendConsultationStart(message: WebRTCMessage): void {
+    if (!this.client || !this.isConnected) return;
+    this.client.publish({
+      destination: '/app/consultation.start',
       body: JSON.stringify(message)
     });
   }
@@ -271,6 +298,22 @@ class WebSocketService {
     });
   }
 
+  sendConsultationStepSync(message: WebRTCMessage): void {
+    if (!this.client || !this.isConnected) return;
+    this.client.publish({
+      destination: '/app/consultation.step-sync',
+      body: JSON.stringify(message)
+    });
+  }
+
+  sendConsultationNoteSync(message: WebRTCMessage): void {
+    if (!this.client || !this.isConnected) return;
+    this.client.publish({
+      destination: '/app/consultation.note-sync',
+      body: JSON.stringify(message)
+    });
+  }
+
   // 콜백 등록 메소드들
   onCallRequest(callback: (message: CallRequestMessage) => void): void {
     this.onCallRequestCallback = callback;
@@ -286,6 +329,10 @@ class WebSocketService {
 
   onCallEnd(callback: (message: WebRTCMessage) => void): void {
     this.onCallEndCallback = callback;
+  }
+
+  onConsultationStart(callback: (message: WebRTCMessage) => void): void {
+    this.onConsultationStartCallback = callback;
   }
 
   onOffer(callback: (message: SDPMessage) => void): void {
@@ -310,6 +357,14 @@ class WebSocketService {
 
   onStepSync(callback: (message: WebRTCMessage) => void): void {
     this.onStepSyncCallback = callback;
+  }
+
+  onConsultationStepSync(callback: (message: WebRTCMessage) => void): void {
+    this.onConsultationStepSyncCallback = callback;
+  }
+
+  onConsultationNoteSync(callback: (message: WebRTCMessage) => void): void {
+    this.onConsultationNoteSyncCallback = callback;
   }
 
   getConnectionStatus(): boolean {

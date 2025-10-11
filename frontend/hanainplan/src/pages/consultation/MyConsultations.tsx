@@ -221,17 +221,27 @@ function MyConsultations() {
                       상담 예약 #{consultation.consultId}
                     </h3>
                   </div>
-                  {isCancelable(consultation.consultStatus) && (
-                    <button
-                      onClick={() => {
-                        setSelectedConsultation(consultation);
-                        setShowCancelModal(true);
-                      }}
-                      className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-hana-medium"
-                    >
-                      취소
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {(consultation.consultStatus === '예약확정' || consultation.consultStatus === '상담중') && (
+                      <button
+                        onClick={() => window.location.href = `/video-call?consultationId=${consultation.consultId}`}
+                        className="px-4 py-2 bg-hana-green text-white rounded-lg hover:bg-green-600 transition-colors font-hana-medium"
+                      >
+                        {consultation.consultStatus === '상담중' ? '상담 재입장' : '상담 방 입장'}
+                      </button>
+                    )}
+                    {isCancelable(consultation.consultStatus) && (
+                      <button
+                        onClick={() => {
+                          setSelectedConsultation(consultation);
+                          setShowCancelModal(true);
+                        }}
+                        className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-hana-medium"
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

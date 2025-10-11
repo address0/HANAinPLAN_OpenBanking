@@ -235,8 +235,18 @@ function ConsultationManagement() {
                             </p>
                           </div>
                         </div>
+                        {(consultation.consultStatus === '예약확정' || consultation.consultStatus === '상담중') && (
+                          <div className="mt-3">
+                            <button
+                              onClick={() => window.location.href = `/video-call?consultationId=${consultation.consultId}`}
+                              className="px-4 py-2 bg-hana-green text-white rounded-lg hover:bg-green-600 transition-colors font-hana-medium"
+                            >
+                              {consultation.consultStatus === '상담중' ? '상담 재입장' : '상담 시작'}
+                            </button>
+                          </div>
+                        )}
                         {consultation.detail && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
                             <p className="text-sm text-blue-800 font-hana-regular">
                               <strong>상담 내용:</strong> {consultation.detail}
                             </p>
@@ -394,14 +404,22 @@ function ConsultationManagement() {
                                 </button>
                               </>
                             )}
-                            {consultation.consultStatus === '예약확정' && (
-                              <button
-                                onClick={() => handleStatusChange(consultation.consultId, '상담완료')}
-                                disabled={statusMutation.isPending}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 font-hana-medium transition-colors disabled:opacity-50"
-                              >
-                                완료
-                              </button>
+                            {(consultation.consultStatus === '예약확정' || consultation.consultStatus === '상담중') && (
+                              <>
+                                <button
+                                  onClick={() => window.location.href = `/video-call?consultationId=${consultation.consultId}`}
+                                  className="px-3 py-1 bg-hana-green text-white rounded text-sm hover:bg-green-600 font-hana-medium transition-colors"
+                                >
+                                  {consultation.consultStatus === '상담중' ? '상담 재입장' : '상담 시작'}
+                                </button>
+                                <button
+                                  onClick={() => handleStatusChange(consultation.consultId, '상담완료')}
+                                  disabled={statusMutation.isPending}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 font-hana-medium transition-colors disabled:opacity-50"
+                                >
+                                  완료
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>

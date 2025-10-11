@@ -190,7 +190,7 @@ class WebRTCService {
 
       WebSocketService.sendOffer(offerMessage);
     } catch (error) {
-      console.error('Error sending offer:', error);
+      console.error('❌ Error sending offer:', error);
       this.onErrorCallback?.(new Error('Offer 전송 중 오류가 발생했습니다.'));
       throw error;
     }
@@ -230,6 +230,11 @@ class WebRTCService {
       this.onErrorCallback?.(new Error('통화를 수락할 수 없습니다.'));
       throw error;
     }
+  }
+
+  // Offer 처리 (public 메서드)
+  async handleOffer(offerMessage: SDPMessage): Promise<void> {
+    await this.handleRemoteOffer(offerMessage);
   }
 
   // 원격 Offer 처리
@@ -295,6 +300,11 @@ class WebRTCService {
     }
   }
 
+  // Answer 처리 (public 메서드)
+  async handleAnswer(answerMessage: SDPMessage): Promise<void> {
+    await this.handleRemoteAnswer(answerMessage);
+  }
+
   // 원격 Answer 처리
   private async handleRemoteAnswer(answerMessage: SDPMessage): Promise<void> {
     try {
@@ -320,6 +330,11 @@ class WebRTCService {
   }
 
   // 원격 ICE Candidate 처리
+  // ICE Candidate 처리 (public 메서드)
+  async handleIceCandidate(iceMessage: ICECandidateMessage): Promise<void> {
+    await this.handleRemoteIceCandidate(iceMessage);
+  }
+
   private async handleRemoteIceCandidate(iceMessage: ICECandidateMessage): Promise<void> {
     try {
       // PeerConnection이 없거나 remote description이 없으면 큐에 저장
@@ -337,7 +352,7 @@ class WebRTCService {
       await this.peerConnection.addIceCandidate(candidate);
 
     } catch (error) {
-      console.error('Error handling remote ICE candidate:', error);
+      console.error('❌ Error handling remote ICE candidate:', error);
       this.onErrorCallback?.(new Error('ICE Candidate 처리 중 오류가 발생했습니다.'));
     }
   }

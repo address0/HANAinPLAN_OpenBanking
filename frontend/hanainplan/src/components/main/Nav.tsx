@@ -15,6 +15,7 @@ function Nav() {
   const { user, clearUser } = useUserStore();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [leaveTimer, setLeaveTimer] = useState<NodeJS.Timeout | null>(null);
 
   // 일반 고객용 메뉴 데이터
   const generalMenuItems: MenuItem[] = [
@@ -84,16 +85,30 @@ function Nav() {
   const menuItems: MenuItem[] = user?.userType === 'COUNSELOR' ? consultantMenuItems : generalMenuItems;
 
   const handleMouseEnter = (label: string) => {
+    // 기존 타이머가 있으면 취소
+    if (leaveTimer) {
+      clearTimeout(leaveTimer);
+      setLeaveTimer(null);
+    }
     setActiveDropdown(label);
   };
 
   const handleMouseLeave = () => {
-    setActiveDropdown(null);
-    setIsUserMenuOpen(false);
+    // 300ms 지연 후 닫기
+    const timer = setTimeout(() => {
+      setActiveDropdown(null);
+      setIsUserMenuOpen(false);
+    }, 300);
+    setLeaveTimer(timer);
   };
 
 
   const handleSubmenuClick = (path: string) => {
+    // 타이머 취소
+    if (leaveTimer) {
+      clearTimeout(leaveTimer);
+      setLeaveTimer(null);
+    }
     navigate(path);
     setActiveDropdown(null);
   };
@@ -144,8 +159,12 @@ function Nav() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      // 컴포넌트 언마운트 시 타이머 정리
+      if (leaveTimer) {
+        clearTimeout(leaveTimer);
+      }
     };
-  }, []);
+  }, [leaveTimer]);
 
   return (
     <div
