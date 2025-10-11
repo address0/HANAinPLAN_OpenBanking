@@ -1,8 +1,6 @@
 package com.hanainplan.domain.webrtc.controller;
 
 import com.hanainplan.domain.notification.service.EmailService;
-import com.hanainplan.domain.notification.service.FCMService;
-import com.hanainplan.domain.notification.service.FCMTokenService;
 import com.hanainplan.domain.schedule.service.ScheduleService;
 import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
@@ -33,8 +31,6 @@ public class WebRTCSignalController {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebRTCService webRTCService;
     private final EmailService emailService;
-    private final FCMService fcmService;
-    private final FCMTokenService fcmTokenService;
     private final ScheduleService scheduleService;
     private final UserRepository userRepository;
     private final VideoCallRoomRepository videoCallRoomRepository;
@@ -105,18 +101,6 @@ public class WebRTCSignalController {
                                 consultationUrl
                         );
                         log.info("Consultation accepted email sent to customer: {}", customer.getEmail());
-                    }
-
-                    // FCM 푸시 알림 (고객에게)
-                    List<String> customerTokens = fcmTokenService.getActiveDeviceTokens(customerId);
-                    if (!customerTokens.isEmpty()) {
-                        fcmService.sendConsultationAcceptedNotification(
-                                customerTokens.get(0),
-                                consultant.getUserName(),
-                                "일반상담", // TODO: 실제 상담 유형 가져오기
-                                message.getRoomId()
-                        );
-                        log.info("FCM notification sent to customer {}", customerId);
                     }
                 } else {
                     log.warn("User not found for consultation room: {}", message.getRoomId());

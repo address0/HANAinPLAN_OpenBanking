@@ -2,8 +2,6 @@ package com.hanainplan.domain.webrtc.controller;
 
 import com.hanainplan.domain.consult.entity.Consult;
 import com.hanainplan.domain.consult.repository.ConsultRepository;
-import com.hanainplan.domain.notification.service.FCMService;
-import com.hanainplan.domain.notification.service.FCMTokenService;
 import com.hanainplan.domain.webrtc.dto.CallRequestMessage;
 import com.hanainplan.domain.webrtc.controller.WebRTCSignalController;
 import com.hanainplan.domain.webrtc.entity.VideoCallRoom;
@@ -29,8 +27,6 @@ public class WebRTCController {
     private final VideoCallRoomRepository videoCallRoomRepository;
     private final WebRTCSignalController signalController;
     private final ConsultationMatchingService consultationMatchingService;
-    private final FCMService fcmService;
-    private final FCMTokenService fcmTokenService;
     private final ConsultRepository consultRepository;
 
     /**
@@ -99,25 +95,6 @@ public class WebRTCController {
                 callRequest.setRoomId(result.getRoomId());
                 
                 signalController.notifyCallRequest(callRequest, result.getRoomId());
-                
-                // FCM 푸시 알림 전송 (상담원에게)
-                try {
-                    List<String> consultantTokens = fcmTokenService.getActiveDeviceTokens(consultantId);
-                    if (!consultantTokens.isEmpty()) {
-                        fcmService.sendConsultationRequestNotification(
-                                consultantTokens.get(0), // 첫 번째 토큰 사용
-                                customerName,
-                                consultationType,
-                                result.getRoomId()
-                        );
-                        log.info("FCM notification sent to consultant {}", consultantId);
-                    } else {
-                        log.warn("No FCM tokens found for consultant {}", consultantId);
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to send FCM notification to consultant {}", consultantId, e);
-                    // FCM 실패해도 상담은 진행되도록 예외를 던지지 않음
-                }
                 
                 log.info("Customer {} matched with consultant {} for consultation", 
                         customerId, consultantId);

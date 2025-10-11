@@ -21,7 +21,6 @@
     "@types/sockjs-client": "^1.5.4",
     "@uiw/react-md-editor": "^4.0.8",
     "axios": "^1.11.0",
-    "firebase": "^12.3.0",
     "lottie-react": "^2.4.1",
     "react": "^19.1.0",
     "react-calendar": "^6.0.0",

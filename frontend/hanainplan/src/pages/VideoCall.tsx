@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import WebSocketService from '../services/WebSocketService';
 import WebRTCService from '../services/WebRTCService';
-import { onMessageListener } from '../services/FirebaseService';
 import { useUserStore } from '../store/userStore';
 import type { CallState } from '../services/WebRTCService';
 import type { CallRequestMessage, WebRTCMessage } from '../services/WebSocketService';
@@ -185,7 +184,6 @@ const VideoCall: React.FC = () => {
   // 초기화 및 이벤트 리스너 설정
   useEffect(() => {
     setupEventListeners();
-    setupFCMListener();
     return () => {
       cleanup();
     };
@@ -226,33 +224,6 @@ const VideoCall: React.FC = () => {
   useEffect(() => {
     setIsScreenSharing(callState.isScreenSharing);
   }, [callState.isScreenSharing]);
-
-  // FCM 포그라운드 메시지 리스너 설정
-  const setupFCMListener = () => {
-    onMessageListener()
-      .then((payload: any) => {
-        console.log('Received foreground message:', payload);
-        
-        // 알림 표시
-        const notificationTitle = payload.notification?.title || '새 알림';
-        const notificationBody = payload.notification?.body || '';
-        
-        // 브라우저 알림 표시
-        if (Notification.permission === 'granted') {
-          new Notification(notificationTitle, {
-            body: notificationBody,
-            icon: '/logo/hana-logo.png',
-            badge: '/logo/hana-symbol.png'
-          });
-        }
-        
-        // 에러 메시지로 표시 (UI에 표시)
-        setError(`📬 ${notificationTitle}: ${notificationBody}`);
-        setTimeout(() => setError(''), 5000);
-      })
-      .catch((err) => console.error('Failed to receive foreground message:', err));
-  };
-
 
   // 이벤트 리스너 설정
   const setupEventListeners = () => {
@@ -355,7 +326,6 @@ const VideoCall: React.FC = () => {
     try {
       await WebSocketService.connect(currentUser.id);
       setError('');
-      // FCM 토큰은 App.tsx에서 로그인 시 자동 등록됨
     } catch (error) {
       console.error('Connection failed:', error);
       setError('WebSocket 연결에 실패했습니다.');

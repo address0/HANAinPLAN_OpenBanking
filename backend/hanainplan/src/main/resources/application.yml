@@ -27,7 +27,6 @@ logging:
   level:
     com.hanainplan: DEBUG
     org.springframework.web: DEBUG
-    com.hanainplan.config.FirebaseConfig: WARN  # Firebase 초기화 경고 레벨로 변경
 
 # 카카오 OAuth 설정
 kakao:
@@ -45,8 +44,3 @@ user:
 app:
   name: 하나인플랜
   base-url: ${APP_BASE_URL:http://localhost:5173}
-
-# Firebase 설정 (개발 환경에서는 파일 없어도 작동)
-firebase:
-  config:
-    file: ${FIREBASE_CONFIG_FILE:firebase-service-account.json}
