@@ -1,13 +1,18 @@
 package com.hanainplan.hana.account.controller;
 
+import com.hanainplan.hana.account.dto.AccountRequestDto;
+import com.hanainplan.hana.account.dto.AccountResponseDto;
 import com.hanainplan.hana.account.service.AccountService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,6 +25,51 @@ import java.util.Map;
 public class AccountController {
 
     private final AccountService accountService;
+
+    /**
+     * 계좌 생성
+     */
+    @PostMapping
+    public ResponseEntity<AccountResponseDto> createAccount(@Valid @RequestBody AccountRequestDto request) {
+        try {
+            AccountResponseDto response = accountService.createAccount(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            log.error("계좌 생성 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    /**
+     * 계좌 조회 (계좌번호)
+     */
+    @GetMapping("/{accountNumber}")
+    public ResponseEntity<AccountResponseDto> getAccountByNumber(@PathVariable String accountNumber) {
+        try {
+            AccountResponseDto account = accountService.getAccountByNumber(accountNumber);
+            return ResponseEntity.ok(account);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * CI로 계좌 조회
+     */
+    @GetMapping("/ci/{ci}")
+    public ResponseEntity<List<AccountResponseDto>> getAccountsByCi(@PathVariable String ci) {
+        List<AccountResponseDto> accounts = accountService.getAccountsByCi(ci);
+        return ResponseEntity.ok(accounts);
+    }
+
+    /**
+     * 모든 계좌 조회
+     */
+    @GetMapping
+    public ResponseEntity<List<AccountResponseDto>> getAllAccounts() {
+        List<AccountResponseDto> accounts = accountService.getAllAccounts();
+        return ResponseEntity.ok(accounts);
+    }
 
     /**
      * 계좌 출금 API

@@ -2,6 +2,8 @@ package com.hanainplan.hana.user.controller;
 
 import com.hanainplan.hana.user.dto.IrpAccountRequest;
 import com.hanainplan.hana.user.dto.IrpAccountResponse;
+import com.hanainplan.hana.user.dto.IrpDepositRequest;
+import com.hanainplan.hana.user.dto.IrpDepositResponse;
 import com.hanainplan.hana.user.entity.IrpAccount;
 import com.hanainplan.hana.user.service.IrpAccountService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -227,6 +229,38 @@ public class IrpAccountController {
             errorResponse.put("error", "IRP 계좌 정보 조회에 실패했습니다");
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    @PostMapping("/deposit")
+    @Operation(summary = "IRP 계좌 입금", description = "IRP 계좌에 입금을 처리합니다")
+    public ResponseEntity<?> depositToIrpAccount(
+            @Valid @RequestBody IrpDepositRequest request) {
+        try {
+            log.info("IRP 계좌 입금 요청 - 계좌번호: {}, 금액: {}원", request.getAccountNumber(), request.getAmount());
+
+            IrpDepositResponse response = irpAccountService.processIrpDeposit(
+                    request.getAccountNumber(),
+                    request.getAmount(),
+                    request.getDescription()
+            );
+
+            if (response.isSuccess()) {
+                log.info("IRP 계좌 입금 성공 - 계좌번호: {}, 거래ID: {}", 
+                        request.getAccountNumber(), response.getTransactionId());
+                return ResponseEntity.ok(response);
+            } else {
+                log.warn("IRP 계좌 입금 실패 - 계좌번호: {}, 사유: {}", 
+                        request.getAccountNumber(), response.getMessage());
+                return ResponseEntity.badRequest().body(response);
+            }
+
+        } catch (Exception e) {
+            log.error("IRP 계좌 입금 중 오류 발생 - 계좌번호: {}", request.getAccountNumber(), e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "IRP 계좌 입금에 실패했습니다");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 }

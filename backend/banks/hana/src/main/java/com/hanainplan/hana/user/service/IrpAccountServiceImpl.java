@@ -590,5 +590,101 @@ public class IrpAccountServiceImpl implements IrpAccountService {
         }
     }
 
+    @Override
+    public com.hanainplan.hana.user.dto.IrpDepositResponse processIrpDeposit(String accountNumber, BigDecimal amount, String description) {
+        log.info("하나은행 IRP 계좌 입금 처리 시작 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
+
+        try {
+            // 1. IRP 계좌 조회
+            Optional<IrpAccount> irpAccountOpt = irpAccountRepository.findByAccountNumber(accountNumber);
+            if (irpAccountOpt.isEmpty()) {
+                log.error("IRP 계좌를 찾을 수 없음 - 계좌번호: {}", accountNumber);
+                return com.hanainplan.hana.user.dto.IrpDepositResponse.failure("IRP 계좌를 찾을 수 없습니다: " + accountNumber);
+            }
+
+            IrpAccount irpAccount = irpAccountOpt.get();
+
+            // 2. 계좌 상태 확인
+            if (!"ACTIVE".equals(irpAccount.getAccountStatus())) {
+                log.error("비활성 IRP 계좌 - 계좌번호: {}, 상태: {}", accountNumber, irpAccount.getAccountStatus());
+                return com.hanainplan.hana.user.dto.IrpDepositResponse.failure("비활성 상태의 IRP 계좌입니다");
+            }
+
+            // 3. IRP 계좌 잔액 업데이트 (hana_irp_accounts)
+            BigDecimal currentBalance = irpAccount.getCurrentBalance() != null ? irpAccount.getCurrentBalance() : BigDecimal.ZERO;
+            BigDecimal totalContribution = irpAccount.getTotalContribution() != null ? irpAccount.getTotalContribution() : BigDecimal.ZERO;
+            
+            BigDecimal newBalance = currentBalance.add(amount);
+            BigDecimal newTotalContribution = totalContribution.add(amount);
+            
+            irpAccount.setCurrentBalance(newBalance);
+            irpAccount.setTotalContribution(newTotalContribution);
+            irpAccount.setLastContributionDate(LocalDate.now());
+            irpAccountRepository.save(irpAccount);
+
+            log.info("IRP 계좌 잔액 업데이트 완료 - 계좌번호: {}, 새 잔액: {}원, 총 납입금: {}원", 
+                    accountNumber, newBalance, newTotalContribution);
+
+            // 4. 일반 계좌 테이블 업데이트 (hana_accounts, account_type=6)
+            Optional<Account> generalAccountOpt = accountRepository.findByAccountNumber(accountNumber);
+            if (generalAccountOpt.isPresent()) {
+                Account generalAccount = generalAccountOpt.get();
+                generalAccount.setBalance(newBalance);
+                accountRepository.save(generalAccount);
+                
+                log.info("일반 계좌 테이블 잔액 업데이트 완료 - 계좌번호: {}, 새 잔액: {}원", accountNumber, newBalance);
+
+                // 5. 거래내역 저장 (hana_transactions)
+                String transactionId = "HANA-IRP-DP-" + System.currentTimeMillis() + "-" + 
+                        String.format("%04d", (int)(Math.random() * 10000));
+
+                Transaction transaction = Transaction.builder()
+                        .transactionId(transactionId)
+                        .accountNumber(accountNumber)
+                        .transactionDatetime(LocalDateTime.now())
+                        .transactionType("입금")
+                        .transactionCategory("IRP 입금")
+                        .transactionStatus("COMPLETED")
+                        .transactionDirection("CREDIT")
+                        .amount(amount)
+                        .balanceAfter(newBalance)
+                        .description(description != null ? description : "IRP 계좌 입금")
+                        .branchName("하나은행 본점")
+                        .referenceNumber(transactionId)
+                        .account(generalAccount)
+                        .build();
+
+                transactionRepository.save(transaction);
+
+                log.info("IRP 입금 거래내역 저장 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
+                        transactionId, accountNumber, amount);
+
+                return com.hanainplan.hana.user.dto.IrpDepositResponse.success(
+                        "IRP 계좌 입금이 완료되었습니다",
+                        transactionId,
+                        accountNumber,
+                        amount,
+                        newBalance,
+                        newTotalContribution
+                );
+            } else {
+                log.warn("일반 계좌 테이블에 IRP 계좌 없음 - 계좌번호: {}", accountNumber);
+                // IRP 계좌는 업데이트 되었으므로 부분 성공으로 처리
+                return com.hanainplan.hana.user.dto.IrpDepositResponse.success(
+                        "IRP 계좌 입금이 완료되었습니다 (거래내역 미저장)",
+                        "N/A",
+                        accountNumber,
+                        amount,
+                        newBalance,
+                        newTotalContribution
+                );
+            }
+
+        } catch (Exception e) {
+            log.error("IRP 계좌 입금 처리 실패 - 계좌번호: {}, 금액: {}원, 오류: {}", accountNumber, amount, e.getMessage());
+            return com.hanainplan.hana.user.dto.IrpDepositResponse.failure("IRP 계좌 입금 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
 }
 

@@ -1,10 +1,12 @@
 package com.hanainplan.hana.account.service;
 
+import com.hanainplan.hana.account.dto.AccountRequestDto;
 import com.hanainplan.hana.account.dto.AccountResponseDto;
 import com.hanainplan.hana.account.entity.Account;
 import com.hanainplan.hana.account.entity.Transaction;
 import com.hanainplan.hana.account.repository.AccountRepository;
 import com.hanainplan.hana.account.repository.TransactionRepository;
+import com.hanainplan.hana.user.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +29,82 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final CustomerRepository customerRepository;
+
+    // 하나은행 계좌번호 패턴 (앞자리 3자리)
+    private static final String[] HANA_PATTERNS = {
+        "100", "101", "102", "103", "104", "105", "110", "111"
+    };
+
+    /**
+     * 계좌번호 자동 생성
+     */
+    private String generateAccountNumber() {
+        Random random = new Random();
+        String pattern = HANA_PATTERNS[random.nextInt(HANA_PATTERNS.length)];
+        
+        // 나머지 13자리 랜덤 생성
+        StringBuilder accountNumber = new StringBuilder(pattern);
+        for (int i = 0; i < 13; i++) {
+            accountNumber.append(random.nextInt(10));
+        }
+        
+        String generatedNumber = accountNumber.toString();
+        
+        // 중복 확인
+        if (accountRepository.existsByAccountNumber(generatedNumber)) {
+            return generateAccountNumber(); // 재귀 호출로 다시 생성
+        }
+        
+        return generatedNumber;
+    }
+
+    /**
+     * 계좌 생성
+     */
+    public AccountResponseDto createAccount(AccountRequestDto request) {
+        // 고객 CI 존재 확인
+        if (!customerRepository.existsByCi(request.getCustomerCi())) {
+            throw new IllegalArgumentException("존재하지 않는 고객 CI입니다: " + request.getCustomerCi());
+        }
+
+        // 계좌번호 자동 생성
+        String accountNumber = generateAccountNumber();
+
+        Account account = Account.builder()
+                .accountNumber(accountNumber)
+                .accountType(request.getAccountType())
+                .balance(request.getBalance())
+                .openingDate(request.getOpeningDate())
+                .customerCi(request.getCustomerCi())
+                .build();
+
+        Account savedAccount = accountRepository.save(account);
+        log.info("하나은행 계좌 생성 완료 - 계좌번호: {}, CI: {}", accountNumber, request.getCustomerCi());
+        
+        return AccountResponseDto.from(savedAccount);
+    }
+
+    /**
+     * 계좌 조회 (계좌번호)
+     */
+    @Transactional(readOnly = true)
+    public AccountResponseDto getAccountByNumber(String accountNumber) {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new IllegalArgumentException("계좌를 찾을 수 없습니다: " + accountNumber));
+        return AccountResponseDto.from(account);
+    }
+
+    /**
+     * 모든 계좌 조회
+     */
+    @Transactional(readOnly = true)
+    public List<AccountResponseDto> getAllAccounts() {
+        List<Account> accounts = accountRepository.findAll();
+        return accounts.stream()
+                .map(AccountResponseDto::from)
+                .collect(Collectors.toList());
+    }
 
     /**
      * 계좌 출금 처리 및 거래내역 저장

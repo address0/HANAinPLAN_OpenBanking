@@ -59,6 +59,10 @@ public class IrpAccount {
     @Builder.Default
     private BigDecimal totalContribution = BigDecimal.ZERO; // 총 납입금
 
+    @Column(name = "current_year_deposit", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal currentYearDeposit = BigDecimal.ZERO; // 금년도 납입금 (연간 한도 체크용)
+
     @Column(name = "total_return", precision = 15, scale = 2)
     @Builder.Default
     private BigDecimal totalReturn = BigDecimal.ZERO; // 총 수익금

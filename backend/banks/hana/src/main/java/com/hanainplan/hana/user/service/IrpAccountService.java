@@ -88,4 +88,13 @@ public interface IrpAccountService {
      * @return IRP 통계 정보
      */
     Map<String, Object> getIrpStatistics();
+
+    /**
+     * IRP 계좌 입금 처리
+     * @param accountNumber IRP 계좌번호
+     * @param amount 입금금액
+     * @param description 입금 설명
+     * @return IRP 입금 처리 결과
+     */
+    com.hanainplan.hana.user.dto.IrpDepositResponse processIrpDeposit(String accountNumber, BigDecimal amount, String description);
 }

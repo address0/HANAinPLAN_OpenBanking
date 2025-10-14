@@ -3,6 +3,10 @@ package com.hanainplan.domain.banking.controller;
 import com.hanainplan.domain.banking.dto.*;
 import com.hanainplan.domain.banking.entity.Transaction;
 import com.hanainplan.domain.banking.service.TransactionService;
+import com.hanainplan.domain.banking.service.TransferIntegrationService;
+import com.hanainplan.domain.banking.service.ExternalAccountVerificationService;
+import com.hanainplan.domain.banking.service.IrpTransferService;
+import com.hanainplan.domain.banking.service.ExternalTransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -24,6 +29,10 @@ import java.util.Optional;
 public class TransactionController {
     
     private final TransactionService transactionService;
+    private final TransferIntegrationService transferIntegrationService;
+    private final ExternalAccountVerificationService verificationService;
+    private final IrpTransferService irpTransferService;
+    private final ExternalTransferService externalTransferService;
     
     @PostMapping("/deposit")
     @Operation(summary = "입금 처리", description = "계좌에 입금을 처리합니다")
@@ -56,6 +65,18 @@ public class TransactionController {
                 request.getFromAccountId(), request.getToAccountId(), request.getAmount());
         
         TransactionResponseDto response = transactionService.transfer(request);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/internal-transfer")
+    @Operation(summary = "계좌 간 송금 (통합)", description = "일반 계좌 ↔ IRP 계좌 간 송금을 처리합니다. 은행 서버 연동 포함.")
+    public ResponseEntity<TransactionResponseDto> internalTransfer(
+            @Parameter(description = "송금 요청 정보") @Valid @RequestBody InternalTransferRequestDto request) {
+        
+        log.info("계좌 간 송금 API 호출 - 출금 계좌 ID: {}, 입금 계좌 ID: {}, 금액: {}", 
+                request.getFromAccountId(), request.getToAccountId(), request.getAmount());
+        
+        TransactionResponseDto response = transferIntegrationService.transferBetweenAccounts(request);
         return ResponseEntity.ok(response);
     }
     
@@ -120,5 +141,46 @@ public class TransactionController {
         Optional<TransactionDto> transaction = transactionService.getTransactionByNumber(transactionNumber);
         return transaction.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/verify-account")
+    @Operation(summary = "외부 계좌 검증", description = "계좌번호로 외부 은행 계좌의 존재 여부 및 유형을 확인합니다")
+    public ResponseEntity<AccountVerificationResponseDto> verifyAccount(
+            @Parameter(description = "계좌 검증 요청") @RequestBody Map<String, String> request) {
+        
+        String accountNumber = request.get("accountNumber");
+        log.info("외부 계좌 검증 API 호출 - 계좌번호: {}", accountNumber);
+        
+        if (accountNumber == null || accountNumber.trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(AccountVerificationResponseDto.error("계좌번호는 필수입니다"));
+        }
+        
+        AccountVerificationResponseDto response = verificationService.verifyExternalAccount(accountNumber);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/transfer-to-irp")
+    @Operation(summary = "IRP 계좌로 송금", description = "일반 계좌에서 IRP 계좌로 송금을 처리합니다")
+    public ResponseEntity<TransactionResponseDto> transferToIrp(
+            @Parameter(description = "IRP 송금 요청 정보") @Valid @RequestBody TransferToIrpRequestDto request) {
+        
+        log.info("IRP 계좌 송금 API 호출 - 출금 계좌 ID: {}, IRP 계좌번호: {}, 금액: {}",
+                request.getFromAccountId(), request.getToIrpAccountNumber(), request.getAmount());
+        
+        TransactionResponseDto response = irpTransferService.transferToIrp(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/external-transfer")
+    @Operation(summary = "일반 외부 계좌로 송금", description = "일반 계좌에서 다른 은행의 일반 계좌로 송금을 처리합니다")
+    public ResponseEntity<TransactionResponseDto> externalTransfer(
+            @Parameter(description = "외부 송금 요청 정보") @Valid @RequestBody ExternalTransferRequestDto request) {
+        
+        log.info("외부 계좌 송금 API 호출 - 출금 계좌 ID: {}, 수신 계좌번호: {}, 금액: {}",
+                request.getFromAccountId(), request.getToAccountNumber(), request.getAmount());
+        
+        TransactionResponseDto response = externalTransferService.transferToExternalAccount(request);
+        return ResponseEntity.ok(response);
     }
 }

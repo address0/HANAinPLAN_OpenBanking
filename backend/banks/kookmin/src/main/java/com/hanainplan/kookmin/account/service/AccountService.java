@@ -192,6 +192,30 @@ public class AccountService {
     }
     
     /**
+     * 계좌 입금 처리 (타행 요청용)
+     */
+    public String processDeposit(String accountNumber, BigDecimal amount, String description) throws Exception {
+        log.info("국민은행 계좌 입금 처리 시작 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
+        
+        // 1. 계좌 조회
+        Account account = accountRepository.findById(accountNumber)
+                .orElseThrow(() -> new Exception("국민은행 계좌를 찾을 수 없습니다: " + accountNumber));
+        
+        // 2. 계좌 잔액 증가
+        BigDecimal newBalance = (account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO).add(amount);
+        account.setBalance(newBalance);
+        accountRepository.save(account);
+        
+        // 3. 거래내역 저장
+        String transactionId = saveDepositTransaction(account, amount, newBalance, description);
+        
+        log.info("국민은행 계좌 입금 처리 완료 - 거래ID: {}, 계좌번호: {}, 새 잔액: {}원", 
+                transactionId, accountNumber, newBalance);
+        
+        return transactionId;
+    }
+    
+    /**
      * 출금 거래내역을 국민은행 DB에 저장
      */
     private String saveWithdrawalTransaction(Account account, BigDecimal amount, BigDecimal balanceAfter, String description) {
@@ -221,6 +245,40 @@ public class AccountService {
             
         } catch (Exception e) {
             log.error("국민은행 출금 거래내역 저장 실패 - 계좌번호: {}, 오류: {}", account.getAccountNumber(), e.getMessage());
+            throw new RuntimeException("거래내역 저장 실패: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 입금 거래내역을 국민은행 DB에 저장
+     */
+    private String saveDepositTransaction(Account account, BigDecimal amount, BigDecimal balanceAfter, String description) {
+        try {
+            // 거래 ID 생성 (KB-DP-{timestamp}-{random})
+            String transactionId = "KB-DP-" + System.currentTimeMillis() + "-" + 
+                    String.format("%04d", (int)(Math.random() * 10000));
+
+            // 거래내역 생성
+            Transaction transaction = Transaction.builder()
+                    .transactionId(transactionId)
+                    .transactionDatetime(LocalDateTime.now())
+                    .transactionType("입금")
+                    .transactionCategory("기타")
+                    .amount(amount)
+                    .balanceAfter(balanceAfter)
+                    .branchName("국민은행 본점")
+                    .account(account)
+                    .build();
+
+            transactionRepository.save(transaction);
+            
+            log.info("국민은행 입금 거래내역 저장 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
+                    transactionId, account.getAccountNumber(), amount);
+            
+            return transactionId;
+            
+        } catch (Exception e) {
+            log.error("국민은행 입금 거래내역 저장 실패 - 계좌번호: {}, 오류: {}", account.getAccountNumber(), e.getMessage());
             throw new RuntimeException("거래내역 저장 실패: " + e.getMessage());
         }
     }

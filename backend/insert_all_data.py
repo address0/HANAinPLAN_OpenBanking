@@ -4,7 +4,6 @@
 HANAinPLAN 오픈뱅킹 프로젝트 통합 데이터 삽입 스크립트
 - 하나은행, 신한은행, 국민은행 샘플 데이터
 - HANAinPLAN 상품 코드 데이터
-- 보험사 샘플 데이터
 """
 
 import mysql.connector
