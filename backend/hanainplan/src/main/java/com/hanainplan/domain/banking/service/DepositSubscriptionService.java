@@ -4,9 +4,11 @@ import com.hanainplan.domain.banking.client.*;
 import com.hanainplan.domain.banking.dto.*;
 import com.hanainplan.domain.banking.entity.BankingAccount;
 import com.hanainplan.domain.banking.entity.DepositPortfolio;
+import com.hanainplan.domain.banking.entity.DepositSubscription;
 import com.hanainplan.domain.banking.entity.Transaction;
 import com.hanainplan.domain.banking.repository.AccountRepository;
 import com.hanainplan.domain.banking.repository.DepositPortfolioRepository;
+import com.hanainplan.domain.banking.repository.DepositSubscriptionRepository;
 import com.hanainplan.domain.banking.repository.TransactionRepository;
 import com.hanainplan.domain.user.entity.User;
 import com.hanainplan.domain.user.repository.UserRepository;
@@ -32,6 +34,7 @@ public class DepositSubscriptionService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final DepositPortfolioRepository depositPortfolioRepository;
+    private final DepositSubscriptionRepository depositSubscriptionRepository;
 
     /**
      * 정기예금 가입
@@ -65,7 +68,7 @@ public class DepositSubscriptionService {
             Map<String, Object> response = hanaBankClient.subscribeDeposit(bankRequest);
             
             // 4. 응답 파싱
-            DepositSubscriptionResponseDto subscriptionResponse = parseResponse(response);
+            DepositSubscriptionResponseDto subscriptionResponse = parseResponse(response, request);
             
             // 5. 하나인플랜 DB에 IRP 계좌 출금 거래내역 저장
             String productName = request.getProductName() != null ? request.getProductName() : request.getDepositCode();
@@ -82,6 +85,9 @@ public class DepositSubscriptionService {
             
             // 7. 정기예금 포트폴리오 저장
             saveDepositPortfolio(request, user, subscriptionResponse);
+            
+            // 8. HANAinPLAN tb_deposit_subscription 테이블에 저장
+            saveDepositSubscription(request, user, subscriptionResponse);
             
             return subscriptionResponse;
             
@@ -101,6 +107,15 @@ public class DepositSubscriptionService {
                 ? (request.getContractPeriod() / 12) + "년" 
                 : request.getContractPeriod() + "개월";
 
+        // 금리 계산 (HANAinPLAN의 InterestRateService 로직 기반)
+        BigDecimal baseRate = calculateBaseRate(request.getBankCode(), maturityPeriod);
+        // 우대금리는 사용자가 명시적으로 요청할 때만 적용 (현재는 기본금리만 사용)
+        BigDecimal preferentialRate = BigDecimal.ZERO;
+        BigDecimal finalRate = baseRate.add(preferentialRate);
+        
+        log.info("정기예금 금리 계산 - 은행: {}, 만기: {}, 기본금리: {}%, 우대: {}%, 최종: {}%",
+                request.getBankCode(), maturityPeriod, baseRate, preferentialRate, finalRate);
+
         Map<String, Object> req = new HashMap<>();
         req.put("customerCi", user.getCi());
         req.put("customerName", user.getUserName());
@@ -116,6 +131,9 @@ public class DepositSubscriptionService {
         req.put("contractPeriod", request.getContractPeriod());
         req.put("maturityPeriod", maturityPeriod);
         req.put("rateType", "FIXED");
+        req.put("baseRate", baseRate);
+        req.put("preferentialRate", preferentialRate);
+        req.put("finalAppliedRate", finalRate);
         req.put("interestCalculationBasis", "단리");
         req.put("interestPaymentMethod", "만기일시");
         req.put("contractPrincipal", request.getSubscriptionAmount());
@@ -124,8 +142,66 @@ public class DepositSubscriptionService {
         
         return req;
     }
+    
+    /**
+     * 은행별 기본 금리 계산 (InterestRateService와 동일)
+     */
+    private BigDecimal calculateBaseRate(String bankCode, String maturityPeriod) {
+        Map<String, Map<String, String>> bankRates = new HashMap<>();
+        
+        // 하나은행 금리
+        Map<String, String> hanaRates = new HashMap<>();
+        hanaRates.put("6개월", "0.0207");
+        hanaRates.put("1년", "0.0240");
+        hanaRates.put("2년", "0.0200");
+        hanaRates.put("3년", "0.0210");
+        hanaRates.put("5년", "0.0202");
+        bankRates.put("HANA", hanaRates);
+        
+        // 국민은행 금리
+        Map<String, String> kookminRates = new HashMap<>();
+        kookminRates.put("6개월", "0.0203");
+        kookminRates.put("1년", "0.0230");
+        kookminRates.put("2년", "0.0187");
+        kookminRates.put("3년", "0.0197");
+        kookminRates.put("5년", "0.0182");
+        bankRates.put("KOOKMIN", kookminRates);
+        
+        // 신한은행 금리
+        Map<String, String> shinhanRates = new HashMap<>();
+        shinhanRates.put("6개월", "0.0198");
+        shinhanRates.put("1년", "0.0233");
+        shinhanRates.put("2년", "0.0197");
+        shinhanRates.put("3년", "0.0202");
+        shinhanRates.put("5년", "0.0205");
+        bankRates.put("SHINHAN", shinhanRates);
+        
+        String rateStr = bankRates.getOrDefault(bankCode, new HashMap<>()).get(maturityPeriod);
+        return rateStr != null ? new BigDecimal(rateStr) : new BigDecimal("0.0200"); // 기본 2.0%
+    }
+    
+    /**
+     * 우대 금리 계산
+     */
+    private BigDecimal calculatePreferentialRateByPeriod(Integer contractPeriod) {
+        if (contractPeriod == null || contractPeriod < 12) {
+            return BigDecimal.ZERO;
+        }
+        
+        // 1년 이상: 0.003 (0.3%p)
+        if (contractPeriod >= 12 && contractPeriod < 24) {
+            return new BigDecimal("0.003");
+        }
+        
+        // 2년 이상: 0.005 (0.5%p)
+        if (contractPeriod >= 24) {
+            return new BigDecimal("0.005");
+        }
+        
+        return BigDecimal.ZERO;
+    }
 
-    private DepositSubscriptionResponseDto parseResponse(Map<String, Object> body) {
+    private DepositSubscriptionResponseDto parseResponse(Map<String, Object> body, DepositSubscriptionRequestDto request) {
         Object idObj = body.get("subscriptionId");
         Long id = idObj instanceof Number ? ((Number) idObj).longValue() : null;
 
@@ -134,6 +210,19 @@ public class DepositSubscriptionService {
 
         Object rateObj = body.get("finalAppliedRate");
         BigDecimal rate = rateObj instanceof Number ? BigDecimal.valueOf(((Number) rateObj).doubleValue()) : null;
+        
+        // 예상 이자 및 만기금액 계산 (단리 계산)
+        BigDecimal contractPrincipal = request.getSubscriptionAmount();
+        BigDecimal annualRate = rate != null ? rate : BigDecimal.ZERO; // 연이자율 (예: 0.024 = 2.4%)
+        BigDecimal monthlyRate = annualRate.divide(BigDecimal.valueOf(12), 6, java.math.RoundingMode.HALF_UP); // 월이자율
+        BigDecimal expectedInterest = contractPrincipal
+                .multiply(monthlyRate)
+                .multiply(BigDecimal.valueOf(request.getContractPeriod()))
+                .setScale(0, java.math.RoundingMode.HALF_UP); // 원 단위로 반올림
+        BigDecimal expectedMaturityAmount = contractPrincipal.add(expectedInterest);
+        
+        // 은행명 매핑
+        String bankName = getBankName(request.getBankCode());
 
         return DepositSubscriptionResponseDto.success(
                 id,
@@ -141,8 +230,24 @@ public class DepositSubscriptionService {
                 (String) body.get("accountNumber"),
                 subDate,
                 matDate,
-                rate
+                rate,
+                contractPrincipal,
+                expectedInterest,
+                expectedMaturityAmount,
+                bankName
         );
+    }
+    
+    /**
+     * 은행 코드를 은행명으로 변환
+     */
+    private String getBankName(String bankCode) {
+        switch (bankCode) {
+            case "HANA": return "하나은행";
+            case "KOOKMIN": return "국민은행";
+            case "SHINHAN": return "신한은행";
+            default: return "기타은행";
+        }
     }
     
     /**
@@ -189,15 +294,6 @@ public class DepositSubscriptionService {
     private void saveDepositPortfolio(DepositSubscriptionRequestDto request, User user, 
                                        DepositSubscriptionResponseDto subscriptionResponse) {
         try {
-            // 예상 이자 및 만기금액 계산 (간단한 계산)
-            BigDecimal rate = subscriptionResponse.getFinalAppliedRate() != null ? 
-                    subscriptionResponse.getFinalAppliedRate() : BigDecimal.ZERO;
-            BigDecimal expectedInterest = request.getSubscriptionAmount()
-                    .multiply(rate)
-                    .multiply(BigDecimal.valueOf(request.getContractPeriod()))
-                    .divide(BigDecimal.valueOf(1200), 2, java.math.RoundingMode.HALF_UP);
-            BigDecimal maturityAmount = request.getSubscriptionAmount().add(expectedInterest);
-            
             String portfolioProductName = request.getProductName() != null 
                     ? request.getProductName() 
                     : request.getDepositCode() + " 정기예금";
@@ -215,9 +311,9 @@ public class DepositSubscriptionService {
                     .contractPeriod(request.getContractPeriod())
                     .maturityPeriod(request.getContractPeriod() + "개월")
                     .principalAmount(request.getSubscriptionAmount())
-                    .interestRate(rate)
-                    .expectedInterest(expectedInterest)
-                    .maturityAmount(maturityAmount)
+                    .interestRate(subscriptionResponse.getFinalAppliedRate())
+                    .expectedInterest(subscriptionResponse.getExpectedInterest())
+                    .maturityAmount(subscriptionResponse.getExpectedMaturityAmount())
                     .status("ACTIVE")
                     .irpAccountNumber(request.getIrpAccountNumber())
                     .build();
@@ -235,14 +331,39 @@ public class DepositSubscriptionService {
     }
     
     /**
-     * 은행 코드로 은행명 반환
+     * HANAinPLAN tb_deposit_subscription 테이블에 저장
      */
-    private String getBankName(String bankCode) {
-        switch (bankCode.toUpperCase()) {
-            case "HANA": return "하나은행";
-            case "KOOKMIN": return "국민은행";
-            case "SHINHAN": return "신한은행";
-            default: return bankCode;
+    private void saveDepositSubscription(DepositSubscriptionRequestDto request, User user, 
+                                         DepositSubscriptionResponseDto subscriptionResponse) {
+        try {
+            DepositSubscription subscription = DepositSubscription.builder()
+                    .userId(user.getUserId())
+                    .customerCi(user.getCi())
+                    .accountNumber(request.getIrpAccountNumber()) // IRP 계좌번호
+                    .status("ACTIVE")
+                    .subscriptionDate(subscriptionResponse.getSubscriptionDate())
+                    .maturityDate(subscriptionResponse.getMaturityDate())
+                    .contractPeriod(request.getContractPeriod())
+                    .productType(request.getProductType() != null ? request.getProductType() : 0) // 기본값: 일반상품
+                    .bankName(getBankName(request.getBankCode()))
+                    .bankCode(request.getBankCode())
+                    .depositCode(request.getDepositCode())
+                    .rate(subscriptionResponse.getFinalAppliedRate())
+                    .currentBalance(request.getSubscriptionAmount())
+                    .unpaidInterest(BigDecimal.ZERO)
+                    .lastInterestCalculationDate(LocalDate.now())
+                    .nextInterestPaymentDate(subscriptionResponse.getMaturityDate()) // 만기일에 이자 지급
+                    .build();
+            
+            depositSubscriptionRepository.save(subscription);
+            
+            log.info("[하나인플랜] 정기예금 가입내역 저장 완료 - 사용자ID: {}, 상품코드: {}, 금액: {}원", 
+                    user.getUserId(), request.getDepositCode(), request.getSubscriptionAmount());
+            
+        } catch (Exception e) {
+            log.error("정기예금 가입내역 저장 실패 - 사용자ID: {}, 오류: {}", 
+                    user.getUserId(), e.getMessage());
+            throw new RuntimeException("가입내역 저장 실패: " + e.getMessage());
         }
     }
 

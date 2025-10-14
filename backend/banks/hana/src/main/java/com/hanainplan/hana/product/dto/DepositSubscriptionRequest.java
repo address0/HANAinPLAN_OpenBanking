@@ -68,4 +68,13 @@ public class DepositSubscriptionRequest {
     
     @NotBlank(message = "지점명은 필수입니다")
     private String branchName;
+
+    // HANAinPLAN에서 계산하여 전달하는 금리 정보
+    @NotNull(message = "기본 금리는 필수입니다")
+    private BigDecimal baseRate;
+    
+    private BigDecimal preferentialRate; // 우대 금리 (선택 사항)
+    
+    @NotNull(message = "최종 적용 금리는 필수입니다")
+    private BigDecimal finalAppliedRate;
 }

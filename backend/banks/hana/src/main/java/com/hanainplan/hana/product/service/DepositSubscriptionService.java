@@ -79,21 +79,15 @@ public class DepositSubscriptionService {
         saveIrpWithdrawalTransaction(irpAccount, request.getContractPrincipal(), newIrpBalance, 
                 "정기예금 가입 - " + request.getProductCode());
 
-        // 8. 금리 정보 조회
-        InterestRate interestRate = interestRateRepository
-                .findLatestBasicRateByProductCodeAndMaturityPeriod(request.getProductCode(), request.getMaturityPeriod())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "해당 상품의 금리 정보를 찾을 수 없습니다: " + request.getProductCode() + ", " + request.getMaturityPeriod()));
+        // 8. HANAinPLAN에서 전달받은 금리 정보 사용
+        BigDecimal baseRate = request.getBaseRate();
+        BigDecimal preferentialRate = request.getPreferentialRate();
+        BigDecimal finalRate = request.getFinalAppliedRate();
+        
+        log.info("HANAinPLAN에서 전달받은 금리 사용 - 기본금리: {}%, 우대금리: {}%, 최종금리: {}%", 
+                baseRate, preferentialRate, finalRate);
 
-        // 9. 우대금리 조회 (선택사항)
-        InterestRate preferentialRate = interestRateRepository
-                .findLatestPreferentialRateByProductCodeAndMaturityPeriod(request.getProductCode(), request.getMaturityPeriod())
-                .orElse(null);
-
-        // 10. 최종 적용금리 계산
-        BigDecimal finalRate = (preferentialRate != null) ? preferentialRate.getInterestRate() : interestRate.getInterestRate();
-
-        // 11. 정기예금 가입 생성
+        // 9. 정기예금 가입 생성
         ProductSubscription subscription = ProductSubscription.builder()
                 .customerCi(request.getCustomerCi())
                 .productCode(request.getProductCode())
@@ -104,8 +98,8 @@ public class DepositSubscriptionService {
                 .contractPeriod(request.getContractPeriod())
                 .maturityPeriod(request.getMaturityPeriod())
                 .rateType(request.getRateType())
-                .baseRate(interestRate.getInterestRate())
-                .preferentialRate(preferentialRate != null ? preferentialRate.getInterestRate() : null)
+                .baseRate(baseRate)
+                .preferentialRate(preferentialRate)
                 .finalAppliedRate(finalRate)
                 .interestCalculationBasis(request.getInterestCalculationBasis())
                 .interestPaymentMethod(request.getInterestPaymentMethod())
@@ -165,6 +159,7 @@ public class DepositSubscriptionService {
             // 거래내역 생성
             Transaction transaction = Transaction.builder()
                     .transactionId(transactionId)
+                    .accountNumber(irpAccount.getAccountNumber()) // 계좌번호 직접 설정
                     .transactionDatetime(LocalDateTime.now())
                     .transactionType("출금")
                     .transactionCategory("정기예금 가입")
@@ -172,7 +167,8 @@ public class DepositSubscriptionService {
                     .balanceAfter(balanceAfter)
                     .description(description)
                     .branchName("하나은행 본점")
-                    .account(account)
+                    .transactionStatus("COMPLETED")
+                    .transactionDirection("DEBIT")
                     .build();
 
             transactionRepository.save(transaction);
@@ -186,4 +182,5 @@ public class DepositSubscriptionService {
             throw new RuntimeException("거래내역 저장 실패: " + e.getMessage());
         }
     }
+    
 }

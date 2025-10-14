@@ -40,6 +40,11 @@ public class DepositSubscriptionResponseDto {
     private BigDecimal contractPrincipal;
     private BigDecimal currentBalance;
     private String branchName;
+    
+    // 프론트엔드에서 필요한 추가 필드들
+    private BigDecimal expectedInterest;
+    private BigDecimal expectedMaturityAmount;
+    private String bankName;
 
     public static DepositSubscriptionResponseDto success(
             Long subscriptionId,
@@ -47,25 +52,33 @@ public class DepositSubscriptionResponseDto {
             String accountNumber,
             LocalDate subscriptionDate,
             LocalDate maturityDate,
-            BigDecimal finalAppliedRate) {
-        return DepositSubscriptionResponseDto.builder()
-                .success(true)
-                .message("정기예금 가입이 완료되었습니다.")
-                .subscriptionId(subscriptionId)
-                .productCode(productCode)
-                .accountNumber(accountNumber)
-                .subscriptionDate(subscriptionDate)
-                .maturityDate(maturityDate)
-                .finalAppliedRate(finalAppliedRate)
-                .build();
+            BigDecimal finalAppliedRate,
+            BigDecimal contractPrincipal,
+            BigDecimal expectedInterest,
+            BigDecimal expectedMaturityAmount,
+            String bankName) {
+        DepositSubscriptionResponseDto dto = new DepositSubscriptionResponseDto();
+        dto.success = true;
+        dto.message = "정기예금 가입이 완료되었습니다.";
+        dto.subscriptionId = subscriptionId;
+        dto.productCode = productCode;
+        dto.accountNumber = accountNumber;
+        dto.subscriptionDate = subscriptionDate;
+        dto.maturityDate = maturityDate;
+        dto.finalAppliedRate = finalAppliedRate;
+        dto.contractPrincipal = contractPrincipal;
+        dto.expectedInterest = expectedInterest;
+        dto.expectedMaturityAmount = expectedMaturityAmount;
+        dto.bankName = bankName;
+        return dto;
     }
 
     public static DepositSubscriptionResponseDto failure(String message, String errorCode) {
-        return DepositSubscriptionResponseDto.builder()
-                .success(false)
-                .message(message)
-                .errorCode(errorCode)
-                .build();
+        DepositSubscriptionResponseDto dto = new DepositSubscriptionResponseDto();
+        dto.success = false;
+        dto.message = message;
+        dto.errorCode = errorCode;
+        return dto;
     }
 }
 
