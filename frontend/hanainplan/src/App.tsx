@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useUserStore } from './store/userStore'
 import './App.css'
 import Login from './pages/Login'
 import VideoCall from './pages/VideoCall'

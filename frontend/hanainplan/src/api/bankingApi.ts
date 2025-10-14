@@ -251,6 +251,20 @@ export const transfer = async (request: TransferRequest): Promise<TransactionRes
   return response;
 };
 
+// 계좌 간 송금 (은행 서버 연동 포함)
+export interface InternalTransferRequest {
+  fromAccountId: number;
+  toAccountId: number;
+  amount: number;
+  description?: string;
+  memo?: string;
+}
+
+export const internalTransfer = async (request: InternalTransferRequest): Promise<TransactionResponse> => {
+  const response = await httpPost<TransactionResponse>('/banking/transactions/internal-transfer', request);
+  return response;
+};
+
 export const getTransactionHistory = async (request: TransactionHistoryRequest): Promise<TransactionHistoryResponse> => {
   const response = await httpGet<TransactionHistoryResponse>('/banking/transactions/history', request);
   return response;
@@ -263,6 +277,49 @@ export const getTransaction = async (transactionId: number): Promise<Transaction
 
 export const getTransactionByNumber = async (transactionNumber: string): Promise<Transaction> => {
   const response = await httpGet<Transaction>(`/banking/transactions/number/${transactionNumber}`);
+  return response;
+};
+
+// 외부 계좌 검증
+export interface AccountVerificationResponse {
+  exists: boolean;
+  accountType?: 'IRP' | 'GENERAL';
+  bankCode?: string;
+  accountStatus?: string;
+  accountNumber?: string;
+  message?: string;
+}
+
+export const verifyExternalAccount = async (accountNumber: string): Promise<AccountVerificationResponse> => {
+  const response = await httpPost<AccountVerificationResponse>('/banking/transactions/verify-account', {
+    accountNumber
+  });
+  return response;
+};
+
+// IRP 계좌로 송금
+export interface TransferToIrpRequest {
+  fromAccountId: number;
+  toIrpAccountNumber: string;
+  amount: number;
+  description?: string;
+}
+
+export const transferToIrp = async (request: TransferToIrpRequest): Promise<TransactionResponse> => {
+  const response = await httpPost<TransactionResponse>('/banking/transactions/transfer-to-irp', request);
+  return response;
+};
+
+// 일반 외부 계좌로 송금
+export interface ExternalTransferRequest {
+  fromAccountId: number;
+  toAccountNumber: string;
+  amount: number;
+  description?: string;
+}
+
+export const externalTransfer = async (request: ExternalTransferRequest): Promise<TransactionResponse> => {
+  const response = await httpPost<TransactionResponse>('/banking/transactions/external-transfer', request);
   return response;
 };
 

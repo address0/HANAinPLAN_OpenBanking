@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAccountStore } from '../../store/accountStore';
-import { useBankStore, getBankPatternByPattern } from '../../store/bankStore';
-import { withdrawal } from '../../api/bankingApi';
+import { getBankPatternByPattern } from '../../store/bankStore';
+import { 
+  withdrawal, 
+  internalTransfer, 
+  getAllAccounts, 
+  verifyExternalAccount, 
+  transferToIrp, 
+  externalTransfer 
+} from '../../api/bankingApi';
+import type { AccountVerificationResponse } from '../../api/bankingApi';
+import { useUserStore } from '../../store/userStore';
 
 interface TransferModalProps {
   onClose: () => void;
@@ -16,9 +25,16 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
+  const [transferType, setTransferType] = useState<'external' | 'internal'>('external'); // 외부/내부 송금 구분
+  const [selectedToAccountId, setSelectedToAccountId] = useState<number | null>(null); // 내부 계좌 선택
+  const [selectedToAccountNumber, setSelectedToAccountNumber] = useState<string | null>(null); // 내부 계좌번호 (IRP용)
+  const [selectedToAccountIsIrp, setSelectedToAccountIsIrp] = useState(false); // 선택된 계좌가 IRP인지
+  const [myAccounts, setMyAccounts] = useState<any[]>([]); // 내 계좌 목록 (IRP 포함)
+  const [verifiedAccount, setVerifiedAccount] = useState<AccountVerificationResponse | null>(null); // 계좌 검증 결과
+  const [isVerifying, setIsVerifying] = useState(false); // 계좌 검증 중
   
   const { accounts, selectedAccountId } = useAccountStore();
-  const { bankPatterns } = useBankStore();
+  const { user } = useUserStore();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -31,11 +47,43 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
     
+    // 내 계좌 목록 로드 (IRP 포함)
+    if (user && transferType === 'internal') {
+      loadMyAccounts();
+    }
+    
     return () => {
       window.removeEventListener('resize', checkMobile);
       document.body.style.overflow = 'unset';
     };
-  }, []);
+  }, [transferType, user]);
+  
+  const loadMyAccounts = async () => {
+    if (!user) return;
+    try {
+      const response = await getAllAccounts(user.userId);
+      const allAccounts: any[] = [...response.bankingAccounts];
+      
+      // IRP 계좌도 목록에 추가 (내 계좌니까!)
+      if (response.irpAccount) {
+        allAccounts.push({
+          accountId: null, // IRP는 accountId 없음
+          accountNumber: response.irpAccount.accountNumber,
+          accountName: response.irpAccount.accountName || 'IRP 계좌',
+          accountType: 6,
+          balance: response.irpAccount.currentBalance,
+          accountTypeDescription: 'IRP',
+          isIrp: true
+        } as any);
+      }
+      
+      setMyAccounts(allAccounts.filter(acc => 
+        acc.isIrp ? true : acc.accountId !== selectedAccountId
+      ));
+    } catch (error) {
+      console.error('계좌 목록 조회 실패:', error);
+    }
+  };
 
   const formatCurrency = (value: string) => {
     const number = value.replace(/[^\d]/g, '');
@@ -47,9 +95,28 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
     setAmount(value);
   };
 
-  const handleAccountNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAccountNumberChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d]/g, '');
     setRecipientAccountNumber(value);
+    setVerifiedAccount(null); // 계좌번호 변경 시 검증 결과 초기화
+    
+    // 계좌번호가 충분히 입력되면 검증
+    if (value.length >= 10) {
+      try {
+        setIsVerifying(true);
+        const result = await verifyExternalAccount(value);
+        setVerifiedAccount(result);
+        
+        if (result.exists) {
+          console.log('계좌 검증 성공:', result);
+        }
+      } catch (error) {
+        console.error('계좌 검증 실패:', error);
+        setVerifiedAccount(null);
+      } finally {
+        setIsVerifying(false);
+      }
+    }
   };
 
   // 계좌번호 패턴으로 은행 정보 찾기
@@ -80,8 +147,61 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
       return;
     }
 
-    if (!bankInfo) {
-      alert('올바른 계좌번호를 입력해주세요.');
+    // 내부 송금인 경우
+    if (transferType === 'internal') {
+      if (!selectedToAccountId && !selectedToAccountIsIrp) {
+        alert('입금할 계좌를 선택해주세요.');
+        return;
+      }
+
+      try {
+        setIsSubmitting(true);
+        
+        // IRP 계좌로 송금하는 경우
+        if (selectedToAccountIsIrp && selectedToAccountNumber) {
+          await transferToIrp({
+            fromAccountId: selectedAccountId,
+            toIrpAccountNumber: selectedToAccountNumber,
+            amount: transferAmount,
+            description: description || 'IRP 계좌로 송금'
+          });
+          
+          // 계좌 정보 새로고침
+          if (onTransferComplete) {
+            await onTransferComplete();
+          }
+          
+          alert('IRP 계좌 송금이 완료되었습니다!');
+        } else {
+          // 일반 계좌 간 송금
+          await internalTransfer({
+            fromAccountId: selectedAccountId,
+            toAccountId: selectedToAccountId!,
+            amount: transferAmount,
+            description: description || '계좌 간 송금'
+          });
+          
+          // 계좌 정보 새로고침
+          if (onTransferComplete) {
+            await onTransferComplete();
+          }
+          
+          alert('송금이 완료되었습니다!');
+        }
+        
+        onClose();
+      } catch (error: any) {
+        console.error('내부 송금 실패:', error);
+        alert(error.response?.data?.message || '송금 처리 중 오류가 발생했습니다.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // 외부 송금인 경우 (새로운 로직)
+    if (!verifiedAccount?.exists) {
+      alert('계좌번호를 정확히 입력해주세요.');
       return;
     }
 
@@ -92,19 +212,43 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
     try {
       setIsSubmitting(true);
-      await withdrawal({
-        accountId: selectedAccountId,
-        amount: transferAmount,
-        description: description || `${recipientName}님께 송금`,
-        memo: `송금: ${recipientName} (${bankInfo.name})`
-      });
       
-      alert('송금이 완료되었습니다.');
-      onTransferComplete?.();
+      if (verifiedAccount.accountType === 'IRP') {
+        // IRP 계좌로 송금
+        await transferToIrp({
+          fromAccountId: selectedAccountId,
+          toIrpAccountNumber: recipientAccountNumber,
+          amount: transferAmount,
+          description: description || `${recipientName}님께 IRP 송금`
+        });
+        
+        // 계좌 정보 새로고침
+        if (onTransferComplete) {
+          await onTransferComplete();
+        }
+        
+        alert('IRP 계좌 송금이 완료되었습니다!');
+      } else {
+        // 일반 계좌로 송금
+        await externalTransfer({
+          fromAccountId: selectedAccountId,
+          toAccountNumber: recipientAccountNumber,
+          amount: transferAmount,
+          description: description || `${recipientName}님께 송금`
+        });
+        
+        // 계좌 정보 새로고침
+        if (onTransferComplete) {
+          await onTransferComplete();
+        }
+        
+        alert('송금이 완료되었습니다!');
+      }
+      
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('송금 오류:', error);
-      alert('송금 처리 중 오류가 발생했습니다.');
+      alert(error.response?.data?.message || '송금 처리 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
     }
@@ -140,21 +284,105 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-6">
 
-            {/* Recipient Account Info */}
-            <div className="space-y-4">
+            {/* 송금 타입 선택 */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTransferType('external')}
+                className={`flex-1 py-3 rounded-lg font-hana-medium transition-colors ${
+                  transferType === 'external'
+                    ? 'bg-hana-green text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                타인 계좌로 송금
+              </button>
+              <button
+                type="button"
+                onClick={() => setTransferType('internal')}
+                className={`flex-1 py-3 rounded-lg font-hana-medium transition-colors ${
+                  transferType === 'internal'
+                    ? 'bg-hana-green text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                내 계좌로 송금
+              </button>
+            </div>
+
+            {/* 내부 송금 - 계좌 선택 */}
+            {transferType === 'internal' && (
               <div>
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
-                  받는 분 성함
+                  받는 계좌 선택
                 </label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="받는 분 성함을 입력하세요"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg font-hana-medium focus:outline-none focus:ring-2 focus:ring-hana-green"
-                  required
-                />
+                <div className="space-y-2">
+                  {myAccounts.map((account) => {
+                    const isSelected = account.isIrp 
+                      ? selectedToAccountNumber === account.accountNumber
+                      : selectedToAccountId === account.accountId;
+                    
+                    return (
+                      <button
+                        key={account.isIrp ? account.accountNumber : account.accountId}
+                        type="button"
+                        onClick={() => {
+                          if (account.isIrp) {
+                            setSelectedToAccountId(null);
+                            setSelectedToAccountNumber(account.accountNumber);
+                            setSelectedToAccountIsIrp(true);
+                          } else {
+                            setSelectedToAccountId(account.accountId);
+                            setSelectedToAccountNumber(null);
+                            setSelectedToAccountIsIrp(false);
+                          }
+                        }}
+                        className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                          isSelected
+                            ? 'border-hana-green bg-hana-green bg-opacity-5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="font-hana-bold text-gray-800">{account.accountName}</div>
+                        <div className="text-sm text-gray-600 font-hana-medium mt-1">
+                          {account.accountNumber}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          잔액: {formatCurrency(account.balance.toString())}원
+                        </div>
+                        {account.isIrp && (
+                          <div className="text-xs text-blue-600 mt-2 bg-blue-50 px-2 py-1 rounded inline-block">
+                            IRP 계좌 (연간 한도: 1,800만원)
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {myAccounts.length === 0 && (
+                    <div className="text-center py-4 text-gray-500 font-hana-medium">
+                      송금 가능한 계좌가 없습니다
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
+
+            {/* 외부 송금 - 받는 분 정보 */}
+            {transferType === 'external' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-hana-medium text-gray-700 mb-2">
+                    받는 분 성함
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="받는 분 성함을 입력하세요"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg font-hana-medium focus:outline-none focus:ring-2 focus:ring-hana-green"
+                    required
+                  />
+                </div>
               
               <div>
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
@@ -180,8 +408,35 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                     </div>
                   )}
                 </div>
+                {/* 계좌 검증 상태 표시 */}
+                {isVerifying && (
+                  <div className="mt-2 text-sm text-gray-600 flex items-center">
+                    <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    계좌 확인 중...
+                  </div>
+                )}
+                {verifiedAccount && verifiedAccount.exists && (
+                  <div className="mt-2 text-sm text-hana-green flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {verifiedAccount.accountType === 'IRP' ? 'IRP 계좌' : '일반 계좌'} 확인됨
+                  </div>
+                )}
+                {verifiedAccount && !verifiedAccount.exists && recipientAccountNumber.length >= 10 && (
+                  <div className="mt-2 text-sm text-red-600 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    계좌를 찾을 수 없습니다
+                  </div>
+                )}
               </div>
             </div>
+            )}
 
             {/* Amount Input */}
             <div>
@@ -244,9 +499,19 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || isInsufficientBalance || !recipientName.trim() || !recipientAccountNumber.trim() || !amount}
+              disabled={
+                isSubmitting || 
+                isInsufficientBalance || 
+                !amount ||
+                (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
+                (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
+              }
               className={`w-full py-4 rounded-lg font-hana-bold text-white transition-colors ${
-                isSubmitting || isInsufficientBalance || !recipientName.trim() || !recipientAccountNumber.trim() || !amount
+                isSubmitting || 
+                isInsufficientBalance || 
+                !amount ||
+                (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
+                (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-red-600 hover:bg-red-700'
               }`}
@@ -279,21 +544,105 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-6">
 
-            {/* Recipient Account Info */}
-            <div className="space-y-4">
+            {/* 송금 타입 선택 */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTransferType('external')}
+                className={`flex-1 py-3 rounded-lg font-hana-medium transition-colors ${
+                  transferType === 'external'
+                    ? 'bg-hana-green text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                타인 계좌로 송금
+              </button>
+              <button
+                type="button"
+                onClick={() => setTransferType('internal')}
+                className={`flex-1 py-3 rounded-lg font-hana-medium transition-colors ${
+                  transferType === 'internal'
+                    ? 'bg-hana-green text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                내 계좌로 송금
+              </button>
+            </div>
+
+            {/* 내부 송금 - 계좌 선택 */}
+            {transferType === 'internal' && (
               <div>
-                <label className="block font-hana-medium text-gray-700 mb-2">
-                  받는 분 성함
+                <label className="block text-sm font-hana-medium text-gray-700 mb-2">
+                  받는 계좌 선택
                 </label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="받는 분 성함을 입력하세요"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg font-hana-medium focus:outline-none focus:ring-2 focus:ring-hana-green"
-                  required
-                />
+                <div className="space-y-2">
+                  {myAccounts.map((account) => {
+                    const isSelected = account.isIrp 
+                      ? selectedToAccountNumber === account.accountNumber
+                      : selectedToAccountId === account.accountId;
+                    
+                    return (
+                      <button
+                        key={account.isIrp ? account.accountNumber : account.accountId}
+                        type="button"
+                        onClick={() => {
+                          if (account.isIrp) {
+                            setSelectedToAccountId(null);
+                            setSelectedToAccountNumber(account.accountNumber);
+                            setSelectedToAccountIsIrp(true);
+                          } else {
+                            setSelectedToAccountId(account.accountId);
+                            setSelectedToAccountNumber(null);
+                            setSelectedToAccountIsIrp(false);
+                          }
+                        }}
+                        className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
+                          isSelected
+                            ? 'border-hana-green bg-hana-green bg-opacity-5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="font-hana-bold text-gray-800">{account.accountName}</div>
+                        <div className="text-sm text-gray-600 font-hana-medium mt-1">
+                          {account.accountNumber}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          잔액: {formatCurrency(account.balance.toString())}원
+                        </div>
+                        {account.isIrp && (
+                          <div className="text-xs text-blue-600 mt-2 bg-blue-50 px-2 py-1 rounded inline-block">
+                            IRP 계좌 (연간 한도: 1,800만원)
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {myAccounts.length === 0 && (
+                    <div className="text-center py-4 text-gray-500 font-hana-medium">
+                      송금 가능한 계좌가 없습니다
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
+
+            {/* 외부 송금 - 받는 분 정보 */}
+            {transferType === 'external' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-hana-medium text-gray-700 mb-2">
+                    받는 분 성함
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="받는 분 성함을 입력하세요"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg font-hana-medium focus:outline-none focus:ring-2 focus:ring-hana-green"
+                    required
+                  />
+                </div>
               
               <div>
                 <label className="block font-hana-medium text-gray-700 mb-2">
@@ -319,8 +668,35 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                     </div>
                   )}
                 </div>
+                {/* 계좌 검증 상태 표시 */}
+                {isVerifying && (
+                  <div className="mt-2 text-sm text-gray-600 flex items-center">
+                    <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    계좌 확인 중...
+                  </div>
+                )}
+                {verifiedAccount && verifiedAccount.exists && (
+                  <div className="mt-2 text-sm text-hana-green flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {verifiedAccount.accountType === 'IRP' ? 'IRP 계좌' : '일반 계좌'} 확인됨
+                  </div>
+                )}
+                {verifiedAccount && !verifiedAccount.exists && recipientAccountNumber.length >= 10 && (
+                  <div className="mt-2 text-sm text-red-600 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    계좌를 찾을 수 없습니다
+                  </div>
+                )}
               </div>
             </div>
+            )}
 
             {/* Amount Input */}
             <div>
@@ -391,9 +767,19 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || isInsufficientBalance || !recipientName.trim() || !recipientAccountNumber.trim() || !amount}
+                disabled={
+                  isSubmitting || 
+                  isInsufficientBalance || 
+                  !amount ||
+                  (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
+                  (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
+                }
                 className={`flex-1 py-3 rounded-lg font-hana-bold text-white transition-colors ${
-                  isSubmitting || isInsufficientBalance || !recipientName.trim() || !recipientAccountNumber.trim() || !amount
+                  isSubmitting || 
+                  isInsufficientBalance || 
+                  !amount ||
+                  (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
+                  (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
