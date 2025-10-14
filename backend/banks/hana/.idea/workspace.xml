@@ -5,32 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2c70a737-bb15-40d7-8620-f4cb2cca7f85" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/.gradle/8.5/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.5/executionHistory/executionHistory.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.5/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.5/executionHistory/executionHistory.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.5/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.5/fileHashes/fileHashes.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.5/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.5/fileHashes/fileHashes.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.5/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.5/fileHashes/resourceHashesCache.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/hanainplan/hana/product/dto/DepositSubscriptionRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/com/hanainplan/hana/product/dto/DepositSubscriptionRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/classes/java/main/com/hanainplan/hana/product/service/DepositSubscriptionService.class" beforeDir="false" afterPath="$PROJECT_DIR$/build/classes/java/main/com/hanainplan/hana/product/service/DepositSubscriptionService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpAccountController.class.uniqueId3" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpAccountResponse$IrpAccountResponseBuilder.class.uniqueId1" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpAccountResponse.class.uniqueId5" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpAccountService.class.uniqueId8" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpAccountServiceImpl.class.uniqueId2" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpDepositRequest$IrpDepositRequestBuilder.class.uniqueId6" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpDepositRequest.class.uniqueId7" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpDepositResponse$IrpDepositResponseBuilder.class.uniqueId0" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/compileTransaction/stash-dir/IrpDepositResponse.class.uniqueId4" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/tmp/compileJava/previous-compilation-data.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/tmp/compileJava/previous-compilation-data.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanainplan/hana/product/dto/DepositSubscriptionRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanainplan/hana/product/dto/DepositSubscriptionRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/hanainplan/hana/product/service/DepositSubscriptionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/hanainplan/hana/product/service/DepositSubscriptionService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../hanainplan/src/main/java/com/hanainplan/domain/banking/dto/DepositSubscriptionResponseDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../hanainplan/src/main/java/com/hanainplan/domain/banking/dto/DepositSubscriptionResponseDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../hanainplan/src/main/java/com/hanainplan/domain/banking/service/DepositSubscriptionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../../hanainplan/src/main/java/com/hanainplan/domain/banking/service/DepositSubscriptionService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../frontend/hanainplan/src/api/bankingApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../../../frontend/hanainplan/src/api/bankingApi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../frontend/hanainplan/src/components/account/TransactionHistory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../../../frontend/hanainplan/src/components/account/TransactionHistory.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../../frontend/hanainplan/src/pages/products/DepositProducts.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../../../frontend/hanainplan/src/pages/products/DepositProducts.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
