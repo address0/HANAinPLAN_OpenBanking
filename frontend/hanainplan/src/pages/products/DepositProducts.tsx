@@ -9,6 +9,7 @@ import {
   getIrpAccount,
   getAllInterestRates
 } from '../../api/productApi';
+import { getAllAccounts } from '../../api/bankingApi';
 import type { 
   DepositProduct, 
   OptimalDepositRecommendation,
@@ -163,11 +164,29 @@ function DepositProducts() {
     try {
       setSubscribing(true);
 
+      // linkedAccountNumber 자동 선택: IRP의 linkedMainAccount가 있으면 사용, 없으면 사용자의 첫 번째 계좌 사용
+      let linkedAccountNumber = irpAccount!.linkedMainAccount;
+      
+      if (!linkedAccountNumber) {
+        // IRP 계좌에 연결 주계좌가 없으면 사용자의 계좌를 가져와서 사용
+        const allAccountsResponse = await getAllAccounts(user!.userId);
+        const firstAccount = allAccountsResponse.bankingAccounts[0];
+        
+        if (firstAccount) {
+          linkedAccountNumber = firstAccount.accountNumber;
+          console.log('연결 주계좌 자동 선택:', linkedAccountNumber);
+        } else {
+          alert('연결할 주계좌가 없습니다. 먼저 계좌를 개설해주세요.');
+          setSubscribing(false);
+          return;
+        }
+      }
+
       const request: DepositSubscriptionRequest = {
         userId: user!.userId,
         bankCode: recommendation!.bankCode,
         irpAccountNumber: irpAccount!.accountNumber,
-        linkedAccountNumber: irpAccount!.linkedMainAccount,
+        linkedAccountNumber: linkedAccountNumber,
         depositCode: recommendation!.depositCode,
         productType: recommendation!.productType,
         contractPeriod: recommendation!.contractPeriod,

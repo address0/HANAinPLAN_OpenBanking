@@ -414,7 +414,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
           <div key={transaction.transactionId} className="flex justify-between items-center py-4 px-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">
             <div className="flex-1">
               <div className="font-hana-medium text-gray-800 mb-1 text-lg">
-                {getTransactionTypeDisplay(transaction.transactionType)}
+                {transaction.description}
               </div>
               <div className="text-sm text-gray-500 font-hana-regular">
                 {formatDate(transaction.transactionDate as any)} {formatTime(transaction.transactionDate as any)}

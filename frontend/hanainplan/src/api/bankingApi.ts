@@ -17,7 +17,7 @@ export interface BankingAccount {
   interestRate?: number;
   minimumBalance?: number;
   creditLimit?: number;
-  description?: string;
+  description: string;
   createdAt: string;
   updatedAt: string;
 }
