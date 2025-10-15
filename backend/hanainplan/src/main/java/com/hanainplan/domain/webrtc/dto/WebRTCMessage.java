@@ -10,35 +10,30 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class WebRTCMessage {
-    
+
     private MessageType type;
     private String roomId;
     private Long senderId;
     private Long receiverId;
-    private Object data;  // SDP, ICE candidate, 또는 기타 데이터
-    
+    private Object data;
+
     public enum MessageType {
-        // Call management
-        CALL_REQUEST,     // 통화 요청
-        CALL_ACCEPT,      // 통화 수락
-        CALL_REJECT,      // 통화 거절
-        CALL_END,         // 통화 종료
-        CONSULTATION_START, // 상담 시작 (예약 상담용)
-        
-        // WebRTC signaling
-        OFFER,            // SDP offer
-        ANSWER,           // SDP answer
-        ICE_CANDIDATE,    // ICE candidate
-        
-        // Consultation sync
-        CONSULTATION_STEP_SYNC,  // 상담 단계 동기화
-        CONSULTATION_NOTE_SYNC,  // 상담 메모 동기화
-        
-        // Connection status
-        USER_JOINED,      // 사용자 입장
-        USER_LEFT,        // 사용자 퇴장
-        
-        // Error
-        ERROR             // 에러 메시지
+        CALL_REQUEST,
+        CALL_ACCEPT,
+        CALL_REJECT,
+        CALL_END,
+        CONSULTATION_START,
+
+        OFFER,
+        ANSWER,
+        ICE_CANDIDATE,
+
+        CONSULTATION_STEP_SYNC,
+        CONSULTATION_NOTE_SYNC,
+
+        USER_JOINED,
+        USER_LEFT,
+
+        ERROR
     }
 } 

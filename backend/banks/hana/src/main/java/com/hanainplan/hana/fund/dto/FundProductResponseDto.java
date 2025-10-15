@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * 하나은행 펀드 상품 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,21 +20,18 @@ public class FundProductResponseDto {
     private String investmentRegion;
     private String riskLevel;
 
-    // 수수료 정보
     private BigDecimal salesFeeRate;
     private BigDecimal managementFeeRate;
     private BigDecimal trustFeeRate;
     private BigDecimal totalExpenseRatio;
     private BigDecimal redemptionFeeRate;
 
-    // 수익률 정보
     private BigDecimal return1month;
     private BigDecimal return3month;
     private BigDecimal return6month;
     private BigDecimal return1year;
     private BigDecimal return3year;
 
-    // 기타 정보
     private String managementCompany;
     private String trustCompany;
     private BigDecimal minInvestmentAmount;
@@ -46,9 +40,6 @@ public class FundProductResponseDto {
 
     private Boolean isActive;
 
-    /**
-     * Entity -> DTO 변환
-     */
     public static FundProductResponseDto fromEntity(FundProduct entity) {
         return FundProductResponseDto.builder()
                 .fundCode(entity.getFundCode())
@@ -75,9 +66,6 @@ public class FundProductResponseDto {
                 .build();
     }
 
-    /**
-     * 위험등급 설명 반환
-     */
     public String getRiskLevelDescription() {
         return switch (riskLevel) {
             case "1" -> "매우 높음";
@@ -89,4 +77,3 @@ public class FundProductResponseDto {
         };
     }
 }
-

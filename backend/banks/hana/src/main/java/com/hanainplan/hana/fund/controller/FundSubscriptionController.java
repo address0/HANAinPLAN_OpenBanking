@@ -14,9 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 하나은행 펀드 매수/가입 컨트롤러
- */
 @RestController
 @RequestMapping("/api/hana/fund-subscription")
 @RequiredArgsConstructor
@@ -26,9 +23,6 @@ public class FundSubscriptionController {
 
     private final FundSubscriptionService fundSubscriptionService;
 
-    /**
-     * 펀드 매수
-     */
     @PostMapping("/purchase")
     @Operation(summary = "펀드 매수", description = "펀드 클래스를 매수합니다")
     public ResponseEntity<FundPurchaseResponseDto> purchaseFund(
@@ -49,9 +43,6 @@ public class FundSubscriptionController {
         }
     }
 
-    /**
-     * 고객의 펀드 가입 목록 조회
-     */
     @GetMapping("/customer/{customerCi}")
     @Operation(summary = "고객 펀드 가입 목록", description = "고객의 모든 펀드 가입 내역을 조회합니다")
     public ResponseEntity<List<FundSubscription>> getCustomerSubscriptions(
@@ -66,9 +57,6 @@ public class FundSubscriptionController {
         return ResponseEntity.ok(subscriptions);
     }
 
-    /**
-     * 활성 펀드 가입 목록 조회
-     */
     @GetMapping("/customer/{customerCi}/active")
     @Operation(summary = "활성 펀드 가입 목록", description = "고객의 보유중인 펀드 가입 내역만 조회합니다")
     public ResponseEntity<List<FundSubscription>> getActiveSubscriptions(
@@ -83,9 +71,6 @@ public class FundSubscriptionController {
         return ResponseEntity.ok(subscriptions);
     }
 
-    /**
-     * 펀드 매도 (환매)
-     */
     @PostMapping("/redeem")
     @Operation(summary = "펀드 매도", description = "펀드를 매도(환매)합니다")
     public ResponseEntity<com.hanainplan.hana.fund.dto.FundRedemptionResponseDto> redeemFund(
@@ -109,4 +94,3 @@ public class FundSubscriptionController {
         }
     }
 }
-

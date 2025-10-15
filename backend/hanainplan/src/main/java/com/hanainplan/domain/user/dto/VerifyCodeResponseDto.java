@@ -9,10 +9,8 @@ public class VerifyCodeResponseDto {
     private boolean verified;
     private LocalDateTime timestamp;
 
-    // 기본 생성자
     public VerifyCodeResponseDto() {}
 
-    // 생성자
     public VerifyCodeResponseDto(boolean success, String message, boolean verified) {
         this.success = success;
         this.message = message;
@@ -20,7 +18,6 @@ public class VerifyCodeResponseDto {
         this.timestamp = LocalDateTime.now();
     }
 
-    // Getters and Setters
     public boolean isSuccess() {
         return success;
     }

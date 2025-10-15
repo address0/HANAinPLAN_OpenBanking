@@ -16,24 +16,16 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 
-/**
- * Jackson 설정
- * - 날짜/시간 직렬화/역직렬화 설정
- * - 타임존 포함 ISO-8601 형식 지원
- */
 @Configuration
 public class JacksonConfig {
 
-    /**
-     * 타임존을 지원하는 LocalDateTime Deserializer
-     */
     private static final DateTimeFormatter FLEXIBLE_FORMATTER = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)
             .appendLiteral('T')
             .append(DateTimeFormatter.ISO_LOCAL_TIME)
             .optionalStart()
-            .appendOffset("+HH:MM", "Z")  // 타임존 정보가 있으면 파싱하고 무시
+            .appendOffset("+HH:MM", "Z")
             .optionalEnd()
             .parseDefaulting(ChronoField.OFFSET_SECONDS, 0)
             .toFormatter();
@@ -50,19 +42,13 @@ public class JacksonConfig {
                 .build();
     }
 
-    /**
-     * Java Time Module 설정
-     */
     private JavaTimeModule javaTimeModule() {
         JavaTimeModule module = new JavaTimeModule();
-        
-        // LocalDateTime Deserializer: 타임존 정보를 무시하고 로컬 시간만 사용
+
         module.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(FLEXIBLE_FORMATTER));
-        
-        // LocalDateTime Serializer: 타임존 정보 없이 직렬화
+
         module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        
+
         return module;
     }
 }
-

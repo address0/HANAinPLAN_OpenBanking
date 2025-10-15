@@ -10,9 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-/**
- * User 서버 호출용 클라이언트
- */
 @Slf4j
 @Service
 public class UserServerClient {
@@ -25,71 +22,62 @@ public class UserServerClient {
         this.userServerUrl = userServerUrl;
     }
 
-    /**
-     * 인증번호 발송 요청
-     */
     public PhoneVerificationResponseDto sendVerificationCode(String phoneNumber) {
         try {
             String url = userServerUrl + "/api/user/phone/send";
-            
+
             PhoneVerificationRequestDto request = new PhoneVerificationRequestDto(phoneNumber);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             HttpEntity<PhoneVerificationRequestDto> entity = new HttpEntity<>(request, headers);
-            
+
             ResponseEntity<PhoneVerificationResponseDto> response = restTemplate.postForEntity(
                 url, entity, PhoneVerificationResponseDto.class);
-            
+
             log.info("인증번호 발송 요청 성공: phoneNumber={}, response={}", phoneNumber, response.getBody());
             return response.getBody();
-            
+
         } catch (Exception e) {
             log.error("인증번호 발송 요청 실패: phoneNumber={}", phoneNumber, e);
             return new PhoneVerificationResponseDto(false, "인증번호 발송에 실패했습니다.", null);
         }
     }
 
-    /**
-     * 인증번호 검증 요청
-     */
     public VerifyCodeResponseDto verifyCode(String phoneNumber, String verificationCode) {
         try {
             String url = userServerUrl + "/api/user/phone/verify";
-            
+
             VerifyCodeRequestDto request = new VerifyCodeRequestDto(phoneNumber, verificationCode);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            
+
             HttpEntity<VerifyCodeRequestDto> entity = new HttpEntity<>(request, headers);
-            
+
             ResponseEntity<VerifyCodeResponseDto> response = restTemplate.postForEntity(
                 url, entity, VerifyCodeResponseDto.class);
-            
+
             log.info("인증번호 검증 요청 성공: phoneNumber={}, verified={}", phoneNumber, response.getBody().isVerified());
             return response.getBody();
-            
+
         } catch (Exception e) {
             log.error("인증번호 검증 요청 실패: phoneNumber={}, verificationCode={}", phoneNumber, verificationCode, e);
             return new VerifyCodeResponseDto(false, "인증번호 검증에 실패했습니다.", false);
         }
     }
 
-    /**
-     * 전화번호 인증 상태 확인 요청
-     */
     public VerifyCodeResponseDto checkVerificationStatus(String phoneNumber) {
         try {
             String url = userServerUrl + "/api/user/phone/status/" + phoneNumber;
-            
+
             ResponseEntity<VerifyCodeResponseDto> response = restTemplate.getForEntity(
                 url, VerifyCodeResponseDto.class);
-            
+
             log.info("인증 상태 확인 요청 성공: phoneNumber={}, verified={}", phoneNumber, response.getBody().isVerified());
             return response.getBody();
-            
+
         } catch (Exception e) {
             log.error("인증 상태 확인 요청 실패: phoneNumber={}", phoneNumber, e);
             return new VerifyCodeResponseDto(false, "인증 상태 확인에 실패했습니다.", false);

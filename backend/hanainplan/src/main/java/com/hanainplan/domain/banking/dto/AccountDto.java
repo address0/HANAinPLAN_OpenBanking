@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AccountDto {
-    
+
     private Long accountId;
     private Long userId;
     private String accountNumber;
@@ -37,8 +37,7 @@ public class AccountDto {
     private String interestPaymentMethod;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
-    // 엔터티에서 DTO로 변환
+
     public static AccountDto fromEntity(BankingAccount account) {
         return AccountDto.builder()
                 .accountId(account.getAccountId())
@@ -65,8 +64,7 @@ public class AccountDto {
                 .updatedAt(account.getUpdatedAt())
                 .build();
     }
-    
-    // DTO에서 엔터티로 변환
+
     public BankingAccount toEntity() {
         return BankingAccount.builder()
                 .accountId(this.accountId)

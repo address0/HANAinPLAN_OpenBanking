@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 상담 메모 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,7 +16,7 @@ public class ConsultationNoteDto {
     private Long noteId;
     private String consultId;
     private Long userId;
-    private String noteType; // "PERSONAL" 또는 "SHARED"
+    private String noteType;
     private String content;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;

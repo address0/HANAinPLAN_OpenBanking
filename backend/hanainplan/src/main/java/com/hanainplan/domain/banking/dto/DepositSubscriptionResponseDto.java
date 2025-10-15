@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * 정기예금 상품 가입 응답 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -28,8 +25,8 @@ public class DepositSubscriptionResponseDto {
     private String status;
     private LocalDate subscriptionDate;
     private LocalDate maturityDate;
-    private Integer contractPeriod; // 약정기간 (개월)
-    private String maturityPeriod; // 만기기간 문자열
+    private Integer contractPeriod;
+    private String maturityPeriod;
     private String rateType;
     private BigDecimal baseRate;
     private BigDecimal preferentialRate;
@@ -40,8 +37,7 @@ public class DepositSubscriptionResponseDto {
     private BigDecimal contractPrincipal;
     private BigDecimal currentBalance;
     private String branchName;
-    
-    // 프론트엔드에서 필요한 추가 필드들
+
     private BigDecimal expectedInterest;
     private BigDecimal expectedMaturityAmount;
     private String bankName;
@@ -81,6 +77,3 @@ public class DepositSubscriptionResponseDto {
         return dto;
     }
 }
-
-
-

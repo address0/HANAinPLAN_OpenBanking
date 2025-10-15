@@ -17,37 +17,30 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class MyDataAccountService {
-    
+
     private final AccountRepository accountRepository;
-    
-    /**
-     * 마이데이터에서 받아온 계좌 정보를 hanainplan 계좌 테이블에 저장
-     */
+
     @Transactional
     public List<AccountDto> saveMyDataAccounts(Long userId, String customerCi, List<MyDataAccountInfo> accountInfos) {
         log.info("마이데이터 계좌 정보 저장 시작 - 사용자 ID: {}, CI: {}, 계좌 수: {}", 
                 userId, customerCi, accountInfos.size());
-        
+
         List<AccountDto> savedAccounts = accountInfos.stream()
                 .map(accountInfo -> saveSingleAccount(userId, customerCi, accountInfo))
                 .collect(Collectors.toList());
-        
+
         log.info("마이데이터 계좌 정보 저장 완료 - 저장된 계좌 수: {}", savedAccounts.size());
         return savedAccounts;
     }
-    
-    /**
-     * 단일 계좌 정보 저장
-     */
+
     private AccountDto saveSingleAccount(Long userId, String customerCi, MyDataAccountInfo accountInfo) {
-        // 기존 계좌가 있는지 확인
         if (accountRepository.existsByAccountNumber(accountInfo.getAccountNumber())) {
             log.info("계좌번호 {}는 이미 존재합니다. 건너뜁니다.", accountInfo.getAccountNumber());
             return accountRepository.findByAccountNumber(accountInfo.getAccountNumber())
                     .map(AccountDto::fromEntity)
                     .orElse(null);
         }
-        
+
         BankingAccount account = BankingAccount.builder()
                 .userId(userId)
                 .customerCi(customerCi)
@@ -60,16 +53,13 @@ public class MyDataAccountService {
                 .openedDate(accountInfo.getOpeningDate())
                 .description("마이데이터에서 가져온 계좌")
                 .build();
-        
+
         BankingAccount savedAccount = accountRepository.save(account);
         log.info("계좌 저장 완료 - 계좌 ID: {}, 계좌번호: {}", savedAccount.getAccountId(), savedAccount.getAccountNumber());
-        
+
         return AccountDto.fromEntity(savedAccount);
     }
-    
-    /**
-     * 계좌 유형에 따른 계좌명 생성
-     */
+
     private String generateAccountName(Integer accountType) {
         switch (accountType) {
             case BankingAccount.AccountType.CHECKING:
@@ -84,35 +74,31 @@ public class MyDataAccountService {
                 return "기타계좌";
         }
     }
-    
-    /**
-     * 마이데이터 계좌 정보 DTO
-     */
+
     public static class MyDataAccountInfo {
         private String accountNumber;
         private Integer accountType;
         private BigDecimal balance;
         private LocalDateTime openingDate;
-        
+
         public MyDataAccountInfo() {}
-        
+
         public MyDataAccountInfo(String accountNumber, Integer accountType, BigDecimal balance, LocalDateTime openingDate) {
             this.accountNumber = accountNumber;
             this.accountType = accountType;
             this.balance = balance;
             this.openingDate = openingDate;
         }
-        
-        // Getters and Setters
+
         public String getAccountNumber() { return accountNumber; }
         public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
-        
+
         public Integer getAccountType() { return accountType; }
         public void setAccountType(Integer accountType) { this.accountType = accountType; }
-        
+
         public BigDecimal getBalance() { return balance; }
         public void setBalance(BigDecimal balance) { this.balance = balance; }
-        
+
         public LocalDateTime getOpeningDate() { return openingDate; }
         public void setOpeningDate(LocalDateTime openingDate) { this.openingDate = openingDate; }
     }

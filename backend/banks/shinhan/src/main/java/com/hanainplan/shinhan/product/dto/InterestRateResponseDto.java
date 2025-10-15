@@ -22,10 +22,8 @@ public class InterestRateResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 기본 생성자
     public InterestRateResponseDto() {}
 
-    // 생성자
     public InterestRateResponseDto(InterestRate interestRate) {
         this.interestRateId = interestRate.getInterestRateId();
         this.productCode = interestRate.getProductCode();
@@ -38,13 +36,7 @@ public class InterestRateResponseDto {
         this.updatedAt = interestRate.getUpdatedAt();
     }
 
-    // 정적 팩토리 메서드
     public static InterestRateResponseDto from(InterestRate interestRate) {
         return new InterestRateResponseDto(interestRate);
     }
 }
-
-
-
-
-

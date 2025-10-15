@@ -10,9 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * 일반 외부 계좌 송금 요청 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -31,5 +28,3 @@ public class ExternalTransferRequestDto {
 
     private String description;
 }
-
-

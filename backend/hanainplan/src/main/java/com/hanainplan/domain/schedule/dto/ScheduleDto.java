@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 일정 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,15 +31,11 @@ public class ScheduleDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 프론트엔드에서 사용하는 필드 (fullcalendar 호환)
     private String id;
     private String start;
     private String end;
     private String type;
 
-    /**
-     * Entity -> DTO 변환
-     */
     public static ScheduleDto fromEntity(Schedule schedule) {
         return ScheduleDto.builder()
                 .scheduleId(schedule.getScheduleId())
@@ -60,7 +53,6 @@ public class ScheduleDto {
                 .memo(schedule.getMemo())
                 .createdAt(schedule.getCreatedAt())
                 .updatedAt(schedule.getUpdatedAt())
-                // 프론트엔드 호환 필드
                 .id(String.valueOf(schedule.getScheduleId()))
                 .start(schedule.getStartTime().toString())
                 .end(schedule.getEndTime().toString())
@@ -68,4 +60,3 @@ public class ScheduleDto {
                 .build();
     }
 }
-

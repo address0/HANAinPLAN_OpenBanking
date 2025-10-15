@@ -7,25 +7,16 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * 펀드 매수 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class FundPurchaseRequestDto {
 
-    private String customerCi;              // 고객 CI
-    private String childFundCd;             // 클래스 펀드 코드 (예: 51306P)
-    private BigDecimal purchaseAmount;      // 매수 금액
-    
-    // irpAccountNumber는 백엔드에서 customerCi로 자동 조회하므로 불필요
-    // private String irpAccountNumber;
+    private String customerCi;
+    private String childFundCd;
+    private BigDecimal purchaseAmount;
 
-    /**
-     * 유효성 검증
-     */
     public void validate() {
         if (customerCi == null || customerCi.isBlank()) {
             throw new IllegalArgumentException("고객 CI는 필수입니다");
@@ -38,4 +29,3 @@ public class FundPurchaseRequestDto {
         }
     }
 }
-

@@ -18,29 +18,28 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateAccountRequest {
-    
+
     @NotNull(message = "사용자 ID는 필수입니다")
     private Long userId;
-    
+
     @NotNull(message = "계좌 유형은 필수입니다")
     private Integer accountType;
-    
+
     @NotBlank(message = "계좌명은 필수입니다")
     private String accountName;
-    
+
     private BigDecimal initialBalance;
-    
+
     private String description;
-    
-    // 적금/정기예금 전용 필드들
-    private String purpose; // 계좌 용도
-    
-    private BigDecimal monthlyDepositAmount; // 월 적립 금액 (적금의 경우)
-    
-    private Integer depositPeriod; // 적립/예치 기간 (개월)
-    
-    private String interestPaymentMethod; // 이자 지급 방법 (AUTO, MANUAL)
-    
+
+    private String purpose;
+
+    private BigDecimal monthlyDepositAmount;
+
+    private Integer depositPeriod;
+
+    private String interestPaymentMethod;
+
     @Pattern(regexp = "^.{4,}$", message = "계좌 비밀번호는 4자리 이상이어야 합니다")
-    private String accountPassword; // 계좌 비밀번호
+    private String accountPassword;
 }

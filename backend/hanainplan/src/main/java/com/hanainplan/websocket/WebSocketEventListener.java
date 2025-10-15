@@ -20,10 +20,9 @@ public class WebSocketEventListener {
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
-        
-        // 헤더에서 사용자 ID 추출 (클라이언트에서 연결 시 보내야 함)
+
         String userIdStr = headerAccessor.getFirstNativeHeader("userId");
-        
+
         if (userIdStr != null) {
             try {
                 Long userId = Long.parseLong(userIdStr);
@@ -41,8 +40,7 @@ public class WebSocketEventListener {
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
-        
-        // 세션 ID로 사용자 오프라인 처리 (더 안정적)
+
         webRTCService.setUserOfflineBySession(sessionId);
         log.info("WebSocket session disconnected: {}", sessionId);
     }

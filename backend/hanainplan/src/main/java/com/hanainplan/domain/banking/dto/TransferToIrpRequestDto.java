@@ -10,9 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * IRP 계좌 송금 요청 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -31,5 +28,3 @@ public class TransferToIrpRequestDto {
 
     private String description;
 }
-
-

@@ -15,10 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * 거래내역 동기화 서비스
- * 은행 서버로부터 거래내역을 조회하여 하나인플랜 DB에 동기화
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,14 +25,10 @@ public class TransactionSyncService {
     private final AccountRepository accountRepository;
     private final HanaBankClient hanaBankClient;
 
-    /**
-     * 특정 계좌의 거래내역 동기화
-     */
     public int syncTransactionsByAccount(String accountNumber) {
         log.info("계좌 거래내역 동기화 시작: accountNumber={}", accountNumber);
 
         try {
-            // 1. 계좌 정보 조회
             Optional<BankingAccount> accountOpt = accountRepository.findByAccountNumber(accountNumber);
             if (accountOpt.isEmpty()) {
                 log.warn("계좌를 찾을 수 없음: {}", accountNumber);
@@ -45,16 +37,13 @@ public class TransactionSyncService {
 
             BankingAccount account = accountOpt.get();
 
-            // 2. 은행 식별
             String bankCode = getBankCodeFromAccountNumber(accountNumber);
 
-            // 3. 은행별 Feign Client 호출하여 거래내역 조회 (OpenFeign 사용)
             List<HanaBankClient.BankTransactionDto> bankTransactions;
             switch (bankCode) {
-                case "081": // 하나은행
+                case "081":
                     bankTransactions = hanaBankClient.getTransactionsByAccount(accountNumber);
                     break;
-                // 추후 다른 은행 Feign Client 추가 가능
                 default:
                     log.warn("지원하지 않는 은행: bankCode={}", bankCode);
                     return 0;
@@ -67,7 +56,6 @@ public class TransactionSyncService {
 
             log.info("은행에서 조회된 거래내역 수: {}", bankTransactions.size());
 
-            // 4. 하나인플랜 DB에서 마지막 거래내역 조회
             List<Transaction> existingTransactions = transactionRepository
                     .findTop1ByAccountAccountNumberOrderByTransactionDateDesc(accountNumber);
 
@@ -77,28 +65,22 @@ public class TransactionSyncService {
                 log.info("마지막 동기화된 거래 시각: {}", lastTransactionDate);
             }
 
-            // 5. 새로운 거래내역만 필터링하여 저장
             int syncedCount = 0;
             LocalDateTime finalLastTransactionDate = lastTransactionDate;
 
             for (HanaBankClient.BankTransactionDto bankTx : bankTransactions) {
-                // 마지막 거래 이후의 거래만 동기화
                 if (finalLastTransactionDate == null || 
                     bankTx.getTransactionDatetime().isAfter(finalLastTransactionDate)) {
-                    
-                    // 거래 방향에 따라 fromAccountId, toAccountId 설정
+
                     Long fromAccountId = null;
                     Long toAccountId = null;
-                    
+
                     if ("DEBIT".equals(bankTx.getTransactionDirection())) {
-                        // 출금인 경우
                         fromAccountId = account.getAccountId();
                     } else if ("CREDIT".equals(bankTx.getTransactionDirection())) {
-                        // 입금인 경우
                         toAccountId = account.getAccountId();
                     }
-                    
-                    // Transaction 엔터티로 변환하여 저장
+
                     Transaction transaction = Transaction.builder()
                             .fromAccountId(fromAccountId)
                             .toAccountId(toAccountId)
@@ -130,9 +112,6 @@ public class TransactionSyncService {
         }
     }
 
-    /**
-     * 사용자의 모든 계좌 거래내역 동기화
-     */
     public int syncAllTransactionsByUser(Long userId) {
         log.info("사용자 전체 계좌 거래내역 동기화 시작: userId={}", userId);
 
@@ -146,7 +125,6 @@ public class TransactionSyncService {
             } catch (Exception e) {
                 log.error("계좌 거래내역 동기화 실패: accountNumber={}, error={}", 
                         account.getAccountNumber(), e.getMessage());
-                // 한 계좌 실패해도 계속 진행
             }
         }
 
@@ -154,9 +132,6 @@ public class TransactionSyncService {
         return totalSyncedCount;
     }
 
-    /**
-     * 계좌번호에서 은행코드 추출
-     */
     private String getBankCodeFromAccountNumber(String accountNumber) {
         if (accountNumber == null || accountNumber.length() < 3) {
             return null;
@@ -165,7 +140,6 @@ public class TransactionSyncService {
         String cleanAccountNumber = accountNumber.replace("-", "");
         String prefix = cleanAccountNumber.substring(0, 3);
 
-        // 은행코드 매핑
         switch (prefix) {
             case "081":
             case "117":
@@ -180,21 +154,15 @@ public class TransactionSyncService {
         }
     }
 
-    /**
-     * 거래 유형 변환 (String -> Enum)
-     */
     private Transaction.TransactionType convertTransactionType(String type) {
         try {
             return Transaction.TransactionType.valueOf(type);
         } catch (Exception e) {
             log.warn("Unknown transaction type: {}", type);
-            return Transaction.TransactionType.TRANSFER; // 기본값: 이체
+            return Transaction.TransactionType.TRANSFER;
         }
     }
 
-    /**
-     * 거래 방향 변환 (String -> Enum)
-     */
     private Transaction.TransactionDirection convertTransactionDirection(String direction) {
         try {
             return Transaction.TransactionDirection.valueOf(direction);
@@ -204,9 +172,6 @@ public class TransactionSyncService {
         }
     }
 
-    /**
-     * 거래 상태 변환 (String -> Enum)
-     */
     private Transaction.TransactionStatus convertTransactionStatus(String status) {
         try {
             return Transaction.TransactionStatus.valueOf(status);
@@ -216,17 +181,13 @@ public class TransactionSyncService {
         }
     }
 
-    /**
-     * 거래 분류 변환 (String -> Enum)
-     */
     private Transaction.TransactionCategory convertTransactionCategory(String category) {
         try {
             return Transaction.TransactionCategory.valueOf(category);
         } catch (Exception e) {
             log.warn("Unknown transaction category: {}", category);
-            return Transaction.TransactionCategory.OTHER; // 기본값: 기타
+            return Transaction.TransactionCategory.OTHER;
         }
     }
 
 }
-

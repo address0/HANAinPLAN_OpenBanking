@@ -20,22 +20,16 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
-    /**
-     * 고객 생성
-     */
     @PostMapping
     public ResponseEntity<CustomerResponseDto> createCustomer(@Valid @RequestBody CustomerRequestDto request) {
         try {
             CustomerResponseDto response = customerService.createCustomer(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(null); // 또는 에러 메시지를 포함한 응답
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
-    /**
-     * 고객 조회 (CI)
-     */
     @GetMapping("/ci/{ci}")
     public ResponseEntity<CustomerResponseDto> getCustomerByCi(@PathVariable String ci) {
         Optional<CustomerResponseDto> customer = customerService.getCustomerByCi(ci);
@@ -43,9 +37,6 @@ public class CustomerController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * 고객 조회 (ID)
-     */
     @GetMapping("/{userId}")
     public ResponseEntity<CustomerResponseDto> getCustomerById(@PathVariable Long userId) {
         Optional<CustomerResponseDto> customer = customerService.getCustomerById(userId);
@@ -53,18 +44,12 @@ public class CustomerController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * 모든 고객 조회
-     */
     @GetMapping
     public ResponseEntity<List<CustomerResponseDto>> getAllCustomers() {
         List<CustomerResponseDto> customers = customerService.getAllCustomers();
         return ResponseEntity.ok(customers);
     }
 
-    /**
-     * 고객 수정
-     */
     @PutMapping("/{userId}")
     public ResponseEntity<CustomerResponseDto> updateCustomer(
             @PathVariable Long userId,
@@ -77,9 +62,6 @@ public class CustomerController {
         }
     }
 
-    /**
-     * 고객 삭제
-     */
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long userId) {
         try {

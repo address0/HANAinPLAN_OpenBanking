@@ -4,9 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 상담 메모 저장 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,6 +11,6 @@ public class SaveConsultationNoteRequest {
 
     private String consultId;
     private Long userId;
-    private String noteType; // "PERSONAL" 또는 "SHARED"
+    private String noteType;
     private String content;
 }

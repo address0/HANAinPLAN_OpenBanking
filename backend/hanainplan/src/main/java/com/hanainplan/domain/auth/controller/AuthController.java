@@ -23,16 +23,16 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 @Tag(name = "인증 API", description = "로그인, 로그아웃 등 인증 관련 API")
 public class AuthController {
-    
+
     private final AuthService authService;
     private final KakaoAuthService kakaoAuthService;
-    
+
     @Autowired
     public AuthController(AuthService authService, KakaoAuthService kakaoAuthService) {
         this.authService = authService;
         this.kakaoAuthService = kakaoAuthService;
     }
-    
+
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "전화번호와 비밀번호를 이용한 로그인")
     @ApiResponses(value = {
@@ -56,16 +56,15 @@ public class AuthController {
     ) {
         try {
             LoginResponseDto response = authService.loginWithPhoneAndPassword(loginRequest);
-            
-            // 로그인 성공 시 200, 실패 시에도 200으로 응답 (프론트엔드에서 success 필드로 판단)
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             LoginResponseDto errorResponse = new LoginResponseDto(false, "로그인 처리 중 오류가 발생했습니다.");
             return ResponseEntity.ok(errorResponse);
         }
     }
-    
+
     @GetMapping("/kakao/url")
     @Operation(summary = "카카오 로그인 URL 조회", description = "카카오 OAuth 인증 URL을 반환합니다")
     @ApiResponses(value = {
@@ -94,7 +93,7 @@ public class AuthController {
                 }});
         }
     }
-    
+
     @GetMapping("/kakao/callback")
     @Operation(summary = "카카오 OAuth 콜백 처리", description = "카카오 OAuth 인증 후 콜백을 처리합니다")
     @ApiResponses(value = {
@@ -116,11 +115,9 @@ public class AuthController {
         @RequestParam String code
     ) {
         try {
-            // 카카오 OAuth 콜백 처리
             KakaoUserInfoDto kakaoUserInfo = kakaoAuthService.handleKakaoCallback(code);
-            
+
             if (kakaoUserInfo.isSuccess()) {
-                // 카카오 로그인 성공 시 사용자 정보 반환
                 return ResponseEntity.ok()
                     .body(new java.util.HashMap<String, Object>() {{
                         put("success", true);
@@ -131,7 +128,6 @@ public class AuthController {
                         put("profileImage", kakaoUserInfo.getProfileImage());
                     }});
             } else {
-                // 카카오 로그인 실패
                 return ResponseEntity.ok()
                     .body(new java.util.HashMap<String, Object>() {{
                         put("success", false);
@@ -146,7 +142,7 @@ public class AuthController {
                 }});
         }
     }
-    
+
     @PostMapping("/kakao-login")
     @Operation(summary = "카카오 로그인", description = "카카오 계정을 이용한 로그인")
     @ApiResponses(value = {
@@ -171,13 +167,13 @@ public class AuthController {
         try {
             LoginResponseDto response = authService.loginWithKakao(kakaoId);
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             LoginResponseDto errorResponse = new LoginResponseDto(false, "카카오 로그인 처리 중 오류가 발생했습니다.");
             return ResponseEntity.ok(errorResponse);
         }
     }
-    
+
     @GetMapping("/check-user")
     @Operation(summary = "사용자 존재 여부 확인", description = "전화번호로 사용자 존재 여부를 확인합니다")
     @ApiResponses(value = {
@@ -197,12 +193,12 @@ public class AuthController {
         try {
             boolean exists = authService.isUserExistsByPhoneNumber(phoneNumber);
             return ResponseEntity.ok(exists);
-            
+
         } catch (Exception e) {
             return ResponseEntity.ok(false);
         }
     }
-    
+
     @PostMapping("/logout")
     @Operation(summary = "로그아웃", description = "사용자 로그아웃 처리")
     @ApiResponses(value = {
@@ -212,8 +208,6 @@ public class AuthController {
         )
     })
     public ResponseEntity<LoginResponseDto> logout() {
-        // 현재는 단순히 성공 응답만 반환
-        // 추후 세션 관리나 JWT 토큰 관리 시 해당 로직 추가
         LoginResponseDto response = new LoginResponseDto(true, "로그아웃이 완료되었습니다.");
         return ResponseEntity.ok(response);
     }
@@ -242,7 +236,6 @@ public class AuthController {
         try {
             CiVerificationResponseDto response = authService.verifyCi(request);
 
-            // CI 검증 성공 시 200, 실패 시에도 200으로 응답 (프론트엔드에서 success 필드로 판단)
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

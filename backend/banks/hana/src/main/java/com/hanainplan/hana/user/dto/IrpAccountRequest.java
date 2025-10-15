@@ -35,16 +35,14 @@ public class IrpAccountRequest {
     private Integer depositDay;
 
     @NotBlank(message = "투자성향은 필수입니다")
-    private String investmentStyle; // CONSERVATIVE, MODERATE_CONSERVATIVE, MODERATE, AGGRESSIVE
+    private String investmentStyle;
 
     @NotBlank(message = "연결 주계좌는 필수입니다")
     @Size(min = 10, max = 50, message = "계좌번호 형식이 올바르지 않습니다")
     private String linkedMainAccount;
 
-    // 고객 정보 (고객 정보가 없는 경우 자동 생성을 위함)
-    private String customerName; // 고객 이름
-    private String birthDate; // 생년월일 (YYYYMMDD)
-    private String gender; // 성별 (M/F)
-    private String phone; // 전화번호
+    private String customerName;
+    private String birthDate;
+    private String gender;
+    private String phone;
 }
-

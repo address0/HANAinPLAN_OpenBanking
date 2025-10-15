@@ -18,9 +18,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-/**
- * 하나은행 계좌 서비스
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,44 +28,33 @@ public class AccountService {
     private final TransactionRepository transactionRepository;
     private final CustomerRepository customerRepository;
 
-    // 하나은행 계좌번호 패턴 (앞자리 3자리)
     private static final String[] HANA_PATTERNS = {
         "100", "101", "102", "103", "104", "105", "110", "111"
     };
 
-    /**
-     * 계좌번호 자동 생성
-     */
     private String generateAccountNumber() {
         Random random = new Random();
         String pattern = HANA_PATTERNS[random.nextInt(HANA_PATTERNS.length)];
-        
-        // 나머지 13자리 랜덤 생성
+
         StringBuilder accountNumber = new StringBuilder(pattern);
         for (int i = 0; i < 13; i++) {
             accountNumber.append(random.nextInt(10));
         }
-        
+
         String generatedNumber = accountNumber.toString();
-        
-        // 중복 확인
+
         if (accountRepository.existsByAccountNumber(generatedNumber)) {
-            return generateAccountNumber(); // 재귀 호출로 다시 생성
+            return generateAccountNumber();
         }
-        
+
         return generatedNumber;
     }
 
-    /**
-     * 계좌 생성
-     */
     public AccountResponseDto createAccount(AccountRequestDto request) {
-        // 고객 CI 존재 확인
         if (!customerRepository.existsByCi(request.getCustomerCi())) {
             throw new IllegalArgumentException("존재하지 않는 고객 CI입니다: " + request.getCustomerCi());
         }
 
-        // 계좌번호 자동 생성
         String accountNumber = generateAccountNumber();
 
         Account account = Account.builder()
@@ -81,13 +67,10 @@ public class AccountService {
 
         Account savedAccount = accountRepository.save(account);
         log.info("하나은행 계좌 생성 완료 - 계좌번호: {}, CI: {}", accountNumber, request.getCustomerCi());
-        
+
         return AccountResponseDto.from(savedAccount);
     }
 
-    /**
-     * 계좌 조회 (계좌번호)
-     */
     @Transactional(readOnly = true)
     public AccountResponseDto getAccountByNumber(String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber)
@@ -95,9 +78,6 @@ public class AccountService {
         return AccountResponseDto.from(account);
     }
 
-    /**
-     * 모든 계좌 조회
-     */
     @Transactional(readOnly = true)
     public List<AccountResponseDto> getAllAccounts() {
         List<Account> accounts = accountRepository.findAll();
@@ -106,28 +86,21 @@ public class AccountService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 계좌 출금 처리 및 거래내역 저장
-     */
     public String processWithdrawal(String accountNumber, BigDecimal amount, String description) throws Exception {
         log.info("하나은행 계좌 출금 처리 시작 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
 
-        // 1. 계좌 조회
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new Exception("계좌를 찾을 수 없습니다: " + accountNumber));
 
-        // 2. 잔액 확인
         if (account.getBalance() == null || account.getBalance().compareTo(amount) < 0) {
             throw new Exception("잔액이 부족합니다. 현재 잔액: " + 
                     (account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO) + "원, 요청 금액: " + amount + "원");
         }
 
-        // 3. 계좌 잔액 차감
         BigDecimal newBalance = account.getBalance().subtract(amount);
         account.setBalance(newBalance);
         accountRepository.save(account);
 
-        // 4. 거래내역 저장
         String transactionId = saveWithdrawalTransaction(account, amount, newBalance, description);
 
         log.info("하나은행 계좌 출금 처리 완료 - 거래ID: {}, 계좌번호: {}, 새 잔액: {}원", 
@@ -136,24 +109,19 @@ public class AccountService {
         return transactionId;
     }
 
-    /**
-     * 출금 거래내역을 하나은행 DB에 저장
-     */
     private String saveWithdrawalTransaction(Account account, BigDecimal amount, BigDecimal balanceAfter, String description) {
         try {
-            // 거래 ID 생성 (HANA-WD-{timestamp}-{random})
             String transactionId = "HANA-WD-" + System.currentTimeMillis() + "-" + 
                     String.format("%04d", (int)(Math.random() * 10000));
 
-            // 거래내역 생성
             Transaction transaction = Transaction.builder()
                     .transactionId(transactionId)
-                    .accountNumber(account.getAccountNumber()) // 계좌번호 추가
+                    .accountNumber(account.getAccountNumber())
                     .transactionDatetime(LocalDateTime.now())
                     .transactionType("출금")
                     .transactionCategory("기타")
-                    .transactionStatus("COMPLETED") // 거래 상태
-                    .transactionDirection("DEBIT") // 출금
+                    .transactionStatus("COMPLETED")
+                    .transactionDirection("DEBIT")
                     .amount(amount)
                     .balanceAfter(balanceAfter)
                     .branchName("하나은행 본점")
@@ -163,34 +131,28 @@ public class AccountService {
                     .build();
 
             transactionRepository.save(transaction);
-            
+
             log.info("하나은행 출금 거래내역 저장 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
                     transactionId, account.getAccountNumber(), amount);
-            
+
             return transactionId;
-            
+
         } catch (Exception e) {
             log.error("하나은행 출금 거래내역 저장 실패 - 계좌번호: {}, 오류: {}", account.getAccountNumber(), e.getMessage());
             throw new RuntimeException("거래내역 저장 실패: " + e.getMessage());
         }
     }
 
-    /**
-     * 계좌 입금 처리 및 거래내역 저장
-     */
     public String processDeposit(String accountNumber, BigDecimal amount, String description) throws Exception {
         log.info("하나은행 계좌 입금 처리 시작 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
 
-        // 1. 계좌 조회
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new Exception("계좌를 찾을 수 없습니다: " + accountNumber));
 
-        // 2. 계좌 잔액 증가
         BigDecimal newBalance = (account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO).add(amount);
         account.setBalance(newBalance);
         accountRepository.save(account);
 
-        // 3. 거래내역 저장
         String transactionId = saveDepositTransaction(account, amount, newBalance, description);
 
         log.info("하나은행 계좌 입금 처리 완료 - 거래ID: {}, 계좌번호: {}, 새 잔액: {}원", 
@@ -199,24 +161,19 @@ public class AccountService {
         return transactionId;
     }
 
-    /**
-     * 입금 거래내역을 하나은행 DB에 저장
-     */
     private String saveDepositTransaction(Account account, BigDecimal amount, BigDecimal balanceAfter, String description) {
         try {
-            // 거래 ID 생성 (HANA-DP-{timestamp}-{random})
             String transactionId = "HANA-DP-" + System.currentTimeMillis() + "-" + 
                     String.format("%04d", (int)(Math.random() * 10000));
 
-            // 거래내역 생성
             Transaction transaction = Transaction.builder()
                     .transactionId(transactionId)
-                    .accountNumber(account.getAccountNumber()) // 계좌번호 추가
+                    .accountNumber(account.getAccountNumber())
                     .transactionDatetime(LocalDateTime.now())
                     .transactionType("입금")
                     .transactionCategory("기타")
-                    .transactionStatus("COMPLETED") // 거래 상태
-                    .transactionDirection("CREDIT") // 입금
+                    .transactionStatus("COMPLETED")
+                    .transactionDirection("CREDIT")
                     .amount(amount)
                     .balanceAfter(balanceAfter)
                     .description(description)
@@ -226,26 +183,23 @@ public class AccountService {
                     .build();
 
             transactionRepository.save(transaction);
-            
+
             log.info("하나은행 입금 거래내역 저장 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
                     transactionId, account.getAccountNumber(), amount);
-            
+
             return transactionId;
-            
+
         } catch (Exception e) {
             log.error("하나은행 입금 거래내역 저장 실패 - 계좌번호: {}, 오류: {}", account.getAccountNumber(), e.getMessage());
             throw new RuntimeException("거래내역 저장 실패: " + e.getMessage());
         }
     }
 
-    /**
-     * CI로 계좌 목록 조회
-     */
     public List<AccountResponseDto> getAccountsByCi(String ci) {
         log.info("하나은행 계좌 목록 조회 - CI: {}", ci);
-        
+
         List<Account> accounts = accountRepository.findByCustomerCi(ci);
-        
+
         return accounts.stream()
                 .map(AccountResponseDto::from)
                 .collect(Collectors.toList());

@@ -29,10 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-/**
- * 펀드 기준가 크롤링 서비스
- * Python 크롤러를 실행하여 펀드 기준가를 수집하고 DB에 저장
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -56,9 +52,6 @@ public class FundNavCrawlerService {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /**
-     * 모든 펀드의 기준가를 크롤링하고 업데이트
-     */
     @Transactional
     public FundNavCrawlResult crawlAndUpdateAllFundNav() {
         LocalDateTime startTime = LocalDateTime.now();
@@ -70,7 +63,6 @@ public class FundNavCrawlerService {
                 .startTime(startTime.format(TIME_FORMATTER))
                 .build();
 
-        // 모든 펀드 클래스 조회
         List<FundClass> fundClasses = fundClassRepository.findAll();
         result.setTotalCount(fundClasses.size());
 
@@ -79,7 +71,6 @@ public class FundNavCrawlerService {
         int successCount = 0;
         int failureCount = 0;
 
-        // 각 펀드 클래스별로 크롤링
         for (FundClass fundClass : fundClasses) {
             try {
                 String fundCd = fundClass.getFundMaster().getFundCd();
@@ -88,11 +79,9 @@ public class FundNavCrawlerService {
 
                 log.debug("크롤링 시작: {} (모펀드: {}, 자펀드: {})", fundName, fundCd, childFundCd);
 
-                // Python 크롤러 실행
                 BigDecimal nav = executePythonCrawler(fundCd, childFundCd);
 
                 if (nav != null) {
-                    // 기준가 저장
                     saveOrUpdateNav(childFundCd, nav);
                     successCount++;
                     log.info("✓ 크롤링 성공: {} - 기준가: {}", fundName, nav);
@@ -114,9 +103,8 @@ public class FundNavCrawlerService {
                 log.error("✗ 크롤링 실패: {} - {}", fundName, e.getMessage());
             }
 
-            // 크롤링 간 딜레이 (서버 부하 방지)
             try {
-                Thread.sleep(500); // 0.5초 딜레이
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.warn("크롤링 딜레이 중 인터럽트 발생");
@@ -144,11 +132,7 @@ public class FundNavCrawlerService {
         return result;
     }
 
-    /**
-     * Python 크롤러 실행
-     */
     private BigDecimal executePythonCrawler(String fundCd, String childFundCd) throws Exception {
-        // 절대 경로로 변환
         File scriptFile = new File(scriptPath);
         String absoluteScriptPath = scriptFile.getAbsolutePath();
 
@@ -159,20 +143,16 @@ public class FundNavCrawlerService {
                 childFundCd
         );
 
-        // 작업 디렉토리 설정 (프로젝트 루트)
         processBuilder.directory(new File(System.getProperty("user.dir")));
 
-        // 프로세스 시작
         Process process = processBuilder.start();
 
-        // 출력 읽기
         StringBuilder output = new StringBuilder();
         StringBuilder errorOutput = new StringBuilder();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
              BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 
-            // 타임아웃 설정
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
 
             if (!finished) {
@@ -180,13 +160,11 @@ public class FundNavCrawlerService {
                 throw new RuntimeException("크롤링 타임아웃 (" + timeoutSeconds + "초 초과)");
             }
 
-            // 출력 읽기
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
             }
 
-            // 에러 출력 읽기
             while ((line = errorReader.readLine()) != null) {
                 errorOutput.append(line).append("\n");
             }
@@ -197,7 +175,6 @@ public class FundNavCrawlerService {
                 throw new RuntimeException("Python 크롤러 실행 실패 (exit code: " + exitCode + "): " + errorOutput.toString());
             }
 
-            // 출력에서 기준가 파싱
             String result = output.toString().trim();
             if (result.isEmpty()) {
                 return null;
@@ -210,27 +187,19 @@ public class FundNavCrawlerService {
         }
     }
 
-    /**
-     * 기준가 저장 또는 업데이트
-     * 같은 날짜에 이미 기준가가 있으면 UPDATE, 없으면 INSERT
-     * 저장 후 하나은행 서버에도 동기화
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     protected void saveOrUpdateNav(String childFundCd, BigDecimal nav) {
         LocalDate today = LocalDate.now();
 
-        // 오늘 날짜의 기준가 조회
         FundNav fundNav = fundNavRepository.findByChildFundCdAndNavDate(childFundCd, today)
                 .orElse(null);
 
         if (fundNav != null) {
-            // 기존 데이터 업데이트
             fundNav.setNav(nav);
             fundNav.setPublishedAt(LocalDateTime.now());
             fundNavRepository.save(fundNav);
             log.debug("기준가 업데이트: {} - {}", childFundCd, nav);
         } else {
-            // 새 데이터 삽입
             fundNav = FundNav.builder()
                     .childFundCd(childFundCd)
                     .navDate(today)
@@ -241,30 +210,23 @@ public class FundNavCrawlerService {
             log.debug("기준가 신규 생성: {} - {}", childFundCd, nav);
         }
 
-        // 하나은행 서버에 동기화
         syncToHanaBank(childFundCd, today, nav);
     }
 
-    /**
-     * 하나은행 서버에 기준가 동기화
-     */
     private void syncToHanaBank(String childFundCd, LocalDate navDate, BigDecimal nav) {
         try {
             String url = hanaBankUrl + "/api/hana/fund-nav";
 
-            // 요청 바디 생성
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("childFundCd", childFundCd);
             requestBody.put("navDate", navDate);
             requestBody.put("nav", nav);
 
-            // 헤더 설정
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
-            // API 호출
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
@@ -274,14 +236,10 @@ public class FundNavCrawlerService {
             }
 
         } catch (Exception e) {
-            // 동기화 실패해도 크롤링은 계속 진행
             log.error("하나은행 기준가 동기화 중 오류 발생: {} - {}", childFundCd, e.getMessage());
         }
     }
 
-    /**
-     * 특정 펀드의 기준가만 크롤링
-     */
     @Transactional
     public BigDecimal crawlSingleFundNav(String childFundCd) {
         FundClass fundClass = fundClassRepository.findById(childFundCd)
@@ -304,4 +262,3 @@ public class FundNavCrawlerService {
         }
     }
 }
-

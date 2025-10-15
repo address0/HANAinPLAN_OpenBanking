@@ -10,10 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class SdpMessage {
-    private String type; // "offer" or "answer"
+    private String type;
     private String sdp;
     private String roomId;
     private Long senderId;
     private Long receiverId;
 }
-

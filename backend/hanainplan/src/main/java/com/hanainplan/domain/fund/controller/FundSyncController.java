@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 펀드 상품 동기화 컨트롤러
- * 관리자가 수동으로 펀드 상품 동기화를 실행할 수 있음
- */
 @RestController
 @RequestMapping("/api/admin/fund-sync")
 @RequiredArgsConstructor
@@ -25,34 +21,29 @@ public class FundSyncController {
 
     private final FundSyncService fundSyncService;
 
-    /**
-     * 펀드 상품 수동 동기화
-     * 스케줄러 외에도 필요시 수동으로 동기화를 실행할 수 있음
-     */
     @PostMapping("/trigger")
     @Operation(summary = "펀드 상품 수동 동기화", description = "하나은행에서 펀드 상품 데이터를 즉시 동기화합니다")
     public ResponseEntity<Map<String, Object>> triggerFundSync() {
         log.info("POST /api/admin/fund-sync/trigger - 수동 펀드 동기화 요청");
-        
+
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
             fundSyncService.syncFundProducts();
-            
+
             response.put("success", true);
             response.put("message", "펀드 상품 동기화가 완료되었습니다");
-            
+
             log.info("수동 펀드 동기화 완료");
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             log.error("수동 펀드 동기화 실패", e);
-            
+
             response.put("success", false);
             response.put("message", "펀드 상품 동기화에 실패했습니다: " + e.getMessage());
-            
+
             return ResponseEntity.internalServerError().body(response);
         }
     }
 }
-

@@ -17,11 +17,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 펀드 상품 동기화 서비스
- * 하나은행의 복잡한 펀드 구조(FundMaster, FundClass, FundRules, FundFees, FundNav)를
- * 하나인플랜 DB에 동기화
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,16 +27,11 @@ public class FundSyncService {
     private final FundClassRepository fundClassRepository;
     private final FundNavRepository fundNavRepository;
 
-    /**
-     * 하나은행에서 펀드 상품 데이터 동기화
-     * FundClass (실제 펀드 구조) 동기화
-     */
     @Transactional
     public void syncFundProducts() {
         log.info("===== 펀드 상품 동기화 시작 =====");
-        
+
         try {
-            // 하나은행에서 판매중인 펀드 클래스 목록 조회
             List<Map<String, Object>> fundClassesFromBank = hanaBankClient.getAllOnSaleFundClasses();
             log.info("하나은행에서 조회한 펀드 클래스 수: {}건", fundClassesFromBank.size());
 
@@ -51,10 +41,8 @@ public class FundSyncService {
             int classUpdated = 0;
             int navCreated = 0;
 
-            // 각 펀드 클래스를 DB에 저장 또는 업데이트
             for (Map<String, Object> fundData : fundClassesFromBank) {
                 try {
-                    // 1. FundMaster 동기화
                     FundMaster fundMaster = syncFundMaster(fundData);
                     if (fundMaster != null) {
                         if (fundMaster.getSyncedAt() == null) {
@@ -63,8 +51,7 @@ public class FundSyncService {
                             masterUpdated++;
                         }
                     }
-                    
-                    // 2. FundClass 동기화
+
                     FundClass fundClass = syncFundClass(fundData, fundMaster);
                     if (fundClass != null) {
                         String childFundCd = fundClass.getChildFundCd();
@@ -75,13 +62,12 @@ public class FundSyncService {
                             classUpdated++;
                         }
                     }
-                    
-                    // 3. FundNav 동기화
+
                     boolean navSynced = syncFundNav(fundData);
                     if (navSynced) {
                         navCreated++;
                     }
-                    
+
                 } catch (Exception e) {
                     log.error("펀드 클래스 동기화 실패 - childFundCd: {}", fundData.get("childFundCd"), e);
                 }
@@ -98,9 +84,6 @@ public class FundSyncService {
         }
     }
 
-    /**
-     * FundMaster 동기화
-     */
     @SuppressWarnings("unchecked")
     private FundMaster syncFundMaster(Map<String, Object> fundData) {
         Map<String, Object> fundMasterData = (Map<String, Object>) fundData.get("fundMaster");
@@ -114,7 +97,6 @@ public class FundSyncService {
                         .fundCd(fundCd)
                         .build());
 
-        // 데이터 매핑
         fundMaster.setFundName((String) fundMasterData.get("fundName"));
         fundMaster.setFundGb((Integer) fundMasterData.get("fundGb"));
         fundMaster.setAssetType((String) fundMasterData.get("assetType"));
@@ -126,9 +108,6 @@ public class FundSyncService {
         return fundMasterRepository.save(fundMaster);
     }
 
-    /**
-     * FundClass 동기화 (Rules, Fees 포함)
-     */
     @SuppressWarnings("unchecked")
     private FundClass syncFundClass(Map<String, Object> fundData, FundMaster fundMaster) {
         if (fundMaster == null) {
@@ -142,23 +121,19 @@ public class FundSyncService {
                         .fundMaster(fundMaster)
                         .build());
 
-        // 기본 정보 매핑
         fundClass.setClassCode((String) fundData.get("classCode"));
         fundClass.setLoadType((String) fundData.get("loadType"));
         fundClass.setTaxCategory((String) fundData.get("taxCategory"));
         fundClass.setSaleStatus((String) fundData.get("saleStatus"));
         fundClass.setSourceUrl((String) fundData.get("sourceUrl"));
 
-        // FundClass 저장
         fundClass = fundClassRepository.save(fundClass);
 
-        // FundRules 동기화
         Map<String, Object> rulesData = (Map<String, Object>) fundData.get("rules");
         if (rulesData != null) {
             syncFundRules(fundClass, rulesData);
         }
 
-        // FundFees 동기화
         Map<String, Object> feesData = (Map<String, Object>) fundData.get("fees");
         if (feesData != null) {
             syncFundFees(fundClass, feesData);
@@ -167,9 +142,6 @@ public class FundSyncService {
         return fundClass;
     }
 
-    /**
-     * FundRules 동기화
-     */
     private void syncFundRules(FundClass fundClass, Map<String, Object> rulesData) {
         FundRules rules = fundClass.getFundRules();
         if (rules == null) {
@@ -178,7 +150,6 @@ public class FundSyncService {
                     .build();
         }
 
-        // LocalTime 파싱
         rules.setCutoffTime(parseLocalTime(rulesData.get("cutoffTime")));
         rules.setNavPublishTime(parseLocalTime(rulesData.get("navPublishTime")));
         rules.setBuySettleDays((Integer) rulesData.get("buySettleDays"));
@@ -196,9 +167,6 @@ public class FundSyncService {
         rules.setFundClass(fundClass);
     }
 
-    /**
-     * FundFees 동기화
-     */
     private void syncFundFees(FundClass fundClass, Map<String, Object> feesData) {
         FundFees fees = fundClass.getFundFees();
         if (fees == null) {
@@ -218,14 +186,11 @@ public class FundSyncService {
         fees.setFundClass(fundClass);
     }
 
-    /**
-     * FundNav 동기화
-     */
     private boolean syncFundNav(Map<String, Object> fundData) {
         String childFundCd = (String) fundData.get("childFundCd");
         BigDecimal latestNav = toBigDecimal(fundData.get("latestNav"));
         Object navDateObj = fundData.get("latestNavDate");
-        
+
         if (latestNav == null || navDateObj == null) {
             return false;
         }
@@ -235,12 +200,10 @@ public class FundSyncService {
             return false;
         }
 
-        // 이미 존재하는 기준가인지 확인
         if (fundNavRepository.existsByChildFundCdAndNavDate(childFundCd, navDate)) {
             return false;
         }
 
-        // 새 기준가 저장
         FundNav fundNav = FundNav.builder()
                 .childFundCd(childFundCd)
                 .navDate(navDate)
@@ -252,9 +215,6 @@ public class FundSyncService {
         return true;
     }
 
-    /**
-     * LocalTime 파싱
-     */
     private LocalTime parseLocalTime(Object value) {
         if (value == null) {
             return null;
@@ -280,9 +240,6 @@ public class FundSyncService {
         return null;
     }
 
-    /**
-     * LocalDate 파싱
-     */
     private LocalDate parseLocalDate(Object value) {
         if (value == null) {
             return null;
@@ -308,9 +265,6 @@ public class FundSyncService {
         return null;
     }
 
-    /**
-     * Object를 BigDecimal로 변환
-     */
     private BigDecimal toBigDecimal(Object value) {
         if (value == null) {
             return null;

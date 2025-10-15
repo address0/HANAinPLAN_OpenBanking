@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 금리 정보 조회 Controller
- */
 @RestController
 @RequestMapping("/api/banking/interest-rates")
 @Tag(name = "금리 정보 조회", description = "각 은행의 정기예금 금리 정보 조회 API")
@@ -28,7 +25,7 @@ public class InterestRateController {
     @Operation(summary = "전체 은행 금리 조회", description = "하나/국민/신한 은행의 모든 정기예금 금리 정보를 조회합니다.")
     public ResponseEntity<List<InterestRateDto>> getAllInterestRates() {
         log.info("전체 은행 금리 조회 API 호출");
-        
+
         try {
             List<InterestRateDto> rates = interestRateService.getAllInterestRates();
             return ResponseEntity.ok(rates);
@@ -38,6 +35,3 @@ public class InterestRateController {
         }
     }
 }
-
-
-

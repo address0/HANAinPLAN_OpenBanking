@@ -19,9 +19,6 @@ public class InterestRateService {
     @Autowired
     private InterestRateRepository interestRateRepository;
 
-    /**
-     * 금리 정보 생성
-     */
     public InterestRateResponseDto createInterestRate(InterestRateRequestDto request) {
         InterestRate interestRate = InterestRate.builder()
             .productCode(request.getProductCode())
@@ -36,18 +33,12 @@ public class InterestRateService {
         return InterestRateResponseDto.from(savedInterestRate);
     }
 
-    /**
-     * 금리 정보 조회 (ID)
-     */
     @Transactional(readOnly = true)
     public Optional<InterestRateResponseDto> getInterestRateById(Long interestRateId) {
         return interestRateRepository.findById(interestRateId)
             .map(InterestRateResponseDto::from);
     }
 
-    /**
-     * 상품코드로 금리 목록 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getInterestRatesByProductCode(String productCode) {
         List<InterestRate> interestRates = interestRateRepository.findByProductCode(productCode);
@@ -56,9 +47,6 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품코드와 금리종류로 금리 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getInterestRatesByProductCodeAndType(String productCode, InterestRate.InterestType interestType) {
         List<InterestRate> interestRates = interestRateRepository.findByProductCodeAndInterestType(productCode, interestType);
@@ -67,9 +55,6 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품코드와 만기기간으로 금리 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getInterestRatesByProductCodeAndMaturityPeriod(String productCode, String maturityPeriod) {
         List<InterestRate> interestRates = interestRateRepository.findAllByProductCodeOrderByEffectiveDateDesc(productCode);
@@ -79,9 +64,6 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품코드, 금리종류, 만기기간으로 금리 조회
-     */
     @Transactional(readOnly = true)
     public Optional<InterestRateResponseDto> getInterestRateByProductCodeAndTypeAndMaturityPeriod(
             String productCode, 
@@ -91,27 +73,18 @@ public class InterestRateService {
             .map(InterestRateResponseDto::from);
     }
 
-    /**
-     * 상품코드로 최신 기본금리 조회
-     */
     @Transactional(readOnly = true)
     public Optional<InterestRateResponseDto> getLatestBasicRateByProductCodeAndMaturityPeriod(String productCode, String maturityPeriod) {
         return interestRateRepository.findLatestBasicRateByProductCodeAndMaturityPeriod(productCode, maturityPeriod)
             .map(InterestRateResponseDto::from);
     }
 
-    /**
-     * 상품코드로 최신 우대금리 조회
-     */
     @Transactional(readOnly = true)
     public Optional<InterestRateResponseDto> getLatestPreferentialRateByProductCodeAndMaturityPeriod(String productCode, String maturityPeriod) {
         return interestRateRepository.findLatestPreferentialRateByProductCodeAndMaturityPeriod(productCode, maturityPeriod)
             .map(InterestRateResponseDto::from);
     }
 
-    /**
-     * IRP 상품 여부로 금리 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getInterestRatesByIrpStatus(Boolean isIrp) {
         List<InterestRate> interestRates = interestRateRepository.findByIsIrp(isIrp);
@@ -120,9 +93,6 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품코드와 IRP 여부로 금리 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getInterestRatesByProductCodeAndIrpStatus(String productCode, Boolean isIrp) {
         List<InterestRate> interestRates = interestRateRepository.findByProductCodeAndIsIrp(productCode, isIrp);
@@ -131,9 +101,6 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 모든 금리 정보 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getAllInterestRates() {
         List<InterestRate> interestRates = interestRateRepository.findAll();
@@ -142,9 +109,6 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 금리 정보 수정
-     */
     public InterestRateResponseDto updateInterestRate(Long interestRateId, InterestRateRequestDto request) {
         InterestRate interestRate = interestRateRepository.findById(interestRateId)
             .orElseThrow(() -> new IllegalArgumentException("금리 정보를 찾을 수 없습니다: " + interestRateId));
@@ -160,9 +124,6 @@ public class InterestRateService {
         return InterestRateResponseDto.from(updatedInterestRate);
     }
 
-    /**
-     * 금리 정보 삭제
-     */
     public void deleteInterestRate(Long interestRateId) {
         if (!interestRateRepository.existsById(interestRateId)) {
             throw new IllegalArgumentException("금리 정보를 찾을 수 없습니다: " + interestRateId);
@@ -170,16 +131,8 @@ public class InterestRateService {
         interestRateRepository.deleteById(interestRateId);
     }
 
-    /**
-     * 상품코드로 모든 금리 정보 삭제
-     */
     public void deleteInterestRatesByProductCode(String productCode) {
         List<InterestRate> interestRates = interestRateRepository.findByProductCode(productCode);
         interestRateRepository.deleteAll(interestRates);
     }
 }
-
-
-
-
-

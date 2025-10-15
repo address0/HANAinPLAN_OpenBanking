@@ -13,16 +13,13 @@ public class VerifyCodeRequestDto {
     @Pattern(regexp = "^\\d{6}$", message = "인증번호는 6자리 숫자여야 합니다.")
     private String verificationCode;
 
-    // 기본 생성자
     public VerifyCodeRequestDto() {}
 
-    // 생성자
     public VerifyCodeRequestDto(String phoneNumber, String verificationCode) {
         this.phoneNumber = phoneNumber;
         this.verificationCode = verificationCode;
     }
 
-    // Getters and Setters
     public String getPhoneNumber() {
         return phoneNumber;
     }

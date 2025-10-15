@@ -38,10 +38,8 @@ public class WebRTCSignalController {
     @Value("${app.base-url:http://localhost:5173}")
     private String baseUrl;
 
-    // 통화 요청 (REST에서 생성되지만, 수신자에게는 WS로 알림)
     public void notifyCallRequest(CallRequestMessage request, String roomId) {
         try {
-            // 수신자 앱은 CallRequestMessage 형태를 기대하므로 그대로 전송
             request.setRoomId(roomId);
             messagingTemplate.convertAndSendToUser(String.valueOf(request.getCalleeId()), "/queue/call-request", request);
         } catch (Exception e) {
@@ -55,15 +53,13 @@ public class WebRTCSignalController {
         webRTCService.acceptCall(message.getRoomId());
         messagingTemplate.convertAndSendToUser(String.valueOf(message.getReceiverId()), "/queue/call-accept", message);
 
-        // 상담 수락 시 고객에게 알림 발송 및 일정 추가
         try {
             Optional<VideoCallRoom> callRoomOpt = videoCallRoomRepository.findByRoomId(message.getRoomId());
             if (callRoomOpt.isPresent()) {
                 VideoCallRoom callRoom = callRoomOpt.get();
-                Long customerId = callRoom.getCallerId(); // 상담 요청한 고객
-                Long consultantId = callRoom.getCalleeId(); // 수락한 상담원
+                Long customerId = callRoom.getCallerId();
+                Long consultantId = callRoom.getCalleeId();
 
-                // 고객 정보 조회
                 Optional<User> customerOpt = userRepository.findById(customerId);
                 Optional<User> consultantOpt = userRepository.findById(consultantId);
 
@@ -71,10 +67,9 @@ public class WebRTCSignalController {
                     User customer = customerOpt.get();
                     User consultant = consultantOpt.get();
 
-                    // 상담 일정 자동 생성 (현재 시간부터 1시간)
                     LocalDateTime startTime = LocalDateTime.now();
                     LocalDateTime endTime = startTime.plusHours(1);
-                    
+
                     try {
                         scheduleService.createConsultationSchedule(
                                 consultantId, 
@@ -86,17 +81,15 @@ public class WebRTCSignalController {
                         log.info("상담 일정 자동 생성 완료 - consultantId: {}, customerId: {}", consultantId, customerId);
                     } catch (Exception e) {
                         log.error("상담 일정 자동 생성 실패", e);
-                        // 일정 생성 실패해도 상담은 계속 진행
                     }
 
-                    // 이메일 발송 (고객에게)
                     if (customer.getEmail() != null && !customer.getEmail().isEmpty()) {
                         String consultationUrl = baseUrl + "/videocall?roomId=" + message.getRoomId();
                         emailService.sendConsultationAcceptedEmail(
                                 customer.getEmail(),
                                 customer.getUserName(),
                                 consultant.getUserName(),
-                                "일반상담", // TODO: 실제 상담 유형 가져오기
+                                "일반상담",
                                 message.getRoomId(),
                                 consultationUrl
                         );
@@ -108,7 +101,6 @@ public class WebRTCSignalController {
             }
         } catch (Exception e) {
             log.error("Failed to send consultation accepted notification", e);
-            // 알림 실패해도 상담은 진행되도록 예외를 던지지 않음
         }
     }
 
@@ -144,68 +136,53 @@ public class WebRTCSignalController {
         messagingTemplate.convertAndSendToUser(String.valueOf(ice.getReceiverId()), "/queue/webrtc-ice", ice);
     }
 
-    /**
-     * 상담 시작 메시지 처리
-     * - 상담사가 상담 시작 버튼을 누르면 호출됨
-     * - 고객에게 상담 시작 메시지 전송
-     */
     @MessageMapping("/consultation.start")
     public void handleConsultationStart(@Payload WebRTCMessage message) {
         log.info("🔔 Consultation start from consultant {} to customer {}, room {}", 
                 message.getSenderId(), message.getReceiverId(), message.getRoomId());
-        
+
         log.info("전송할 메시지 내용: type={}, roomId={}, senderId={}, receiverId={}", 
                 message.getType(), message.getRoomId(), message.getSenderId(), message.getReceiverId());
-        
-        // 고객에게 상담 시작 메시지 전송
+
         String destination = "/queue/consultation-start";
         String userIdStr = String.valueOf(message.getReceiverId());
-        
+
         log.info("메시지 전송 - 목적지: /user/{}{}", userIdStr, destination);
-        
+
         messagingTemplate.convertAndSendToUser(
                 userIdStr, 
                 destination, 
                 message
         );
-        
+
         log.info("✅ Consultation start message sent to customer {}", message.getReceiverId());
     }
 
-    /**
-     * 상담 단계 동기화 처리
-     * - 상담사가 단계를 변경하면 고객에게 전송
-     */
     @MessageMapping("/consultation.step-sync")
     public void handleConsultationStepSync(@Payload WebRTCMessage message) {
         log.info("🔄 Consultation step sync from {} to {}, room {}, step: {}", 
                 message.getSenderId(), message.getReceiverId(), message.getRoomId(), message.getData());
-        
+
         messagingTemplate.convertAndSendToUser(
                 String.valueOf(message.getReceiverId()), 
                 "/queue/consultation-step-sync", 
                 message
         );
-        
+
         log.info("✅ Consultation step sync sent to {}", message.getReceiverId());
     }
 
-    /**
-     * 상담 메모 동기화 처리
-     * - 상담사가 공유 메모를 저장하면 고객에게 전송
-     */
     @MessageMapping("/consultation.note-sync")
     public void handleConsultationNoteSync(@Payload WebRTCMessage message) {
         log.info("📝 Consultation note sync from {} to {}, room {}", 
                 message.getSenderId(), message.getReceiverId(), message.getRoomId());
-        
+
         messagingTemplate.convertAndSendToUser(
                 String.valueOf(message.getReceiverId()), 
                 "/queue/consultation-note-sync", 
                 message
         );
-        
+
         log.info("✅ Consultation note sync sent to {}", message.getReceiverId());
     }
 }
-

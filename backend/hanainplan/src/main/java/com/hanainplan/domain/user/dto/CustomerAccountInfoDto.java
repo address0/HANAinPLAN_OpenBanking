@@ -22,7 +22,7 @@ public class CustomerAccountInfoDto {
     public static class AccountInfoDto {
         private String accountNumber;
         private Integer accountType;
-        private Object balance; // 다양한 타입을 받을 수 있도록 Object로 변경
+        private Object balance;
         private LocalDateTime openingDate;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;

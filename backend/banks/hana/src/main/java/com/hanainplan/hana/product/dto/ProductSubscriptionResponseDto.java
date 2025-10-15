@@ -44,10 +44,8 @@ public class ProductSubscriptionResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 기본 생성자
     public ProductSubscriptionResponseDto() {}
 
-    // 생성자
     public ProductSubscriptionResponseDto(ProductSubscription subscription) {
         this.subscriptionId = subscription.getSubscriptionId();
         this.customerCi = subscription.getCustomerCi();
@@ -82,7 +80,6 @@ public class ProductSubscriptionResponseDto {
         this.updatedAt = subscription.getUpdatedAt();
     }
 
-    // 정적 팩토리 메서드
     public static ProductSubscriptionResponseDto from(ProductSubscription subscription) {
         return new ProductSubscriptionResponseDto(subscription);
     }

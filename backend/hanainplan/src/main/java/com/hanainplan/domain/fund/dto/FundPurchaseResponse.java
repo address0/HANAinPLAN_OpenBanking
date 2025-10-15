@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * 펀드 매수 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,7 +18,6 @@ public class FundPurchaseResponse {
     private String message;
     private String errorMessage;
 
-    // 거래 정보
     private Long portfolioId;
     private String fundCode;
     private String fundName;
@@ -31,9 +27,6 @@ public class FundPurchaseResponse {
     private BigDecimal salesFee;
     private LocalDate settlementDate;
 
-    /**
-     * 성공 응답 생성
-     */
     public static FundPurchaseResponse success(
             Long portfolioId,
             String fundCode,
@@ -58,9 +51,6 @@ public class FundPurchaseResponse {
                 .build();
     }
 
-    /**
-     * 실패 응답 생성
-     */
     public static FundPurchaseResponse failure(String errorMessage) {
         return FundPurchaseResponse.builder()
                 .success(false)
@@ -69,4 +59,3 @@ public class FundPurchaseResponse {
                 .build();
     }
 }
-

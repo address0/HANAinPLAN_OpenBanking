@@ -10,16 +10,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/**
- * 펀드 클래스 상세 정보 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class FundClassDetailDto {
 
-    // 클래스 기본 정보
     private String childFundCd;
     private String classCode;
     private String loadType;
@@ -27,22 +23,15 @@ public class FundClassDetailDto {
     private String saleStatus;
     private String sourceUrl;
 
-    // 모펀드 정보
     private FundMasterDto fundMaster;
 
-    // 거래 규칙
     private FundRulesDto rules;
 
-    // 수수료
     private FundFeesDto fees;
 
-    // 최신 기준가
     private BigDecimal latestNav;
     private LocalDate latestNavDate;
 
-    /**
-     * Entity -> DTO 변환
-     */
     public static FundClassDetailDto fromEntity(FundClass entity, FundNav latestNav) {
         FundClassDetailDtoBuilder builder = FundClassDetailDto.builder()
                 .childFundCd(entity.getChildFundCd())
@@ -52,22 +41,18 @@ public class FundClassDetailDto {
                 .saleStatus(entity.getSaleStatus())
                 .sourceUrl(entity.getSourceUrl());
 
-        // 모펀드 정보
         if (entity.getFundMaster() != null) {
             builder.fundMaster(FundMasterDto.fromEntity(entity.getFundMaster()));
         }
 
-        // 거래 규칙
         if (entity.getFundRules() != null) {
             builder.rules(FundRulesDto.fromEntity(entity.getFundRules()));
         }
 
-        // 수수료
         if (entity.getFundFees() != null) {
             builder.fees(FundFeesDto.fromEntity(entity.getFundFees()));
         }
 
-        // 최신 기준가
         if (latestNav != null) {
             builder.latestNav(latestNav.getNav())
                    .latestNavDate(latestNav.getNavDate());
@@ -76,9 +61,6 @@ public class FundClassDetailDto {
         return builder.build();
     }
 
-    /**
-     * 모펀드 정보 DTO
-     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -105,9 +87,6 @@ public class FundClassDetailDto {
         }
     }
 
-    /**
-     * 거래 규칙 DTO
-     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -144,9 +123,6 @@ public class FundClassDetailDto {
         }
     }
 
-    /**
-     * 수수료 DTO
-     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -158,8 +134,7 @@ public class FundClassDetailDto {
         private Integer adminFeeBps;
         private BigDecimal frontLoadPct;
         private Integer totalFeeBps;
-        
-        // 계산된 % 값
+
         private BigDecimal mgmtFeePercent;
         private BigDecimal salesFeePercent;
         private BigDecimal trusteeFeePercent;
@@ -183,4 +158,3 @@ public class FundClassDetailDto {
         }
     }
 }
-

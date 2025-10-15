@@ -14,9 +14,6 @@ public class CustomerAccountController {
     @Autowired
     private CustomerAccountService customerAccountService;
 
-    /**
-     * CI로 고객 및 계좌 정보 조회
-     */
     @GetMapping("/ci/{ci}")
     public ResponseEntity<CustomerAccountResponseDto> getCustomerAccountInfoByCi(@PathVariable String ci) {
         CustomerAccountResponseDto response = customerAccountService.getCustomerAccountInfoByCi(ci);

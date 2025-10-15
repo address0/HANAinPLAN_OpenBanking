@@ -12,10 +12,8 @@ public class UserResponseDto {
     private String gender;
     private String ci;
 
-    // 기본 생성자
     public UserResponseDto() {}
 
-    // 생성자
     public UserResponseDto(User user) {
         this.id = user.getId();
         this.name = user.getName();
@@ -25,12 +23,10 @@ public class UserResponseDto {
         this.ci = user.getCi();
     }
 
-    // 정적 팩토리 메서드
     public static UserResponseDto from(User user) {
         return new UserResponseDto(user);
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

@@ -20,9 +20,6 @@ public class FinancialProductController {
     @Autowired
     private FinancialProductService financialProductService;
 
-    /**
-     * 금융상품 생성
-     */
     @PostMapping
     public ResponseEntity<FinancialProductResponseDto> createProduct(@Valid @RequestBody FinancialProductRequestDto request) {
         try {
@@ -33,9 +30,6 @@ public class FinancialProductController {
         }
     }
 
-    /**
-     * 금융상품 조회 (ID)
-     */
     @GetMapping("/{productId}")
     public ResponseEntity<FinancialProductResponseDto> getProductById(@PathVariable Long productId) {
         Optional<FinancialProductResponseDto> product = financialProductService.getProductById(productId);
@@ -43,9 +37,6 @@ public class FinancialProductController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * 금융상품 조회 (상품코드)
-     */
     @GetMapping("/code/{productCode}")
     public ResponseEntity<FinancialProductResponseDto> getProductByCode(@PathVariable String productCode) {
         Optional<FinancialProductResponseDto> product = financialProductService.getProductByCode(productCode);
@@ -53,45 +44,30 @@ public class FinancialProductController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * 모든 금융상품 조회
-     */
     @GetMapping
     public ResponseEntity<List<FinancialProductResponseDto>> getAllProducts() {
         List<FinancialProductResponseDto> products = financialProductService.getAllProducts();
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * 활성화된 금융상품 조회
-     */
     @GetMapping("/active")
     public ResponseEntity<List<FinancialProductResponseDto>> getActiveProducts() {
         List<FinancialProductResponseDto> products = financialProductService.getActiveProducts();
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * 상품명으로 검색
-     */
     @GetMapping("/search")
     public ResponseEntity<List<FinancialProductResponseDto>> searchProductsByName(@RequestParam String name) {
         List<FinancialProductResponseDto> products = financialProductService.searchProductsByName(name);
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * 상품유형으로 검색
-     */
     @GetMapping("/category/{category}")
     public ResponseEntity<List<FinancialProductResponseDto>> getProductsByCategory(@PathVariable String category) {
         List<FinancialProductResponseDto> products = financialProductService.getProductsByCategory(category);
         return ResponseEntity.ok(products);
     }
 
-    /**
-     * 금융상품 수정
-     */
     @PutMapping("/{productId}")
     public ResponseEntity<FinancialProductResponseDto> updateProduct(
             @PathVariable Long productId, 
@@ -104,9 +80,6 @@ public class FinancialProductController {
         }
     }
 
-    /**
-     * 금융상품 활성화/비활성화
-     */
     @PatchMapping("/{productId}/toggle-status")
     public ResponseEntity<FinancialProductResponseDto> toggleProductStatus(@PathVariable Long productId) {
         try {
@@ -117,9 +90,6 @@ public class FinancialProductController {
         }
     }
 
-    /**
-     * 금융상품 삭제
-     */
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
         try {
@@ -130,8 +100,3 @@ public class FinancialProductController {
         }
     }
 }
-
-
-
-
-

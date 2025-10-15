@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 펀드 포트폴리오 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,49 +20,38 @@ public class FundPortfolioDto {
     private Long userId;
     private String customerCi;
 
-    // 은행 정보
     private String bankCode;
     private String bankName;
 
-    // 펀드 정보
-    private String fundCode; // 모펀드 코드
-    private String childFundCd; // 클래스 펀드 코드
+    private String fundCode;
+    private String childFundCd;
     private String fundName;
-    private String classCode; // 클래스 코드 (A/C/P)
+    private String classCode;
     private String fundType;
     private String riskLevel;
 
-    // 매수 정보
     private LocalDate purchaseDate;
     private BigDecimal purchaseNav;
     private BigDecimal purchaseAmount;
     private BigDecimal purchaseFee;
     private BigDecimal purchaseUnits;
 
-    // 현재 보유 정보
     private BigDecimal currentUnits;
     private BigDecimal currentNav;
     private BigDecimal currentValue;
 
-    // 수익 정보
     private BigDecimal totalReturn;
     private BigDecimal returnRate;
     private BigDecimal accumulatedFees;
 
-    // IRP 연계
     private String irpAccountNumber;
 
-    // 외부 참조
     private Long subscriptionId;
 
-    // 상태
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    /**
-     * Entity -> DTO 변환
-     */
     public static FundPortfolioDto fromEntity(FundPortfolio entity) {
         return FundPortfolioDto.builder()
                 .portfolioId(entity.getPortfolioId())
@@ -98,9 +84,6 @@ public class FundPortfolioDto {
                 .build();
     }
 
-    /**
-     * 수익률 문자열 반환
-     */
     public String getReturnRateString() {
         if (returnRate == null) {
             return "0.00%";
@@ -109,11 +92,7 @@ public class FundPortfolioDto {
         return String.format("%s%.2f%%", sign, returnRate);
     }
 
-    /**
-     * 수익 여부
-     */
     public boolean isProfitable() {
         return totalReturn != null && totalReturn.compareTo(BigDecimal.ZERO) > 0;
     }
 }
-

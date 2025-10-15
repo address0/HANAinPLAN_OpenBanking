@@ -9,10 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
-/**
- * 펀드 크롤링 컨트롤러
- * 수동으로 펀드 기준가 크롤링을 실행하기 위한 API
- */
 @RestController
 @RequestMapping("/api/funds/crawler")
 @RequiredArgsConstructor
@@ -21,13 +17,6 @@ public class FundCrawlerController {
 
     private final FundNavCrawlerService fundNavCrawlerService;
 
-    /**
-     * 모든 펀드 기준가 크롤링 실행
-     *
-     * POST /api/funds/crawler/crawl-all
-     *
-     * @return 크롤링 결과
-     */
     @PostMapping("/crawl-all")
     public ResponseEntity<FundNavCrawlResult> crawlAllFundNav() {
         log.info("펀드 기준가 전체 크롤링 수동 실행 요청");
@@ -41,14 +30,6 @@ public class FundCrawlerController {
         }
     }
 
-    /**
-     * 특정 펀드 기준가 크롤링 실행
-     *
-     * POST /api/funds/crawler/crawl/{childFundCd}
-     *
-     * @param childFundCd 자펀드 코드
-     * @return 크롤링된 기준가
-     */
     @PostMapping("/crawl/{childFundCd}")
     public ResponseEntity<?> crawlSingleFundNav(@PathVariable String childFundCd) {
         log.info("펀드 기준가 단일 크롤링 수동 실행 요청: {}", childFundCd);
@@ -71,13 +52,9 @@ public class FundCrawlerController {
         }
     }
 
-    /**
-     * 단일 크롤링 응답
-     */
     private record CrawlSingleResponse(
             String childFundCd,
             BigDecimal nav,
             String message
     ) {}
 }
-

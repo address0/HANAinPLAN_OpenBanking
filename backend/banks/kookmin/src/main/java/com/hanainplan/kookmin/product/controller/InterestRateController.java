@@ -16,18 +16,12 @@ public class InterestRateController {
     @Autowired
     private InterestRateService interestRateService;
 
-    /**
-     * 모든 금리 정보 조회
-     */
     @GetMapping
     public ResponseEntity<List<InterestRateResponseDto>> getAllInterestRates() {
         List<InterestRateResponseDto> interestRates = interestRateService.getAllInterestRates();
         return ResponseEntity.ok(interestRates);
     }
 
-    /**
-     * 모든 금리 정보 조회 (HanaInPlan 통합용)
-     */
     @GetMapping("/all")
     public ResponseEntity<List<java.util.Map<String, Object>>> getAllInterestRatesForIntegration() {
         List<InterestRateResponseDto> interestRates = interestRateService.getAllInterestRates();
@@ -48,6 +42,3 @@ public class InterestRateController {
         return ResponseEntity.ok(result);
     }
 }
-
-
-

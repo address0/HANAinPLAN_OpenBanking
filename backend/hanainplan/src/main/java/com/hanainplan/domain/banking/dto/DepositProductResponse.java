@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 예금 상품 응답 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,9 +17,8 @@ public class DepositProductResponse {
     private String bankCode;
     private String bankName;
     private String description;
-    
-    // 금리 정보 (하나은행 기준)
-    private String rateInfo; // 금리 정보 텍스트
+
+    private String rateInfo;
 
     public static DepositProductResponse fromEntity(DepositProduct product) {
         return DepositProductResponse.builder()
@@ -48,13 +44,3 @@ public class DepositProductResponse {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-

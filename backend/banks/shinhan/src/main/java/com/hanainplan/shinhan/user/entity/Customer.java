@@ -23,33 +23,29 @@ public class Customer {
     private Long userId;
 
     @Column(name = "ci", unique = true, nullable = false, length = 64)
-    private String ci; // CI 값
+    private String ci;
 
     @Column(name = "name", nullable = false, length = 100)
-    private String name; // 이름
+    private String name;
 
     @Column(name = "gender", length = 1)
-    private String gender; // 성별 (M/F)
+    private String gender;
 
     @Column(name = "birth_date", length = 8)
-    private String birthDate; // 출생연월일 (YYYYMMDD)
+    private String birthDate;
 
     @Column(name = "phone", length = 20)
-    private String phone; // 전화번호
+    private String phone;
 
     @Column(name = "has_irp_account")
-    private Boolean hasIrpAccount; // IRP 계좌 보유 여부 (default: false)
+    private Boolean hasIrpAccount;
 
     @Column(name = "irp_account_number", length = 50)
-    private String irpAccountNumber; // IRP 계좌번호 (보유한 경우)
+    private String irpAccountNumber;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    /**
-     * 만 나이 계산
-     * @return 만 나이
-     */
     public int getAge() {
         if (birthDate == null || birthDate.length() != 8) {
             return 0;
@@ -65,7 +61,6 @@ public class Customer {
 
             int age = now.getYear() - birthDateObj.getYear();
 
-            // 생일이 지나지 않았으면 1살 빼기
             if (now.getMonthValue() < birthDateObj.getMonthValue() ||
                 (now.getMonthValue() == birthDateObj.getMonthValue() && now.getDayOfMonth() < birthDateObj.getDayOfMonth())) {
                 age--;
@@ -78,10 +73,6 @@ public class Customer {
         }
     }
 
-    /**
-     * 55세 이상 여부 확인
-     * @return 55세 이상이면 true
-     */
     public boolean isAge55OrOlder() {
         return getAge() >= 55;
     }

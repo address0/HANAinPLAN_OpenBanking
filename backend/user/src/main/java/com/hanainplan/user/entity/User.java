@@ -18,24 +18,21 @@ public class User {
     private String phone;
 
     @Column(name = "birth_date", length = 8)
-    private String birthDate; // 생년월일 (YYYYMMDD)
+    private String birthDate;
 
     @Column(name = "gender", length = 1)
-    private String gender; // 성별 (M/F)
+    private String gender;
 
     @Column(name = "ci", unique = true, length = 64)
-    private String ci; // CI 값 저장
+    private String ci;
 
-    // 기본 생성자
     public User() {}
 
-    // 생성자
     public User(String name, String phone) {
         this.name = name;
         this.phone = phone;
     }
 
-    // 생성자 (생년월일, 성별 포함)
     public User(String name, String phone, String birthDate, String gender) {
         this.name = name;
         this.phone = phone;
@@ -43,7 +40,6 @@ public class User {
         this.gender = gender;
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

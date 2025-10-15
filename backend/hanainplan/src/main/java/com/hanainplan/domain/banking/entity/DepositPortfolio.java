@@ -10,10 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 정기예금 포트폴리오 엔티티
- * - 하나인플랜에서 사용자의 정기예금 가입 내역을 포트폴리오 형식으로 관리
- */
 @Entity
 @Table(name = "deposit_portfolio")
 @Data
@@ -21,86 +17,77 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class DepositPortfolio {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "portfolio_id")
     private Long portfolioId;
-    
+
     @Column(name = "user_id", nullable = false)
-    private Long userId; // 사용자 ID
-    
+    private Long userId;
+
     @Column(name = "customer_ci", length = 64)
-    private String customerCi; // 고객 CI
-    
+    private String customerCi;
+
     @Column(name = "bank_code", nullable = false, length = 20)
-    private String bankCode; // 은행 코드 (HANA, KOOKMIN, SHINHAN)
-    
+    private String bankCode;
+
     @Column(name = "bank_name", length = 50)
-    private String bankName; // 은행명
-    
+    private String bankName;
+
     @Column(name = "product_code", nullable = false, length = 50)
-    private String productCode; // 상품코드
-    
+    private String productCode;
+
     @Column(name = "product_name", length = 200)
-    private String productName; // 상품명
-    
+    private String productName;
+
     @Column(name = "subscription_id")
-    private Long subscriptionId; // 은행사의 가입 ID (외부 참조)
-    
+    private Long subscriptionId;
+
     @Column(name = "subscription_date")
-    private LocalDate subscriptionDate; // 가입일자
-    
+    private LocalDate subscriptionDate;
+
     @Column(name = "maturity_date")
-    private LocalDate maturityDate; // 만기일자
-    
+    private LocalDate maturityDate;
+
     @Column(name = "contract_period")
-    private Integer contractPeriod; // 계약기간 (개월)
-    
+    private Integer contractPeriod;
+
     @Column(name = "maturity_period", length = 50)
-    private String maturityPeriod; // 만기기간 문자열 (예: "12개월")
-    
+    private String maturityPeriod;
+
     @Column(name = "principal_amount", precision = 15, scale = 2)
-    private BigDecimal principalAmount; // 원금
-    
+    private BigDecimal principalAmount;
+
     @Column(name = "interest_rate", precision = 5, scale = 2)
-    private BigDecimal interestRate; // 적용금리 (%)
-    
+    private BigDecimal interestRate;
+
     @Column(name = "expected_interest", precision = 15, scale = 2)
-    private BigDecimal expectedInterest; // 예상 이자
-    
+    private BigDecimal expectedInterest;
+
     @Column(name = "maturity_amount", precision = 15, scale = 2)
-    private BigDecimal maturityAmount; // 만기 예상 금액
-    
+    private BigDecimal maturityAmount;
+
     @Column(name = "status", length = 20)
-    private String status; // 상태 (ACTIVE, MATURED, CANCELLED)
-    
+    private String status;
+
     @Column(name = "irp_account_number", length = 50)
-    private String irpAccountNumber; // 출금한 IRP 계좌번호
-    
+    private String irpAccountNumber;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 }
-
-
-
-
-
-
-
-
-

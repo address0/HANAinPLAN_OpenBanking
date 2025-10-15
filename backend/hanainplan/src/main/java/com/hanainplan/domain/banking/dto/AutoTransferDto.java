@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AutoTransferDto {
-    
+
     private Long autoTransferId;
     private Long fromAccountId;
     private String fromAccountNumber;
@@ -44,8 +44,7 @@ public class AutoTransferDto {
     private Integer maxFailureCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
-    // 엔터티에서 DTO로 변환
+
     public static AutoTransferDto fromEntity(AutoTransfer autoTransfer) {
         return AutoTransferDto.builder()
                 .autoTransferId(autoTransfer.getAutoTransferId())
@@ -77,8 +76,7 @@ public class AutoTransferDto {
                 .updatedAt(autoTransfer.getUpdatedAt())
                 .build();
     }
-    
-    // DTO에서 엔터티로 변환
+
     public AutoTransfer toEntity() {
         return AutoTransfer.builder()
                 .autoTransferId(this.autoTransferId)

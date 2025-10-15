@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 상담 메모 컨트롤러
- */
 @RestController
 @RequestMapping("/api/consultation")
 @RequiredArgsConstructor
@@ -21,9 +18,6 @@ public class ConsultationNoteController {
 
     private final ConsultationNoteService consultationNoteService;
 
-    /**
-     * 상담 메모 저장/업데이트
-     */
     @PostMapping("/notes")
     public ResponseEntity<ConsultationNoteDto> saveNote(@RequestBody SaveConsultationNoteRequest request) {
         try {
@@ -36,9 +30,6 @@ public class ConsultationNoteController {
         }
     }
 
-    /**
-     * 특정 상담의 모든 메모 조회
-     */
     @GetMapping("/{consultId}/notes")
     public ResponseEntity<List<ConsultationNoteDto>> getNotes(@PathVariable String consultId) {
         try {
@@ -51,9 +42,6 @@ public class ConsultationNoteController {
         }
     }
 
-    /**
-     * 특정 상담의 특정 사용자 메모 조회
-     */
     @GetMapping("/{consultId}/notes/user/{userId}/type/{noteType}")
     public ResponseEntity<ConsultationNoteDto> getUserNote(
             @PathVariable String consultId,
@@ -69,9 +57,6 @@ public class ConsultationNoteController {
         }
     }
 
-    /**
-     * 특정 상담의 공유 메모 조회
-     */
     @GetMapping("/{consultId}/notes/shared")
     public ResponseEntity<List<ConsultationNoteDto>> getSharedNotes(@PathVariable String consultId) {
         try {

@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.*;
 
-/**
- * IRP 계좌 개설 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

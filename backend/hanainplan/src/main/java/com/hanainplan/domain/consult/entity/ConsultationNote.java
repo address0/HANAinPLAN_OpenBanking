@@ -8,10 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 상담 메모 엔터티
- * - 상담 중 작성되는 개인 메모와 공유 메모 관리
- */
 @Entity
 @Table(name = "tb_consultation_note")
 @Data
@@ -32,7 +28,7 @@ public class ConsultationNote {
     private Long userId;
 
     @Column(name = "note_type", length = 20, nullable = false)
-    private String noteType; // "PERSONAL" 또는 "SHARED"
+    private String noteType;
 
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
@@ -45,9 +41,6 @@ public class ConsultationNote {
     @Builder.Default
     private LocalDateTime updatedDate = LocalDateTime.now();
 
-    /**
-     * 메모 타입 enum 정의
-     */
     public enum NoteType {
         PERSONAL("개인 메모"), SHARED("공유 메모");
 
@@ -67,13 +60,10 @@ public class ConsultationNote {
                     return type;
                 }
             }
-            return PERSONAL; // 기본값
+            return PERSONAL;
         }
     }
 
-    /**
-     * 메모 업데이트
-     */
     public void updateContent(String newContent) {
         this.content = newContent;
         this.updatedDate = LocalDateTime.now();

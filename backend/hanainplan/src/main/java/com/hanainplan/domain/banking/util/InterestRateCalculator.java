@@ -7,31 +7,22 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-/**
- * 정기예금 금리 계산 유틸리티 (하나은행 기준)
- */
 @Slf4j
 public class InterestRateCalculator {
 
-    /**
-     * 상품 유형별 기본 금리 조회
-     */
     public static BigDecimal getBaseRate(int productType, int contractPeriod) {
         switch (productType) {
-            case 0: // 일반 상품
+            case 0:
                 return getGeneralProductRate(contractPeriod);
-            case 1: // 디폴트옵션
-                return BigDecimal.valueOf(0.0220); // 2.20%
-            case 2: // 일단위
+            case 1:
+                return BigDecimal.valueOf(0.0220);
+            case 2:
                 return getDailyProductRate(contractPeriod);
             default:
                 throw new IllegalArgumentException("지원하지 않는 상품 유형입니다: " + productType);
         }
     }
 
-    /**
-     * 일반 상품 금리 (개월 단위)
-     */
     private static BigDecimal getGeneralProductRate(int months) {
         switch (months) {
             case 6:
@@ -51,9 +42,6 @@ public class InterestRateCalculator {
         }
     }
 
-    /**
-     * 일단위 상품 금리 (일 단위)
-     */
     private static BigDecimal getDailyProductRate(int days) {
         if (days >= 1825) return BigDecimal.valueOf(0.0200);
         else if (days >= 1461) return BigDecimal.valueOf(0.0200);
@@ -69,9 +57,6 @@ public class InterestRateCalculator {
         else throw new IllegalArgumentException("일단위 상품은 31일 이상만 가입 가능합니다");
     }
 
-    /**
-     * 만기 이자 계산: 신규금액 * 이자율 * 약정개월수/12
-     */
     public static BigDecimal calculateMaturityInterest(BigDecimal principal, BigDecimal rate, int months) {
         return principal
                 .multiply(rate)
@@ -79,19 +64,16 @@ public class InterestRateCalculator {
                 .divide(BigDecimal.valueOf(12), 2, RoundingMode.DOWN);
     }
 
-    /**
-     * 중도해지 이자율 계산
-     */
     public static BigDecimal calculateEarlyTerminationRate(int productType, BigDecimal baseRate, 
                                                           long elapsedDays, long contractDays) {
         BigDecimal rate;
-        
+
         if (productType == 1) {
             rate = calculateDefaultOptionEarlyRate(baseRate, elapsedDays);
         } else {
             rate = calculateGeneralEarlyRate(baseRate, elapsedDays, contractDays);
         }
-        
+
         return rate.setScale(4, RoundingMode.DOWN);
     }
 
@@ -103,7 +85,7 @@ public class InterestRateCalculator {
             BigDecimal differentialRate = getDifferentialRate(elapsedDays);
             BigDecimal elapsedRate = BigDecimal.valueOf(Math.min(elapsedDays, contractDays))
                     .divide(BigDecimal.valueOf(contractDays), 10, RoundingMode.HALF_UP);
-            
+
             BigDecimal calculatedRate = baseRate.multiply(differentialRate).multiply(elapsedRate);
             BigDecimal minRate = BigDecimal.valueOf(0.0020);
             return calculatedRate.compareTo(minRate) < 0 ? minRate : calculatedRate;
@@ -124,9 +106,6 @@ public class InterestRateCalculator {
         else return BigDecimal.valueOf(0.90);
     }
 
-    /**
-     * 중도해지 이자 계산
-     */
     public static BigDecimal calculateEarlyTerminationInterest(BigDecimal principal, 
                                                                BigDecimal earlyRate, 
                                                                long elapsedDays) {
@@ -136,9 +115,6 @@ public class InterestRateCalculator {
                 .divide(BigDecimal.valueOf(365), 2, RoundingMode.DOWN);
     }
 
-    /**
-     * 만기일 계산
-     */
     public static LocalDate calculateMaturityDate(LocalDate subscriptionDate, int productType, int contractPeriod) {
         if (productType == 2) {
             return subscriptionDate.plusDays(contractPeriod);
@@ -147,23 +123,11 @@ public class InterestRateCalculator {
         }
     }
 
-    /**
-     * 경과 일수 계산
-     */
     public static long calculateElapsedDays(LocalDate startDate, LocalDate endDate) {
         return ChronoUnit.DAYS.between(startDate, endDate);
     }
 
-    /**
-     * 계약 일수 계산
-     */
     public static long calculateContractDays(LocalDate subscriptionDate, LocalDate maturityDate) {
         return ChronoUnit.DAYS.between(subscriptionDate, maturityDate);
     }
 }
-
-
-
-
-
-

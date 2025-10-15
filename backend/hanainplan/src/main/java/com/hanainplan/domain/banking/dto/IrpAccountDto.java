@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * IRP 계좌 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -62,7 +59,6 @@ public class IrpAccountDto {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdDate;
 
-    // 편의 메소드들
     public boolean isActive() {
         return "ACTIVE".equals(accountStatus);
     }

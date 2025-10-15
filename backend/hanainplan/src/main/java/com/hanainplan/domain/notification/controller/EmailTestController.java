@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * 이메일 테스트 컨트롤러
- */
 @RestController
 @RequestMapping("/api/email")
 @RequiredArgsConstructor
@@ -23,9 +20,6 @@ public class EmailTestController {
 
     private final EmailService emailService;
 
-    /**
-     * 간단한 텍스트 이메일 테스트
-     */
     @PostMapping("/test/simple")
     @Operation(summary = "간단한 텍스트 이메일 테스트", description = "텍스트 이메일 전송을 테스트합니다.")
     public ResponseEntity<?> testSimpleEmail(@RequestBody Map<String, String> request) {
@@ -61,9 +55,6 @@ public class EmailTestController {
         }
     }
 
-    /**
-     * HTML 이메일 테스트
-     */
     @PostMapping("/test/html")
     @Operation(summary = "HTML 이메일 테스트", description = "HTML 이메일 전송을 테스트합니다.")
     public ResponseEntity<?> testHtmlEmail(@RequestBody Map<String, String> request) {
@@ -100,9 +91,6 @@ public class EmailTestController {
         }
     }
 
-    /**
-     * 상담 예약 신청 이메일 테스트
-     */
     @PostMapping("/test/consultation-request")
     @Operation(summary = "상담 예약 신청 이메일 테스트", description = "상담 예약 신청 이메일을 테스트합니다.")
     public ResponseEntity<?> testConsultationRequestEmail(@RequestBody Map<String, String> request) {
@@ -122,7 +110,6 @@ public class EmailTestController {
 
             log.info("상담 예약 신청 이메일 테스트 요청 - to: {}, customerName: {}", to, customerName);
 
-            // 테스트용 HTML 생성
             String htmlContent = buildTestConsultationRequestEmailHtml(
                 customerName, consultantName, consultationType, consultId
             );
@@ -147,9 +134,6 @@ public class EmailTestController {
         }
     }
 
-    /**
-     * 테스트용 상담 예약 신청 이메일 HTML 생성
-     */
     private String buildTestConsultationRequestEmailHtml(
             String customerName,
             String consultantName,
@@ -232,7 +216,7 @@ public class EmailTestController {
                     <div class="content">
                         <p><strong>%s</strong>님, 안녕하세요!</p>
                         <p>상담 예약 신청이 정상적으로 접수되었습니다.</p>
-                        
+
                         <div class="info-box">
                             <div class="info-row">
                                 <span class="label">예약 번호:</span>
@@ -251,11 +235,11 @@ public class EmailTestController {
                                 <span class="value">2025년 01월 15일 14:00</span>
                             </div>
                         </div>
-                        
+
                         <div class="status-box">
                             <strong>📧 예약 확인 후 확정 시 등록된 메일로 안내드리겠습니다</strong>
                         </div>
-                        
+
                         <p style="color: #666; font-size: 14px;">
                             상담사가 예약을 확인한 후 확정되면 별도로 안내 메일을 보내드립니다.<br>
                             문의사항이 있으시면 고객센터(1588-1111)로 연락주시기 바랍니다.
@@ -270,4 +254,3 @@ public class EmailTestController {
                 """, customerName, consultId, consultationType, consultantName);
     }
 }
-

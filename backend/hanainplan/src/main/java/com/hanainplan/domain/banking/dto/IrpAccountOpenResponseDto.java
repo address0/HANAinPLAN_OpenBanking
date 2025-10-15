@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * IRP 계좌 개설 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,7 +16,6 @@ public class IrpAccountOpenResponseDto {
     private String accountNumber;
     private String errorCode;
 
-    // 성공 응답용 생성자
     public static IrpAccountOpenResponseDto success(String accountNumber, String message) {
         return IrpAccountOpenResponseDto.builder()
                 .success(true)
@@ -28,7 +24,6 @@ public class IrpAccountOpenResponseDto {
                 .build();
     }
 
-    // 실패 응답용 생성자
     public static IrpAccountOpenResponseDto failure(String message) {
         return IrpAccountOpenResponseDto.builder()
                 .success(false)
@@ -36,7 +31,6 @@ public class IrpAccountOpenResponseDto {
                 .build();
     }
 
-    // 실패 응답용 생성자 (오류 코드 포함)
     public static IrpAccountOpenResponseDto failure(String message, String errorCode) {
         return IrpAccountOpenResponseDto.builder()
                 .success(false)

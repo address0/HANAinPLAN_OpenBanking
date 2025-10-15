@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AutoTransferResponseDto {
-    
+
     private boolean success;
     private String message;
     private Long autoTransferId;
@@ -20,8 +20,7 @@ public class AutoTransferResponseDto {
     private String transferStatus;
     private LocalDateTime createdAt;
     private String failureReason;
-    
-    // 성공 응답 생성
+
     public static AutoTransferResponseDto success(String message, Long autoTransferId, String transferName, String transferStatus) {
         return AutoTransferResponseDto.builder()
                 .success(true)
@@ -32,8 +31,7 @@ public class AutoTransferResponseDto {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
-    
-    // 실패 응답 생성
+
     public static AutoTransferResponseDto failure(String message, String failureReason) {
         return AutoTransferResponseDto.builder()
                 .success(false)

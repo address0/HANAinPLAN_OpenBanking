@@ -60,11 +60,11 @@ public class PhoneVerificationController {
         try {
             String verificationCode = verificationService.sendVerificationCode(request.getPhoneNumber());
             return ResponseEntity.ok(PhoneVerificationResponseDto.success("인증번호가 발송되었습니다.", verificationCode));
-            
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                 .body(PhoneVerificationResponseDto.error("입력 데이터 오류: " + e.getMessage()));
-                
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                 .body(PhoneVerificationResponseDto.error("서버 오류: " + e.getMessage()));
@@ -108,14 +108,14 @@ public class PhoneVerificationController {
         VerifyCodeRequestDto request) {
         try {
             boolean verified = verificationService.verifyCode(request.getPhoneNumber(), request.getVerificationCode());
-            
+
             String message = verified ? "인증번호가 확인되었습니다." : "인증번호가 일치하지 않습니다.";
             return ResponseEntity.ok(VerifyCodeResponseDto.success(verified, message));
-            
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                 .body(VerifyCodeResponseDto.error("입력 데이터 오류: " + e.getMessage()));
-                
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                 .body(VerifyCodeResponseDto.error("서버 오류: " + e.getMessage()));
@@ -144,10 +144,10 @@ public class PhoneVerificationController {
     public ResponseEntity<VerifyCodeResponseDto> checkVerificationStatus(@PathVariable String phoneNumber) {
         try {
             boolean verified = verificationService.isPhoneNumberVerified(phoneNumber);
-            
+
             String message = verified ? "전화번호가 인증되었습니다." : "전화번호가 인증되지 않았습니다.";
             return ResponseEntity.ok(VerifyCodeResponseDto.success(verified, message));
-            
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                 .body(VerifyCodeResponseDto.error("서버 오류: " + e.getMessage()));

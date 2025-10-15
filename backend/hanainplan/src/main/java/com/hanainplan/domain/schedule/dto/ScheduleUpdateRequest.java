@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 일정 수정 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,9 +27,6 @@ public class ScheduleUpdateRequest {
     private String location;
     private String memo;
 
-    /**
-     * 엔터티 업데이트
-     */
     public void updateEntity(Schedule schedule) {
         if (title != null) {
             schedule.setTitle(title);
@@ -69,4 +63,3 @@ public class ScheduleUpdateRequest {
         }
     }
 }
-

@@ -1,8 +1,5 @@
 package com.hanainplan.domain.notification.entity;
 
-/**
- * 알림 타입 열거형
- */
 public enum NotificationType {
     CONSULTATION("상담"),
     TRANSACTION("거래"),

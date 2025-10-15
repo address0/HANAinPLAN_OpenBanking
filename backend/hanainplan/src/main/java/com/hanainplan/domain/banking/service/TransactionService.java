@@ -25,30 +25,26 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional
 public class TransactionService {
-    
+
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final AccountService accountService;
     private final BankWithdrawalService bankWithdrawalService;
-    
-    // 입금 처리
+
     public TransactionResponseDto deposit(DepositRequestDto request) {
         log.info("입금 처리 요청 - 계좌 ID: {}, 금액: {}", request.getAccountId(), request.getAmount());
-        
+
         try {
-            // 계좌 조회
             BankingAccount account = accountRepository.findById(request.getAccountId())
                     .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + request.getAccountId()));
-            
-            // 계좌 상태 확인
+
             if (account.getAccountStatus() != BankingAccount.AccountStatus.ACTIVE) {
                 return TransactionResponseDto.failure("비활성 계좌입니다", "계좌 상태: " + account.getAccountStatus().getDescription());
             }
-            
-            // 거래 생성
+
             Transaction transaction = createTransaction(
-                    null, // 출금 계좌 없음
-                    request.getAccountId(), // 입금 계좌
+                    null,
+                    request.getAccountId(),
                     Transaction.TransactionType.DEPOSIT,
                     Transaction.TransactionCategory.OTHER,
                     request.getAmount(),
@@ -56,19 +52,17 @@ public class TransactionService {
                     request.getMemo(),
                     request.getReferenceNumber()
             );
-            
-            // 잔액 업데이트
+
             account.updateBalance(request.getAmount());
             accountRepository.save(account);
-            
-            // 거래 완료 처리
+
             transaction.complete();
             transaction.setBalanceAfter(account.getBalance());
             Transaction savedTransaction = transactionRepository.save(transaction);
-            
+
             log.info("입금 처리 완료 - 거래 ID: {}, 거래번호: {}, 새 잔액: {}", 
                     savedTransaction.getTransactionId(), savedTransaction.getTransactionNumber(), account.getBalance());
-            
+
             return TransactionResponseDto.success(
                     "입금이 완료되었습니다",
                     savedTransaction.getTransactionNumber(),
@@ -77,38 +71,33 @@ public class TransactionService {
                     BigDecimal.ZERO,
                     savedTransaction.getTransactionStatus().getDescription()
             );
-            
+
         } catch (Exception e) {
             log.error("입금 처리 실패 - 계좌 ID: {}, 금액: {}, 오류: {}", 
                     request.getAccountId(), request.getAmount(), e.getMessage());
             return TransactionResponseDto.failure("입금 처리 중 오류가 발생했습니다", e.getMessage());
         }
     }
-    
-    // 출금 처리 (HANAinPLAN + 실제 은행 서버)
+
     public TransactionResponseDto withdrawal(WithdrawalRequestDto request) {
         log.info("출금 처리 요청 - 계좌 ID: {}, 금액: {}", request.getAccountId(), request.getAmount());
-        
+
         try {
-            // 계좌 조회
             BankingAccount account = accountRepository.findById(request.getAccountId())
                     .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + request.getAccountId()));
-            
-            // 계좌 상태 확인
+
             if (account.getAccountStatus() != BankingAccount.AccountStatus.ACTIVE) {
                 return TransactionResponseDto.failure("비활성 계좌입니다", "계좌 상태: " + account.getAccountStatus().getDescription());
             }
-            
-            // 잔액 확인
+
             if (!account.hasSufficientBalance(request.getAmount())) {
                 return TransactionResponseDto.failure("잔액이 부족합니다", 
                         "현재 잔액: " + account.getBalance() + ", 요청 금액: " + request.getAmount());
             }
-            
-            // 거래 생성 (아직 PENDING 상태)
+
             Transaction transaction = createTransaction(
-                    request.getAccountId(), // 출금 계좌
-                    null, // 입금 계좌 없음
+                    request.getAccountId(),
+                    null,
                     Transaction.TransactionType.WITHDRAWAL,
                     Transaction.TransactionCategory.OTHER,
                     request.getAmount(),
@@ -116,38 +105,34 @@ public class TransactionService {
                     request.getMemo(),
                     request.getReferenceNumber()
             );
-            
-            // 1. 실제 은행 서버에 출금 요청 (먼저 실행)
+
             BankWithdrawalService.BankWithdrawalResult bankResult = 
                     bankWithdrawalService.processWithdrawal(
                             account.getAccountNumber(), 
                             request.getAmount(), 
                             request.getDescription()
                     );
-            
+
             if (!bankResult.isSuccess()) {
-                // 은행 출금 실패 시 거래 취소
                 transaction.fail("은행 서버 출금 실패: " + bankResult.getMessage());
                 transactionRepository.save(transaction);
-                
+
                 log.error("은행 출금 실패 - 계좌번호: {}, 메시지: {}", account.getAccountNumber(), bankResult.getMessage());
                 return TransactionResponseDto.failure("출금 실패", bankResult.getMessage());
             }
-            
-            // 2. 은행 출금 성공 시 HANAinPLAN 잔액 업데이트
+
             account.updateBalance(request.getAmount().negate());
             accountRepository.save(account);
-            
-            // 거래 완료 처리
+
             transaction.complete();
             transaction.setBalanceAfter(account.getBalance());
-            transaction.setReferenceNumber(bankResult.getTransactionId()); // 은행 거래 ID를 참조번호로 저장
+            transaction.setReferenceNumber(bankResult.getTransactionId());
             Transaction savedTransaction = transactionRepository.save(transaction);
-            
+
             log.info("출금 처리 완료 - 거래 ID: {}, 거래번호: {}, 은행 거래 ID: {}, 새 잔액: {}",
                     savedTransaction.getTransactionId(), savedTransaction.getTransactionNumber(), 
                     bankResult.getTransactionId(), account.getBalance());
-            
+
             return TransactionResponseDto.success(
                     "출금이 완료되었습니다",
                     savedTransaction.getTransactionNumber(),
@@ -156,46 +141,40 @@ public class TransactionService {
                     BigDecimal.ZERO,
                     savedTransaction.getTransactionStatus().getDescription()
             );
-            
+
         } catch (Exception e) {
             log.error("출금 처리 실패 - 계좌 ID: {}, 금액: {}, 오류: {}", 
                     request.getAccountId(), request.getAmount(), e.getMessage());
             return TransactionResponseDto.failure("출금 처리 중 오류가 발생했습니다", e.getMessage());
         }
     }
-    
-    // 이체 처리
+
     public TransactionResponseDto transfer(TransferRequestDto request) {
         log.info("이체 처리 요청 - 출금 계좌 ID: {}, 입금 계좌 ID: {}, 금액: {}", 
                 request.getFromAccountId(), request.getToAccountId(), request.getAmount());
-        
+
         try {
-            // 출금 계좌 조회
             BankingAccount fromAccount = accountRepository.findById(request.getFromAccountId())
                     .orElseThrow(() -> new RuntimeException("출금 계좌를 찾을 수 없습니다: " + request.getFromAccountId()));
-            
-            // 입금 계좌 조회
+
             BankingAccount toAccount = accountRepository.findById(request.getToAccountId())
                     .orElseThrow(() -> new RuntimeException("입금 계좌를 찾을 수 없습니다: " + request.getToAccountId()));
-            
-            // 계좌 상태 확인
+
             if (fromAccount.getAccountStatus() != BankingAccount.AccountStatus.ACTIVE) {
                 return TransactionResponseDto.failure("출금 계좌가 비활성 상태입니다", 
                         "계좌 상태: " + fromAccount.getAccountStatus().getDescription());
             }
-            
+
             if (toAccount.getAccountStatus() != BankingAccount.AccountStatus.ACTIVE) {
                 return TransactionResponseDto.failure("입금 계좌가 비활성 상태입니다", 
                         "계좌 상태: " + toAccount.getAccountStatus().getDescription());
             }
-            
-            // 잔액 확인
+
             if (!fromAccount.hasSufficientBalance(request.getAmount())) {
                 return TransactionResponseDto.failure("잔액이 부족합니다", 
                         "현재 잔액: " + fromAccount.getBalance() + ", 요청 금액: " + request.getAmount());
             }
-            
-            // 거래 생성
+
             Transaction transaction = createTransaction(
                     request.getFromAccountId(),
                     request.getToAccountId(),
@@ -206,23 +185,21 @@ public class TransactionService {
                     request.getMemo(),
                     request.getReferenceNumber()
             );
-            
-            // 잔액 업데이트
+
             fromAccount.updateBalance(request.getAmount().negate());
             toAccount.updateBalance(request.getAmount());
-            
+
             accountRepository.save(fromAccount);
             accountRepository.save(toAccount);
-            
-            // 거래 완료 처리
+
             transaction.complete();
             transaction.setBalanceAfter(fromAccount.getBalance());
             Transaction savedTransaction = transactionRepository.save(transaction);
-            
+
             log.info("이체 처리 완료 - 거래 ID: {}, 거래번호: {}, 출금 계좌 잔액: {}, 입금 계좌 잔액: {}", 
                     savedTransaction.getTransactionId(), savedTransaction.getTransactionNumber(), 
                     fromAccount.getBalance(), toAccount.getBalance());
-            
+
             return TransactionResponseDto.success(
                     "이체가 완료되었습니다",
                     savedTransaction.getTransactionNumber(),
@@ -231,46 +208,37 @@ public class TransactionService {
                     BigDecimal.ZERO,
                     savedTransaction.getTransactionStatus().getDescription()
             );
-            
+
         } catch (Exception e) {
             log.error("이체 처리 실패 - 출금 계좌 ID: {}, 입금 계좌 ID: {}, 금액: {}, 오류: {}", 
                     request.getFromAccountId(), request.getToAccountId(), request.getAmount(), e.getMessage());
             return TransactionResponseDto.failure("이체 처리 중 오류가 발생했습니다", e.getMessage());
         }
     }
-    
-    // 거래 내역 조회
+
     @Transactional(readOnly = true)
     public Page<TransactionDto> getTransactionHistory(TransactionHistoryRequestDto request) {
         log.info("거래 내역 조회 - 계좌 ID: {}, 계좌번호: {}, 페이지: {}, 크기: {}",
                 request.getAccountId(), request.getAccountNumber(), request.getPage(), request.getSize());
 
-        // 정렬 설정
         Sort sort = Sort.by(Sort.Direction.fromString(request.getSortDirection()), request.getSortBy());
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize(), sort);
 
         Page<Transaction> transactions;
 
-        // 계좌번호가 제공되면 계좌번호로 조회, 그렇지 않으면 계좌 ID로 조회
         if (request.getAccountNumber() != null && !request.getAccountNumber().isEmpty()) {
-            // 계좌번호로 조회
             if (request.getStartDate() != null && request.getEndDate() != null) {
-                // 기간별 조회
                 transactions = transactionRepository.findByAccountNumberAndDateRange(
                         request.getAccountNumber(), request.getStartDate(), request.getEndDate(), pageable);
             } else {
-                // 전체 조회
                 transactions = transactionRepository.findByAccountNumberOrderByTransactionDateDesc(
                         request.getAccountNumber(), pageable);
             }
         } else {
-            // 기존 계좌 ID로 조회 (하위 호환성 유지)
             if (request.getStartDate() != null && request.getEndDate() != null) {
-                // 기간별 조회
                 transactions = transactionRepository.findTransactionsByAccountAndDateRange(
                         request.getAccountId(), request.getStartDate(), request.getEndDate(), pageable);
             } else {
-                // 전체 조회
                 transactions = transactionRepository.findByFromAccountIdOrToAccountIdOrderByTransactionDateDesc(
                         request.getAccountId(), request.getAccountId(), pageable);
             }
@@ -278,34 +246,30 @@ public class TransactionService {
 
         return transactions.map(TransactionDto::fromEntity);
     }
-    
-    // 거래 상세 조회
+
     @Transactional(readOnly = true)
     public Optional<TransactionDto> getTransaction(Long transactionId) {
         log.info("거래 상세 조회 - 거래 ID: {}", transactionId);
-        
+
         return transactionRepository.findById(transactionId)
                 .map(TransactionDto::fromEntity);
     }
-    
-    // 거래번호로 거래 조회
+
     @Transactional(readOnly = true)
     public Optional<TransactionDto> getTransactionByNumber(String transactionNumber) {
         log.info("거래번호로 거래 조회 - 거래번호: {}", transactionNumber);
-        
+
         return transactionRepository.findByTransactionNumber(transactionNumber)
                 .map(TransactionDto::fromEntity);
     }
-    
-    // 거래 생성 헬퍼 메서드
+
     private Transaction createTransaction(Long fromAccountId, Long toAccountId, 
                                         Transaction.TransactionType type, Transaction.TransactionCategory category,
                                         BigDecimal amount, String description, String memo, String referenceNumber) {
-        
-        // 거래 방향 결정 (fromAccountId가 null이 아니면 출금 계좌 관점)
+
         Transaction.TransactionDirection direction = Transaction.TransactionDirection
                 .fromTransactionType(type, fromAccountId != null);
-        
+
         return Transaction.builder()
                 .transactionNumber(Transaction.generateTransactionNumber())
                 .fromAccountId(fromAccountId)

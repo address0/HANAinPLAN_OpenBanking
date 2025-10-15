@@ -19,9 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.Map;
 
-/**
- * 회원가입 컨트롤러
- */
 @Tag(name = "회원가입", description = "사용자 회원가입 관련 API")
 @Slf4j
 @RestController
@@ -33,10 +30,6 @@ public class SignUpController {
     private final SignUpService signUpService;
     private final VerificationService verificationService;
 
-    /**
-     * 회원가입
-     * POST /api/auth/signup
-     */
     @Operation(summary = "회원가입", description = "일반고객 또는 상담원 회원가입을 처리합니다.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "회원가입 성공"),
@@ -50,7 +43,6 @@ public class SignUpController {
 
         SignUpResponseDto response = signUpService.signUp(request);
 
-        // 성공/실패에 따른 HTTP 상태 코드 설정
         if (response.getUserId() != null) {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
@@ -58,10 +50,6 @@ public class SignUpController {
         }
     }
 
-    /**
-     * 주민번호 중복 확인
-     * GET /api/auth/check-social-number?socialNumber=000000-0
-     */
     @Operation(summary = "주민번호 중복 확인", description = "주민번호가 이미 가입되어 있는지 확인합니다.")
     @GetMapping("/check-social-number")
     public ResponseEntity<Map<String, Object>> checkSocialNumber(
@@ -77,10 +65,6 @@ public class SignUpController {
         ));
     }
 
-    /**
-     * 전화번호 중복 확인
-     * GET /api/auth/check-phone-number?phoneNumber=010-0000-0000
-     */
     @GetMapping("/check-phone-number")
     public ResponseEntity<Map<String, Object>> checkPhoneNumber(@RequestParam String phoneNumber) {
         log.info("전화번호 중복 확인 요청: phoneNumber={}", phoneNumber);
@@ -93,10 +77,6 @@ public class SignUpController {
         ));
     }
 
-    /**
-     * 카카오 ID 중복 확인
-     * GET /api/auth/check-kakao-id?kakaoId=kakao123
-     */
     @GetMapping("/check-kakao-id")
     public ResponseEntity<Map<String, Object>> checkKakaoId(@RequestParam String kakaoId) {
         log.info("카카오 ID 중복 확인 요청: kakaoId={}", kakaoId);
@@ -109,10 +89,6 @@ public class SignUpController {
         ));
     }
 
-    /**
-     * 인증번호 전송
-     * POST /api/auth/send-verification-code
-     */
     @Operation(summary = "인증번호 전송", description = "전화번호로 6자리 인증번호를 전송합니다. (3분간 유효)")
     @PostMapping("/send-verification-code")
     public ResponseEntity<Map<String, Object>> sendVerificationCode(@RequestBody Map<String, String> request) {
@@ -125,7 +101,7 @@ public class SignUpController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "인증번호가 전송되었습니다. (3분간 유효)",
-                    "verificationCode", verificationCode, // 개발용으로 포함, 실제 운영시에는 제거
+                    "verificationCode", verificationCode,
                     "expiresInMinutes", 3
             ));
         } catch (Exception e) {
@@ -137,10 +113,6 @@ public class SignUpController {
         }
     }
 
-    /**
-     * 인증번호 확인
-     * POST /api/auth/verify-code
-     */
     @Operation(summary = "인증번호 확인", description = "전송된 인증번호를 확인합니다.")
     @PostMapping("/verify-code")
     public ResponseEntity<Map<String, Object>> verifyCode(@RequestBody Map<String, String> request) {
@@ -171,9 +143,6 @@ public class SignUpController {
         }
     }
 
-    /**
-     * 예외 처리
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleException(Exception e) {
         log.error("SignUpController 오류 발생", e);

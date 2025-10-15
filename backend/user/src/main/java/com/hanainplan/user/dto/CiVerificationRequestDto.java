@@ -23,10 +23,8 @@ public class CiVerificationRequestDto {
     @Pattern(regexp = "^\\d{13}$", message = "주민번호는 13자리 숫자여야 합니다.")
     private String residentNumber;
 
-    // 기본 생성자
     public CiVerificationRequestDto() {}
 
-    // 생성자
     public CiVerificationRequestDto(String name, String birthDate, String gender, String residentNumber) {
         this.name = name;
         this.birthDate = birthDate;
@@ -34,7 +32,6 @@ public class CiVerificationRequestDto {
         this.residentNumber = residentNumber;
     }
 
-    // Getters and Setters
     public String getName() {
         return name;
     }

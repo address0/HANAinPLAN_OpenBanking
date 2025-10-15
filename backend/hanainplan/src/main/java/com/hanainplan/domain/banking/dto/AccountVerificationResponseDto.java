@@ -5,25 +5,22 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 외부 계좌 검증 응답 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AccountVerificationResponseDto {
-    
+
     private boolean exists;
-    
-    private String accountType; // "IRP" 또는 "GENERAL"
-    
+
+    private String accountType;
+
     private String bankCode;
-    
+
     private String accountStatus;
-    
+
     private String accountNumber;
-    
+
     private String message;
 
     public static AccountVerificationResponseDto success(String accountType, String bankCode, String accountStatus, String accountNumber) {
@@ -52,5 +49,3 @@ public class AccountVerificationResponseDto {
                 .build();
     }
 }
-
-

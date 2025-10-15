@@ -15,18 +15,17 @@ import java.time.LocalDateTime;
 @Builder
 public class IrpAccountResponse {
 
-    private String accountNumber; // 생성된 IRP 계좌번호
-    private String accountStatus; // 계좌상태
-    private BigDecimal initialDeposit; // 초기 납입금액
-    private BigDecimal monthlyDeposit; // 월 자동납입 금액
-    private String investmentStyle; // 투자성향
-    private String productCode; // 연결된 상품코드
-    private LocalDate openDate; // 개설일
-    private LocalDateTime createdAt; // 생성시간
-    private String message; // 응답 메시지
-    private boolean success; // 성공 여부
+    private String accountNumber;
+    private String accountStatus;
+    private BigDecimal initialDeposit;
+    private BigDecimal monthlyDeposit;
+    private String investmentStyle;
+    private String productCode;
+    private LocalDate openDate;
+    private LocalDateTime createdAt;
+    private String message;
+    private boolean success;
 
-    // 편의 생성자
     public static IrpAccountResponse success(String accountNumber, String message) {
         return IrpAccountResponse.builder()
                 .accountNumber(accountNumber)

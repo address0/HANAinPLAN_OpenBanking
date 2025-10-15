@@ -6,10 +6,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/**
- * 알림 엔터티
- * - 사용자에게 전달할 알림 정보 저장
- */
 @Entity
 @Table(name = "notifications",
        indexes = {
@@ -47,25 +43,16 @@ public class Notification extends BaseTimeEntity {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
-    /**
-     * 알림을 읽음 처리
-     */
     public void markAsRead() {
         this.isRead = true;
         this.readAt = LocalDateTime.now();
     }
 
-    /**
-     * 알림을 읽지 않음으로 변경
-     */
     public void markAsUnread() {
         this.isRead = false;
         this.readAt = null;
     }
 
-    /**
-     * 알림 정보 업데이트
-     */
     public void updateNotification(String title, String content, NotificationType type) {
         this.title = title;
         this.content = content;

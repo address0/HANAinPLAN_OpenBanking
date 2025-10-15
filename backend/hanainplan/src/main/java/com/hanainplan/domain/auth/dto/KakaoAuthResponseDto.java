@@ -14,12 +14,3 @@ public class KakaoAuthResponseDto {
     private String url;
     private String message;
 }
-
-
-
-
-
-
-
-
-

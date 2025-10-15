@@ -9,17 +9,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/**
- * 펀드 클래스 상세 정보 DTO (하나인플랜용)
- * - 하나은행 서버와 동일한 구조
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class FundClassDetailDto {
 
-    // 클래스 기본 정보
     private String childFundCd;
     private String classCode;
     private String loadType;
@@ -27,22 +22,15 @@ public class FundClassDetailDto {
     private String saleStatus;
     private String sourceUrl;
 
-    // 모펀드 정보
     private FundMasterDto fundMaster;
 
-    // 거래 규칙
     private FundRulesDto rules;
 
-    // 수수료
     private FundFeesDto fees;
 
-    // 최신 기준가
     private BigDecimal latestNav;
     private LocalDate latestNavDate;
 
-    /**
-     * 모펀드 정보 DTO
-     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -57,9 +45,6 @@ public class FundClassDetailDto {
         private Boolean isActive;
     }
 
-    /**
-     * 거래 규칙 DTO
-     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -79,9 +64,6 @@ public class FundClassDetailDto {
         private Integer redemptionFeeDays;
     }
 
-    /**
-     * 수수료 DTO
-     */
     @Data
     @Builder
     @NoArgsConstructor
@@ -93,8 +75,7 @@ public class FundClassDetailDto {
         private Integer adminFeeBps;
         private BigDecimal frontLoadPct;
         private Integer totalFeeBps;
-        
-        // 계산된 % 값
+
         private BigDecimal mgmtFeePercent;
         private BigDecimal salesFeePercent;
         private BigDecimal trusteeFeePercent;
@@ -102,9 +83,6 @@ public class FundClassDetailDto {
         private BigDecimal totalFeePercent;
     }
 
-    /**
-     * 펀드명 반환 (모펀드명 + 클래스)
-     */
     public String getDisplayName() {
         if (fundMaster == null) {
             return childFundCd;
@@ -113,9 +91,6 @@ public class FundClassDetailDto {
         return fundMaster.getFundName() + className;
     }
 
-    /**
-     * 총 보수율 문자열 반환
-     */
     public String getTotalFeeString() {
         if (fees == null || fees.getTotalFeePercent() == null) {
             return "0.00%";
@@ -123,9 +98,6 @@ public class FundClassDetailDto {
         return String.format("%.2f%%", fees.getTotalFeePercent());
     }
 
-    /**
-     * 최소 투자금액 문자열 반환
-     */
     public String getMinInvestmentString() {
         if (rules == null || rules.getMinInitialAmount() == null) {
             return "미정";
@@ -133,4 +105,3 @@ public class FundClassDetailDto {
         return String.format("%,d원", rules.getMinInitialAmount().intValue());
     }
 }
-

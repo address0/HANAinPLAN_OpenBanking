@@ -23,68 +23,67 @@ public class FinancialProduct {
     private Long productId;
 
     @Column(name = "product_code", unique = true, nullable = false, length = 20)
-    private String productCode; // 상품코드
+    private String productCode;
 
     @Column(name = "product_name", nullable = false, length = 100)
-    private String productName; // 상품명
+    private String productName;
 
     @Column(name = "deposit_type", length = 50)
-    private String depositType; // 예금종류
+    private String depositType;
 
     @Column(name = "min_contract_period")
-    private Integer minContractPeriod; // 가입기간(최소)
+    private Integer minContractPeriod;
 
     @Column(name = "max_contract_period")
-    private Integer maxContractPeriod; // 가입기간(최대)
+    private Integer maxContractPeriod;
 
     @Column(name = "contract_period_unit", length = 10)
-    private String contractPeriodUnit; // 가입기간 단위 (개월, 년)
+    private String contractPeriodUnit;
 
     @Column(name = "subscription_target", length = 100)
-    private String subscriptionTarget; // 가입대상
+    private String subscriptionTarget;
 
     @Column(name = "subscription_amount", length = 50)
-    private String subscriptionAmount; // 가입금액 (varchar)
+    private String subscriptionAmount;
 
     @Column(name = "product_category", length = 50)
-    private String productCategory; // 상품유형(선택)
+    private String productCategory;
 
     @Column(name = "interest_payment", length = 100)
-    private String interestPayment; // 이자지급
+    private String interestPayment;
 
     @Column(name = "tax_benefit", length = 200)
-    private String taxBenefit; // 세제혜택(선택)
+    private String taxBenefit;
 
     @Column(name = "partial_withdrawal", length = 100)
-    private String partialWithdrawal; // 일부해지
+    private String partialWithdrawal;
 
     @Column(name = "depositor_protection", length = 10)
-    private String depositorProtection; // 예금자보호여부
+    private String depositorProtection;
 
     @Column(name = "transaction_method", length = 200)
-    private String transactionMethod; // 거래방법
+    private String transactionMethod;
 
     @Column(name = "precautions", length = 1000)
-    private String precautions; // 유의사항
-
+    private String precautions;
 
     @Column(name = "contract_cancellation_right", length = 200)
-    private String contractCancellationRight; // 위법계약해지권(선택)
+    private String contractCancellationRight;
 
     @Column(name = "cancellation_penalty", length = 200)
-    private String cancellationPenalty; // 해지 시 불이익(선택)
+    private String cancellationPenalty;
 
     @Column(name = "payment_restrictions", length = 200)
-    private String paymentRestrictions; // 지급관련제한(선택)
+    private String paymentRestrictions;
 
     @Column(name = "is_active")
-    private Boolean isActive; // 활성화여부
+    private Boolean isActive;
 
     @Column(name = "start_date")
-    private LocalDate startDate; // 판매시작일
+    private LocalDate startDate;
 
     @Column(name = "end_date")
-    private LocalDate endDate; // 판매종료일
+    private LocalDate endDate;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

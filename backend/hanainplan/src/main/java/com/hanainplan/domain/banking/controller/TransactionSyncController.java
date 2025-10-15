@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 거래내역 동기화 컨트롤러
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/banking")
@@ -23,9 +20,6 @@ public class TransactionSyncController {
 
     private final TransactionSyncService transactionSyncService;
 
-    /**
-     * 특정 계좌의 거래내역 동기화
-     */
     @Operation(summary = "계좌 거래내역 동기화", description = "은행 서버로부터 특정 계좌의 거래내역을 조회하여 동기화합니다")
     @PostMapping("/accounts/{accountNumber}/sync-transactions")
     public ResponseEntity<Map<String, Object>> syncTransactionsByAccount(
@@ -56,9 +50,6 @@ public class TransactionSyncController {
         }
     }
 
-    /**
-     * 사용자의 모든 계좌 거래내역 동기화
-     */
     @Operation(summary = "사용자 전체 계좌 거래내역 동기화", description = "사용자의 모든 계좌에 대해 거래내역을 동기화합니다")
     @PostMapping("/users/{userId}/sync-all-transactions")
     public ResponseEntity<Map<String, Object>> syncAllTransactionsByUser(
@@ -89,13 +80,3 @@ public class TransactionSyncController {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-

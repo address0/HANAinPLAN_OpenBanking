@@ -10,25 +10,13 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 일정 Repository
- */
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
-    /**
-     * 상담사 ID로 일정 목록 조회
-     */
     List<Schedule> findByConsultantIdOrderByStartTimeDesc(Long consultantId);
 
-    /**
-     * 상담사 ID와 일정 유형으로 조회
-     */
     List<Schedule> findByConsultantIdAndScheduleTypeOrderByStartTimeDesc(Long consultantId, ScheduleType scheduleType);
 
-    /**
-     * 상담사 ID와 기간으로 조회
-     */
     @Query("SELECT s FROM Schedule s WHERE s.consultantId = :consultantId " +
            "AND s.startTime >= :startDate AND s.endTime <= :endDate " +
            "ORDER BY s.startTime ASC")
@@ -38,17 +26,11 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("endDate") LocalDateTime endDate
     );
 
-    /**
-     * 상담사 ID와 상태로 조회
-     */
     List<Schedule> findByConsultantIdAndStatusOrderByStartTimeDesc(
             Long consultantId, 
             Schedule.ScheduleStatus status
     );
 
-    /**
-     * 상담사의 특정 시간대에 겹치는 일정 조회
-     */
     @Query("SELECT s FROM Schedule s WHERE s.consultantId = :consultantId " +
            "AND s.status != 'CANCELLED' " +
            "AND ((s.startTime <= :startTime AND s.endTime > :startTime) " +
@@ -60,9 +42,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("endTime") LocalDateTime endTime
     );
 
-    /**
-     * 상담사의 오늘 일정 조회
-     */
     @Query("SELECT s FROM Schedule s WHERE s.consultantId = :consultantId " +
            "AND DATE(s.startTime) = DATE(:today) " +
            "ORDER BY s.startTime ASC")
@@ -71,14 +50,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("today") LocalDateTime today
     );
 
-    /**
-     * 고객 ID로 일정 조회 (고객의 상담 일정 확인)
-     */
     List<Schedule> findByClientIdOrderByStartTimeDesc(Long clientId);
 
-    /**
-     * 상담사의 다가오는 일정 조회 (예정된 일정만)
-     */
     @Query("SELECT s FROM Schedule s WHERE s.consultantId = :consultantId " +
            "AND s.status = 'SCHEDULED' " +
            "AND s.startTime > :now " +
@@ -88,9 +61,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("now") LocalDateTime now
     );
 
-    /**
-     * 상담사의 과거 일정 조회
-     */
     @Query("SELECT s FROM Schedule s WHERE s.consultantId = :consultantId " +
            "AND s.endTime < :now " +
            "ORDER BY s.startTime DESC")
@@ -99,13 +69,9 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("now") LocalDateTime now
     );
 
-    /**
-     * 상담사 ID, 고객 ID, 일정 유형으로 상담 일정 조회
-     */
     List<Schedule> findByConsultantIdAndClientIdAndScheduleType(
             Long consultantId, 
             Long clientId, 
             ScheduleType scheduleType
     );
 }
-

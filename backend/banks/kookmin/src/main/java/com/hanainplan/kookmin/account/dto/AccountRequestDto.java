@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class AccountRequestDto {
 
     @NotNull(message = "계좌 종류는 필수입니다.")
-    private Integer accountType; // 1: 수시입출금, 2: 예적금, 6: 수익증권, 0: 통합계좌
+    private Integer accountType;
 
     @NotNull(message = "잔액은 필수입니다.")
     private BigDecimal balance;
@@ -24,5 +24,5 @@ public class AccountRequestDto {
 
     @NotBlank(message = "고객 CI는 필수입니다.")
     @Pattern(regexp = "^[A-Za-z0-9+/=]{20,100}$", message = "CI 형식이 올바르지 않습니다.")
-    private String customerCi; // 고객 CI (본인확인정보)
+    private String customerCi;
 }

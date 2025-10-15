@@ -12,9 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 하나인플랜 펀드 매수/조회 컨트롤러
- */
 @RestController
 @RequestMapping("/api/banking/fund-subscription")
 @RequiredArgsConstructor
@@ -27,9 +24,6 @@ public class FundSubscriptionController {
     private final FundPortfolioService fundPortfolioService;
     private final FundTransactionService fundTransactionService;
 
-    /**
-     * 펀드 매수
-     */
     @PostMapping("/purchase")
     @Operation(summary = "펀드 매수", description = "펀드 클래스를 매수합니다")
     public ResponseEntity<FundPurchaseResponseDto> purchaseFund(
@@ -50,9 +44,6 @@ public class FundSubscriptionController {
         }
     }
 
-    /**
-     * 펀드 매도 (환매)
-     */
     @PostMapping("/redeem")
     @Operation(summary = "펀드 매도", description = "펀드를 매도(환매)합니다")
     public ResponseEntity<com.hanainplan.domain.fund.dto.FundRedemptionResponseDto> redeemFund(
@@ -76,14 +67,11 @@ public class FundSubscriptionController {
         }
     }
 
-    /**
-     * 사용자의 활성 펀드 가입 목록 조회 (하나인플랜 DB에서 조회)
-     */
     @GetMapping("/user/{userId}/active")
     @Operation(summary = "활성 펀드 가입 목록 조회", description = "사용자의 활성 상태 펀드 가입 목록을 조회합니다 (하나인플랜 DB)")
     public ResponseEntity<?> getActiveSubscriptions(@PathVariable Long userId) {
         log.info("GET /api/banking/fund-subscription/user/{}/active - 활성 펀드 조회 (하나인플랜 DB)", userId);
-        
+
         try {
             var subscriptions = fundPortfolioService.getActivePortfoliosByUserId(userId);
             log.info("활성 펀드 조회 성공 - {}건", subscriptions.size());
@@ -96,14 +84,11 @@ public class FundSubscriptionController {
         }
     }
 
-    /**
-     * 사용자의 펀드 거래 내역 조회 (하나인플랜 DB에서 조회)
-     */
     @GetMapping("/user/{userId}/transactions")
     @Operation(summary = "펀드 거래 내역 조회", description = "사용자의 모든 펀드 거래 내역을 조회합니다 (하나인플랜 DB)")
     public ResponseEntity<?> getUserTransactions(@PathVariable Long userId) {
         log.info("GET /api/banking/fund-subscription/user/{}/transactions - 거래 내역 조회 (하나인플랜 DB)", userId);
-        
+
         try {
             var transactions = fundTransactionService.getUserTransactions(userId);
             log.info("거래 내역 조회 성공 - {}건", transactions.size());
@@ -116,14 +101,11 @@ public class FundSubscriptionController {
         }
     }
 
-    /**
-     * 사용자의 펀드 거래 통계 조회 (하나인플랜 DB에서 조회)
-     */
     @GetMapping("/user/{userId}/stats")
     @Operation(summary = "펀드 거래 통계 조회", description = "사용자의 펀드 거래 통계를 조회합니다 (하나인플랜 DB)")
     public ResponseEntity<?> getTransactionStats(@PathVariable Long userId) {
         log.info("GET /api/banking/fund-subscription/user/{}/stats - 거래 통계 조회 (하나인플랜 DB)", userId);
-        
+
         try {
             var stats = fundTransactionService.getUserTransactionStats(userId);
             log.info("거래 통계 조회 성공");
@@ -136,4 +118,3 @@ public class FundSubscriptionController {
         }
     }
 }
-

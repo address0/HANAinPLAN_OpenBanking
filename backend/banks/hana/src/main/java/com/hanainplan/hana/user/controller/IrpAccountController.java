@@ -135,11 +135,9 @@ public class IrpAccountController {
             List<IrpAccount> changedAccounts;
 
             if (since != null) {
-                // 특정 시간 이후 변경된 계좌들 조회
                 LocalDateTime sinceDateTime = LocalDateTime.parse(since);
                 changedAccounts = irpAccountService.getChangedIrpAccounts(sinceDateTime);
             } else {
-                // 모든 활성 계좌 조회 (최신순)
                 changedAccounts = irpAccountService.getAllIrpAccounts();
             }
 
@@ -189,10 +187,10 @@ public class IrpAccountController {
             log.info("IRP 계좌 정보 조회 요청 - 계좌번호: {}", accountNumber);
 
             Optional<IrpAccount> accountOpt = irpAccountService.getIrpAccountByAccountNumber(accountNumber);
-            
+
             if (accountOpt.isPresent()) {
                 IrpAccount account = accountOpt.get();
-                
+
                 Map<String, Object> response = new HashMap<>();
                 response.put("accountNumber", account.getAccountNumber());
                 response.put("accountStatus", account.getAccountStatus());
@@ -210,10 +208,10 @@ public class IrpAccountController {
                 response.put("lastContributionDate", account.getLastContributionDate());
                 response.put("createdAt", account.getCreatedAt());
                 response.put("updatedAt", account.getUpdatedAt());
-                
+
                 log.info("IRP 계좌 정보 조회 성공 - 계좌번호: {}, 잔액: {}", 
                         accountNumber, account.getCurrentBalance());
-                
+
                 return ResponseEntity.ok(response);
             } else {
                 log.warn("IRP 계좌를 찾을 수 없음 - 계좌번호: {}", accountNumber);
@@ -264,4 +262,3 @@ public class IrpAccountController {
         }
     }
 }
-

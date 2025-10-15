@@ -14,10 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 계좌 동기화 서비스
- * - 하나은행에서 계좌 정보를 주기적으로 가져와서 하나인플랜 DB 업데이트
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,10 +22,6 @@ public class AccountSyncService {
     private final HanaBankClient hanaBankClient;
     private final AccountRepository accountRepository;
 
-    /**
-     * 모든 사용자의 계좌 동기화
-     * @return 동기화된 사용자 수
-     */
     @Transactional
     public int syncAllUserAccounts() {
         log.info("====================================================");
@@ -37,7 +29,6 @@ public class AccountSyncService {
         log.info("====================================================");
 
         try {
-            // 하나인플랜에 저장된 모든 계좌 조회 (CI 기준으로 그룹화)
             List<BankingAccount> allAccounts = accountRepository.findAll();
             Map<String, List<BankingAccount>> accountsByCi = allAccounts.stream()
                     .filter(account -> account.getCustomerCi() != null && !account.getCustomerCi().isEmpty())
@@ -46,7 +37,6 @@ public class AccountSyncService {
             int syncedUserCount = 0;
             int syncedAccountCount = 0;
 
-            // 각 고객의 계좌를 동기화
             for (String customerCi : accountsByCi.keySet()) {
                 try {
                     int accountCount = syncUserAccounts(customerCi);
@@ -74,54 +64,40 @@ public class AccountSyncService {
         }
     }
 
-    /**
-     * 사용자 ID로 계좌 동기화 (오버로드)
-     * @param userId 사용자 ID
-     * @return 동기화된 계좌 수
-     */
     @Transactional
     public int syncUserAccountsByUserId(Long userId) {
         log.info("사용자 계좌 동기화 시작 - 사용자 ID: {}", userId);
 
         try {
-            // 사용자의 계좌 중 하나를 조회하여 CI 확인
             List<BankingAccount> userAccounts = accountRepository.findByUserIdOrderByCreatedAtDesc(userId);
-            
+
             if (userAccounts.isEmpty()) {
                 log.warn("사용자의 계좌가 없음 - 사용자 ID: {}", userId);
                 return 0;
             }
-            
+
             String customerCi = userAccounts.get(0).getCustomerCi();
-            
+
             if (customerCi == null || customerCi.isEmpty()) {
                 log.warn("사용자 계좌에 CI 정보가 없음 - 사용자 ID: {}", userId);
                 return 0;
             }
-            
-            // CI로 동기화 실행
+
             return syncUserAccounts(customerCi);
-            
+
         } catch (Exception e) {
             log.error("사용자 계좌 동기화 실패 - 사용자 ID: {}", userId, e);
             return 0;
         }
     }
 
-    /**
-     * 특정 사용자의 계좌 동기화
-     * @param customerCi 고객 CI
-     * @return 동기화된 계좌 수
-     */
     @Transactional
     public int syncUserAccounts(String customerCi) {
         log.info("사용자 계좌 동기화 시작 - CI: {}", customerCi);
 
         try {
-            // 하나은행에서 고객의 계좌 정보 조회
             Map<String, Object> response = hanaBankClient.getCustomerAccountsByCi(customerCi);
-            
-            // null 체크
+
             Boolean exists = response != null ? (Boolean) response.get("exists") : null;
             if (response == null || exists == null || !exists) {
                 log.warn("하나은행에 고객 정보가 없음 - CI: {}", customerCi);
@@ -130,7 +106,7 @@ public class AccountSyncService {
 
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> hanaAccounts = (List<Map<String, Object>>) response.get("accounts");
-            
+
             if (hanaAccounts == null || hanaAccounts.isEmpty()) {
                 log.info("동기화할 계좌가 없음 - CI: {}", customerCi);
                 return 0;
@@ -143,8 +119,7 @@ public class AccountSyncService {
             for (Map<String, Object> hanaAccount : hanaAccounts) {
                 try {
                     String accountNumber = (String) hanaAccount.get("accountNumber");
-                    
-                    // 하나인플랜에서 해당 계좌 조회
+
                     BankingAccount account = accountRepository.findByAccountNumber(accountNumber)
                             .orElse(null);
 
@@ -153,14 +128,13 @@ public class AccountSyncService {
                         continue;
                     }
 
-                    // 잔액 업데이트
                     BigDecimal newBalance = new BigDecimal(hanaAccount.get("balance").toString());
                     account.setBalance(newBalance);
                     account.setUpdatedAt(java.time.LocalDateTime.now());
-                    
+
                     accountRepository.save(account);
                     syncedCount++;
-                    
+
                     log.debug("계좌 동기화 완료 - 계좌번호: {}, 잔액: {}원", accountNumber, newBalance);
 
                 } catch (Exception e) {

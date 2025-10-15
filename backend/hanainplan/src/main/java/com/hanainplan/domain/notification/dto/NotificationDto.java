@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 알림 DTO 클래스들
- */
 public class NotificationDto {
 
     @Getter

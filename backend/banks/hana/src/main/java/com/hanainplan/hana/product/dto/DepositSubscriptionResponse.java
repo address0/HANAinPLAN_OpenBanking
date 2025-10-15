@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * 정기예금 가입 응답 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,28 +17,25 @@ public class DepositSubscriptionResponse {
 
     private Long subscriptionId;
     private String customerCi;
-    private String accountNumber; // 예금 계좌번호
-    private String irpAccountNumber; // IRP 계좌번호
+    private String accountNumber;
+    private String irpAccountNumber;
     private String depositCode;
     private String status;
     private LocalDate subscriptionDate;
     private LocalDate maturityDate;
     private Integer contractPeriod;
-    private String contractPeriodUnit; // "일" 또는 "개월"
+    private String contractPeriodUnit;
     private Integer productType;
-    private String productTypeName; // "일반", "디폴트옵션", "일단위"
-    private BigDecimal rate; // 적용 금리
-    private BigDecimal currentBalance; // 현재 잔액 (원금 + 이자)
-    private BigDecimal principalAmount; // 원금
-    private BigDecimal expectedInterest; // 예상 만기 이자
-    private BigDecimal expectedMaturityAmount; // 예상 만기 금액
+    private String productTypeName;
+    private BigDecimal rate;
+    private BigDecimal currentBalance;
+    private BigDecimal principalAmount;
+    private BigDecimal expectedInterest;
+    private BigDecimal expectedMaturityAmount;
     private BigDecimal unpaidInterest;
     private LocalDate lastInterestCalculationDate;
     private LocalDate nextInterestPaymentDate;
 
-    /**
-     * Entity를 DTO로 변환
-     */
     public static DepositSubscriptionResponse fromEntity(DepositSubscription entity) {
         if (entity == null) {
             return null;
@@ -83,13 +77,3 @@ public class DepositSubscriptionResponse {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-

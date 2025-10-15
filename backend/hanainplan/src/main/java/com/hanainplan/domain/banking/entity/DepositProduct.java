@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 예금 상품 코드 엔티티
- */
 @Entity
 @Table(name = "tb_deposit_product")
 @Data
@@ -21,19 +18,19 @@ public class DepositProduct {
 
     @Id
     @Column(name = "deposit_code", length = 20)
-    private String depositCode; // 예금 상품 코드 (PK)
+    private String depositCode;
 
     @Column(name = "name", nullable = false, length = 100)
-    private String name; // 상품명
+    private String name;
 
     @Column(name = "bank_code", nullable = false, length = 10)
-    private String bankCode; // 은행 코드
+    private String bankCode;
 
     @Column(name = "bank_name", nullable = false, length = 50)
-    private String bankName; // 은행명
+    private String bankName;
 
     @Column(name = "description", columnDefinition = "TEXT")
-    private String description; // 상품 설명
+    private String description;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -52,13 +49,3 @@ public class DepositProduct {
         updatedAt = LocalDateTime.now();
     }
 }
-
-
-
-
-
-
-
-
-
-

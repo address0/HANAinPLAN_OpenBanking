@@ -23,9 +23,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 정기예금 가입 서비스 (IRP 계좌 출금 포함)
- */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -39,55 +36,43 @@ public class DepositSubscriptionService {
     private final IrpAccountRepository irpAccountRepository;
     private final TransactionRepository transactionRepository;
 
-    /**
-     * IRP 계좌에서 출금 후 정기예금 가입
-     */
     public ProductSubscriptionResponseDto subscribeDepositFromIrp(DepositSubscriptionRequest request) throws Exception {
         log.info("정기예금 가입 처리 시작 - 상품코드: {}, 금액: {}원", 
                 request.getProductCode(), request.getContractPrincipal());
 
-        // 1. 고객 정보 확인 및 자동 생성
         Customer customer = ensureCustomerExists(request);
 
-        // 2. 금융상품 존재 확인 (생략 - 상품코드로 직접 조회)
         log.info("정기예금 상품 코드: {}", request.getProductCode());
 
-        // 3. IRP 계좌 조회
         IrpAccount irpAccount = irpAccountRepository.findByAccountNumber(request.getIrpAccountNumber())
                 .orElseThrow(() -> new IllegalArgumentException("IRP 계좌를 찾을 수 없습니다: " + request.getIrpAccountNumber()));
 
-        // 4. IRP 계좌 소유자 확인
         if (!irpAccount.getCustomerCi().equals(request.getCustomerCi())) {
             throw new IllegalArgumentException("IRP 계좌 소유자가 일치하지 않습니다.");
         }
 
-        // 5. IRP 계좌 잔액 확인
         if (irpAccount.getCurrentBalance().compareTo(request.getContractPrincipal()) < 0) {
             throw new IllegalArgumentException("IRP 계좌 잔액이 부족합니다. 현재 잔액: " + 
                     irpAccount.getCurrentBalance() + "원, 요청 금액: " + request.getContractPrincipal() + "원");
         }
 
-        // 6. IRP 계좌에서 출금 처리
         BigDecimal newIrpBalance = irpAccount.getCurrentBalance().subtract(request.getContractPrincipal());
         irpAccount.setCurrentBalance(newIrpBalance);
         irpAccountRepository.save(irpAccount);
-        
+
         log.info("IRP 계좌 출금 완료 - 계좌번호: {}, 출금액: {}원, 남은 잔액: {}원", 
                 request.getIrpAccountNumber(), request.getContractPrincipal(), newIrpBalance);
 
-        // 7. IRP 계좌 출금 거래내역 저장
         saveIrpWithdrawalTransaction(irpAccount, request.getContractPrincipal(), newIrpBalance, 
                 "정기예금 가입 - " + request.getProductCode());
 
-        // 8. HANAinPLAN에서 전달받은 금리 정보 사용
         BigDecimal baseRate = request.getBaseRate();
         BigDecimal preferentialRate = request.getPreferentialRate();
         BigDecimal finalRate = request.getFinalAppliedRate();
-        
+
         log.info("HANAinPLAN에서 전달받은 금리 사용 - 기본금리: {}%, 우대금리: {}%, 최종금리: {}%", 
                 baseRate, preferentialRate, finalRate);
 
-        // 9. 정기예금 가입 생성
         ProductSubscription subscription = ProductSubscription.builder()
                 .customerCi(request.getCustomerCi())
                 .productCode(request.getProductCode())
@@ -109,7 +94,7 @@ public class DepositSubscriptionService {
                 .build();
 
         ProductSubscription savedSubscription = productSubscriptionRepository.save(subscription);
-        
+
         log.info("정기예금 가입 완료 - 가입ID: {}, 상품코드: {}, 금액: {}원", 
                 savedSubscription.getSubscriptionId(), savedSubscription.getProductCode(), 
                 savedSubscription.getContractPrincipal());
@@ -117,15 +102,12 @@ public class DepositSubscriptionService {
         return ProductSubscriptionResponseDto.from(savedSubscription);
     }
 
-    /**
-     * 고객 정보 확인 및 자동 생성
-     */
     private Customer ensureCustomerExists(DepositSubscriptionRequest request) {
         return customerRepository.findByCi(request.getCustomerCi())
                 .orElseGet(() -> {
                     log.info("하나은행에 고객 정보가 없어 자동 생성 - CI: {}, 이름: {}", 
                             request.getCustomerCi(), request.getCustomerName());
-                    
+
                     Customer newCustomer = Customer.builder()
                             .ci(request.getCustomerCi())
                             .name(request.getCustomerName())
@@ -133,33 +115,26 @@ public class DepositSubscriptionService {
                             .gender(request.getGender())
                             .phone(request.getPhone())
                             .build();
-                    
+
                     return customerRepository.save(newCustomer);
                 });
     }
 
-    /**
-     * IRP 계좌 출금 거래내역 저장
-     */
     private void saveIrpWithdrawalTransaction(IrpAccount irpAccount, BigDecimal amount, 
                                                BigDecimal balanceAfter, String description) {
         try {
-            // IRP 계좌의 일반 계좌 정보 조회
             Account account = accountRepository.findByAccountNumber(irpAccount.getAccountNumber())
                     .orElseThrow(() -> new RuntimeException("IRP 일반 계좌를 찾을 수 없습니다: " + irpAccount.getAccountNumber()));
-            
-            // 일반 계좌의 잔액도 업데이트
+
             account.setBalance(balanceAfter);
             accountRepository.save(account);
 
-            // 거래 ID 생성
             String transactionId = "HANA-IRP-WD-" + System.currentTimeMillis() + "-" +
                     String.format("%04d", (int)(Math.random() * 10000));
 
-            // 거래내역 생성
             Transaction transaction = Transaction.builder()
                     .transactionId(transactionId)
-                    .accountNumber(irpAccount.getAccountNumber()) // 계좌번호 직접 설정
+                    .accountNumber(irpAccount.getAccountNumber())
                     .transactionDatetime(LocalDateTime.now())
                     .transactionType("출금")
                     .transactionCategory("정기예금 가입")
@@ -172,7 +147,7 @@ public class DepositSubscriptionService {
                     .build();
 
             transactionRepository.save(transaction);
-            
+
             log.info("IRP 계좌 출금 거래내역 저장 완료 - 거래ID: {}, 계좌번호: {}, 금액: {}원", 
                     transactionId, irpAccount.getAccountNumber(), amount);
 
@@ -182,5 +157,5 @@ public class DepositSubscriptionService {
             throw new RuntimeException("거래내역 저장 실패: " + e.getMessage());
         }
     }
-    
+
 }

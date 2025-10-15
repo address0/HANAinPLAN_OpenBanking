@@ -7,28 +7,18 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * 펀드 매도(환매) 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class FundRedemptionRequestDto {
 
-    private String customerCi;              // 고객 CI
-    private Long subscriptionId;            // 가입 ID
-    
-    // irpAccountNumber는 백엔드에서 customerCi로 자동 조회하므로 불필요
-    // private String irpAccountNumber;
-    
-    // 매도 수량 (둘 중 하나만 사용)
-    private BigDecimal sellUnits;           // 매도 좌수 (null이면 전량 매도)
-    private Boolean sellAll;                // 전량 매도 여부
+    private String customerCi;
+    private Long subscriptionId;
 
-    /**
-     * 유효성 검증
-     */
+    private BigDecimal sellUnits;
+    private Boolean sellAll;
+
     public void validate() {
         if (customerCi == null || customerCi.isBlank()) {
             throw new IllegalArgumentException("고객 CI는 필수입니다");
@@ -43,11 +33,7 @@ public class FundRedemptionRequestDto {
         }
     }
 
-    /**
-     * 전량 매도 여부 확인
-     */
     public boolean isSellAll() {
         return sellAll != null && sellAll;
     }
 }
-

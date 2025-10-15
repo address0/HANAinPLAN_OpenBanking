@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionDto {
-    
+
     private Long transactionId;
     private String transactionNumber;
     private Long fromAccountId;
@@ -38,8 +38,7 @@ public class TransactionDto {
     private String referenceNumber;
     private String memo;
     private LocalDateTime createdAt;
-    
-    // 엔터티에서 DTO로 변환
+
     public static TransactionDto fromEntity(Transaction transaction) {
         return TransactionDto.builder()
                 .transactionId(transaction.getTransactionId())
@@ -65,8 +64,7 @@ public class TransactionDto {
                 .createdAt(transaction.getCreatedAt())
                 .build();
     }
-    
-    // DTO에서 엔터티로 변환
+
     public Transaction toEntity() {
         return Transaction.builder()
                 .transactionId(this.transactionId)

@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * IRP 계좌 입금 응답 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -17,17 +14,17 @@ import java.math.BigDecimal;
 public class IrpDepositResponse {
 
     private boolean success;
-    
+
     private String message;
-    
+
     private String transactionId;
-    
+
     private String accountNumber;
-    
+
     private BigDecimal depositAmount;
-    
+
     private BigDecimal newBalance;
-    
+
     private BigDecimal totalContribution;
 
     public static IrpDepositResponse success(String message, String transactionId, String accountNumber, 
@@ -50,5 +47,3 @@ public class IrpDepositResponse {
                 .build();
     }
 }
-
-

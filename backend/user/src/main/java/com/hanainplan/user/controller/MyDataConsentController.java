@@ -16,9 +16,6 @@ public class MyDataConsentController {
     @Autowired
     private MyDataConsentService myDataConsentService;
 
-    /**
-     * 마이데이터 수집 동의 및 은행사별 계좌 정보 조회
-     */
     @PostMapping("/consent")
     public ResponseEntity<MyDataConsentResponseDto> processMyDataConsent(
             @Valid @RequestBody MyDataConsentRequestDto request) {

@@ -11,12 +11,12 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class MyDataConsentResponseDto {
-    
+
     private String message;
     private List<CustomerAccountInfoDto> bankAccountInfo;
     private int totalBanks;
     private int totalAccounts;
-    
+
     public static MyDataConsentResponseDto success(String message, List<CustomerAccountInfoDto> bankAccountInfo, int totalBanks, int totalAccounts) {
         return MyDataConsentResponseDto.builder()
                 .message(message)

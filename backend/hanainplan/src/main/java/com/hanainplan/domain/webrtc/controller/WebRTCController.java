@@ -29,14 +29,10 @@ public class WebRTCController {
     private final ConsultationMatchingService consultationMatchingService;
     private final ConsultRepository consultRepository;
 
-    /**
-     * 통화 요청 생성 (직접 지정) - 기존 방식
-     */
     @PostMapping("/call/request")
     public ResponseEntity<?> createCallRequest(@RequestBody CallRequestMessage request) {
         try {
             String roomId = webRTCService.createCallRequest(request.getCallerId(), request.getCalleeId());
-            // 수신자에게 STOMP로 알림 전송
             request.setRoomId(roomId);
             signalController.notifyCallRequest(request, roomId);
             return ResponseEntity.ok(Map.of(
@@ -58,10 +54,6 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * 고객 상담 요청 (자동 매칭)
-     * - 고객이 상담을 요청하면 대기 중인 상담원과 자동으로 매칭
-     */
     @PostMapping("/consultation/request")
     public ResponseEntity<?> requestConsultation(@RequestBody Map<String, Object> request) {
         try {
@@ -69,7 +61,6 @@ public class WebRTCController {
             String customerName = request.get("callerName").toString();
             String consultationType = request.getOrDefault("consultationType", "일반상담").toString();
 
-            // 상담 매칭 요청
             ConsultationMatchingService.MatchingResult result = 
                 consultationMatchingService.requestConsultation(customerId, customerName, consultationType);
 
@@ -78,33 +69,30 @@ public class WebRTCController {
             response.put("message", result.getMessage());
 
             if (result.isSuccess()) {
-                // 매칭 성공 - 상담원에게 알림 전송
                 response.put("roomId", result.getRoomId());
                 response.put("consultantId", result.getConsultant().getConsultantId());
-                response.put("consultantName", result.getConsultant().getEmployeeId()); // 또는 User 테이블에서 이름 조회
-                
+                response.put("consultantName", result.getConsultant().getEmployeeId());
+
                 Long consultantId = result.getConsultant().getConsultantId();
-                
-                // WebSocket으로 상담원에게 알림
+
                 CallRequestMessage callRequest = new CallRequestMessage();
                 callRequest.setCallerId(customerId);
                 callRequest.setCalleeId(consultantId);
                 callRequest.setCallerName(customerName);
-                callRequest.setCalleeName("상담원"); // TODO: User 테이블에서 상담원 이름 조회
+                callRequest.setCalleeName("상담원");
                 callRequest.setConsultationType(consultationType);
                 callRequest.setRoomId(result.getRoomId());
-                
+
                 signalController.notifyCallRequest(callRequest, result.getRoomId());
-                
+
                 log.info("Customer {} matched with consultant {} for consultation", 
                         customerId, consultantId);
             } else {
-                // 매칭 실패 (대기열에 추가됨)
                 log.info("Customer {} added to waiting queue", customerId);
             }
 
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             log.error("Error requesting consultation", e);
             return ResponseEntity.internalServerError().body(Map.of(
@@ -114,15 +102,12 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * 고객 상담 요청 취소
-     */
     @PostMapping("/consultation/cancel")
     public ResponseEntity<?> cancelConsultationRequest(@RequestBody Map<String, Object> request) {
         try {
             Long customerId = Long.valueOf(request.get("customerId").toString());
             boolean cancelled = consultationMatchingService.cancelRequest(customerId);
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", cancelled,
                 "message", cancelled ? "상담 요청이 취소되었습니다." : "취소할 상담 요청이 없습니다."
@@ -136,17 +121,11 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * 상담 대기열 정보 조회 (관리자/디버깅용)
-     */
     @GetMapping("/consultation/queue")
     public ResponseEntity<?> getQueueInfo() {
         return ResponseEntity.ok(consultationMatchingService.getQueueInfo());
     }
 
-    /**
-     * 사용자 온라인 상태 확인
-     */
     @GetMapping("/user/{userId}/status")
     public ResponseEntity<?> checkUserStatus(@PathVariable Long userId) {
         boolean isOnline = webRTCService.isUserOnline(userId);
@@ -156,17 +135,14 @@ public class WebRTCController {
         ));
     }
 
-    /**
-     * 사용자 온라인 상태 등록/해제
-     */
     @PostMapping("/user/online")
     public ResponseEntity<?> setUserOnlineStatus(@RequestBody Map<String, Object> request) {
         try {
             Long userId = Long.valueOf(request.get("userId").toString());
             Boolean isOnline = Boolean.valueOf(request.get("isOnline").toString());
-            
+
             webRTCService.setUserOnline(userId, isOnline);
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "userId", userId,
@@ -182,9 +158,6 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * 사용자의 활성 통화 조회
-     */
     @GetMapping("/user/{userId}/active-call")
     public ResponseEntity<?> getActiveCall(@PathVariable Long userId) {
         try {
@@ -211,9 +184,6 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * 통화방 정보 조회
-     */
     @GetMapping("/room/{roomId}")
     public ResponseEntity<?> getRoomInfo(@PathVariable String roomId) {
         try {
@@ -241,9 +211,6 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * 사용자의 통화 히스토리 조회
-     */
     @GetMapping("/user/{userId}/history")
     public ResponseEntity<?> getCallHistory(@PathVariable Long userId) {
         try {
@@ -261,30 +228,17 @@ public class WebRTCController {
         }
     }
 
-    /**
-     * STUN/TURN 서버 설정 정보 제공
-     */
     @GetMapping("/ice-servers")
     public ResponseEntity<?> getIceServers() {
-        // 실제 환경에서는 환경 변수나 설정 파일에서 읽어오는 것이 좋습니다
         return ResponseEntity.ok(Map.of(
             "iceServers", List.of(
                 Map.of("urls", "stun:stun.l.google.com:19302"),
                 Map.of("urls", "stun:stun1.l.google.com:19302"),
                 Map.of("urls", "stun:stun2.l.google.com:19302")
-                // TURN 서버가 있다면 여기에 추가
-                // Map.of(
-                //     "urls", "turn:your-turn-server.com:3478",
-                //     "username", "your-username",
-                //     "credential", "your-password"
-                // )
             )
         ));
     }
 
-    /**
-     * 현재 온라인 사용자 목록 조회 (디버깅용)
-     */
     @GetMapping("/online-users")
     public ResponseEntity<?> getOnlineUsers() {
         return ResponseEntity.ok(Map.of(
@@ -293,11 +247,6 @@ public class WebRTCController {
         ));
     }
 
-    /**
-     * 예약 상담 화상 입장
-     * - consultationId를 roomId로 사용
-     * - 상담 상태를 "상담중"으로 변경
-     */
     @PostMapping("/consultation/{consultationId}/join")
     public ResponseEntity<?> joinConsultationRoom(
             @PathVariable String consultationId,
@@ -306,34 +255,29 @@ public class WebRTCController {
         try {
             Long userId = Long.valueOf(request.get("userId").toString());
             log.info("POST /api/webrtc/consultation/{}/join - userId: {}", consultationId, userId);
-            
-            // 상담 정보 조회
+
             Consult consult = consultRepository.findById(consultationId)
                     .orElseThrow(() -> new IllegalArgumentException("상담을 찾을 수 없습니다. ID: " + consultationId));
-            
-            // 상담 상태 확인 (예약확정 또는 상담중 상태만 입장 가능)
+
             if (!"예약확정".equals(consult.getConsultStatus()) && !"상담중".equals(consult.getConsultStatus())) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", "예약 확정되거나 진행 중인 상담만 입장할 수 있습니다. 현재 상태: " + consult.getConsultStatus()
                 ));
             }
-            
-            // 사용자 권한 확인 (고객 또는 상담사만 입장 가능)
+
             String customerIdStr = consult.getCustomerId();
             String consultantIdStr = consult.getConsultantId();
-            
+
             if (!userId.equals(Long.valueOf(customerIdStr)) && !userId.equals(Long.valueOf(consultantIdStr))) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", "해당 상담의 참여자가 아닙니다."
                 ));
             }
-            
-            // VideoCallRoom 조회 또는 생성 (roomId = consultationId)
+
             VideoCallRoom callRoom = videoCallRoomRepository.findByRoomId(consultationId)
                     .orElseGet(() -> {
-                        // 새로운 방 생성
                         VideoCallRoom newRoom = VideoCallRoom.builder()
                                 .roomId(consultationId)
                                 .callerId(Long.valueOf(customerIdStr))
@@ -342,20 +286,18 @@ public class WebRTCController {
                                 .build();
                         return videoCallRoomRepository.save(newRoom);
                     });
-            
-            // 상담 상태를 "상담중"으로 변경 (처음 입장하는 경우)
+
             if ("예약확정".equals(consult.getConsultStatus())) {
                 consult.startConsult();
                 consultRepository.save(consult);
                 log.info("상담 시작 - consultId: {}", consultationId);
             }
-            
-            // 방 상태 업데이트
+
             if (callRoom.getStatus() == VideoCallRoom.CallStatus.WAITING) {
                 callRoom.updateStatus(VideoCallRoom.CallStatus.CONNECTED);
                 videoCallRoomRepository.save(callRoom);
             }
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "roomId", consultationId,
@@ -365,7 +307,7 @@ public class WebRTCController {
                 "status", callRoom.getStatus(),
                 "message", "상담 방에 입장했습니다."
             ));
-            
+
         } catch (NumberFormatException e) {
             log.error("Invalid user ID format", e);
             return ResponseEntity.badRequest().body(Map.of(

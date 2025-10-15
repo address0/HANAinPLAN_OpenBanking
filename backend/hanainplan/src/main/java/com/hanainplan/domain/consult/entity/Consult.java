@@ -10,11 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 상담 엔터티
- * - 고객과 컨설턴트 간의 상담 정보 관리
- * - 예약, 진행, 완료 상태 관리
- */
 @Entity
 @Table(name = "tb_consult")
 @Data
@@ -69,21 +64,6 @@ public class Consult {
     @Builder.Default
     private Boolean notificationSentOntime = false;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "branch_code", referencedColumnName = "branch_code", insertable = false, updatable = false)
-//    private BranchCode branch;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", insertable = false, updatable = false)
-//    private Customer customer;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "consultant_id", referencedColumnName = "consultant_id", insertable = false, updatable = false)
-//    private Consultant consultant;
-
-    /**
-     * 상담 유형 enum 정의
-     */
     public enum ConsultType {
         ONLINE("온라인"), OFFLINE("오프라인"), VIDEO("화상"), PHONE("전화");
 
@@ -103,13 +83,10 @@ public class Consult {
                     return type;
                 }
             }
-            return ONLINE; // 기본값
+            return ONLINE;
         }
     }
 
-    /**
-     * 상담 상태 enum 정의
-     */
     public enum ConsultStatus {
         REQUESTED("예약신청"), CONFIRMED("예약확정"), IN_PROGRESS("상담중"), 
         COMPLETED("상담완료"), CANCELLED("취소"), NO_SHOW("노쇼");
@@ -130,65 +107,41 @@ public class Consult {
                     return status;
                 }
             }
-            return REQUESTED; // 기본값
+            return REQUESTED;
         }
     }
 
-    /**
-     * 상담 완료 여부 확인
-     */
     public boolean isCompleted() {
         return "상담완료".equals(this.consultStatus);
     }
 
-    /**
-     * 상담 진행 중 여부 확인
-     */
     public boolean isInProgress() {
         return "상담중".equals(this.consultStatus);
     }
 
-    /**
-     * 화상 상담 여부 확인
-     */
     public boolean isVideoConsult() {
         return "화상".equals(this.consultType);
     }
 
-    /**
-     * 상담 시작
-     */
     public void startConsult() {
         this.consultStatus = "상담중";
         this.consultDatetime = LocalDateTime.now();
     }
 
-    /**
-     * 상담 완료
-     */
     public void completeConsult(String result, String detail) {
         this.consultStatus = "상담완료";
         this.consultResult = result;
         this.detail = detail;
     }
 
-    /**
-     * 상담 취소
-     */
     public void cancelConsult() {
         this.consultStatus = "취소";
     }
 
-    /**
-     * 10분 전 알림 발송 완료 표시
-     */
     public void markNotification10minSent() {
         this.notificationSent10min = true;
     }
 
-    /**
-     * 정각 알림 발송 완료 표시
-     */
     public void markNotificationOntimeSent() {
         this.notificationSentOntime = true;
     }

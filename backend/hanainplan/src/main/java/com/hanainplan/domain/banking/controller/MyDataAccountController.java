@@ -19,19 +19,19 @@ import java.util.List;
 @Slf4j
 @CrossOrigin(origins = "*")
 public class MyDataAccountController {
-    
+
     private final MyDataAccountService myDataAccountService;
-    
+
     @PostMapping("/accounts/save")
     @Operation(summary = "마이데이터 계좌 정보 저장", description = "마이데이터에서 가져온 계좌 정보를 hanainplan 계좌 테이블에 저장합니다")
     public ResponseEntity<List<AccountDto>> saveMyDataAccounts(
             @Parameter(description = "사용자 ID") @RequestParam Long userId,
             @Parameter(description = "고객 CI") @RequestParam String customerCi,
             @Parameter(description = "계좌 정보 목록") @RequestBody List<MyDataAccountService.MyDataAccountInfo> accountInfos) {
-        
+
         log.info("마이데이터 계좌 정보 저장 API 호출 - 사용자 ID: {}, CI: {}, 계좌 수: {}", 
                 userId, customerCi, accountInfos.size());
-        
+
         try {
             List<AccountDto> savedAccounts = myDataAccountService.saveMyDataAccounts(userId, customerCi, accountInfos);
             return ResponseEntity.ok(savedAccounts);
@@ -41,5 +41,3 @@ public class MyDataAccountController {
         }
     }
 }
-
-

@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 상담 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,15 +26,11 @@ public class ConsultationResponseDto {
     private String branchCode;
     private String customerId;
     private String consultantId;
-    
-    // 추가 정보
+
     private String customerName;
     private String consultantName;
     private String consultantDepartment;
 
-    /**
-     * Entity -> DTO 변환
-     */
     public static ConsultationResponseDto fromEntity(Consult consult) {
         if (consult == null) {
             return null;
@@ -59,4 +52,3 @@ public class ConsultationResponseDto {
                 .build();
     }
 }
-

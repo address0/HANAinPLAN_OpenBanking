@@ -12,23 +12,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 글로벌 예외 처리 핸들러
- */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * @Valid 유효성 검증 실패 시 발생하는 예외 처리
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
-        
+
         log.error("=== Validation 에러 발생 ===");
         log.error("에러 상세:");
-        
+
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -47,13 +41,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    /**
-     * IllegalArgumentException 처리
-     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
             IllegalArgumentException ex) {
-        
+
         log.warn("IllegalArgumentException 발생: {}", ex.getMessage(), ex);
 
         Map<String, Object> response = new HashMap<>();
@@ -64,13 +55,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    /**
-     * 기타 RuntimeException 처리
-     */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(
             RuntimeException ex) {
-        
+
         log.error("RuntimeException 발생: {}", ex.getMessage(), ex);
 
         Map<String, Object> response = new HashMap<>();
@@ -81,13 +69,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.internalServerError().body(response);
     }
 
-    /**
-     * 모든 예외 처리 (최종 fallback)
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(
             Exception ex) {
-        
+
         log.error("Exception 발생: {}", ex.getMessage(), ex);
 
         Map<String, Object> response = new HashMap<>();
@@ -98,13 +83,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.internalServerError().body(response);
     }
 }
-
-
-
-
-
-
-
-
-
-

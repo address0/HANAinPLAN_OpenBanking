@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * 예금 추천 요청 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -22,10 +19,8 @@ public class DepositRecommendationRequest {
     private Long userId;
 
     @NotNull(message = "은퇴 예정일은 필수입니다")
-    private LocalDate retirementDate; // 은퇴 예정일
+    private LocalDate retirementDate;
 
     @NotNull(message = "예치 희망 금액은 필수입니다")
-    private BigDecimal depositAmount; // 예치 희망 금액 (직접 입력)
+    private BigDecimal depositAmount;
 }
-
-

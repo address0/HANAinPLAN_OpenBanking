@@ -16,9 +16,6 @@ public class InterestRateService {
     @Autowired
     private InterestRateRepository interestRateRepository;
 
-    /**
-     * 모든 금리 정보 조회
-     */
     @Transactional(readOnly = true)
     public List<InterestRateResponseDto> getAllInterestRates() {
         return interestRateRepository.findAll().stream()
@@ -26,6 +23,3 @@ public class InterestRateService {
             .collect(Collectors.toList());
     }
 }
-
-
-

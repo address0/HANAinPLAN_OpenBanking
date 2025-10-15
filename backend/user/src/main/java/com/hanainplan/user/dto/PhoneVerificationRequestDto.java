@@ -9,15 +9,12 @@ public class PhoneVerificationRequestDto {
     @Pattern(regexp = "^010-\\d{4}-\\d{4}$", message = "전화번호 형식이 올바르지 않습니다. (010-0000-0000)")
     private String phoneNumber;
 
-    // 기본 생성자
     public PhoneVerificationRequestDto() {}
 
-    // 생성자
     public PhoneVerificationRequestDto(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 
-    // Getters and Setters
     public String getPhoneNumber() {
         return phoneNumber;
     }

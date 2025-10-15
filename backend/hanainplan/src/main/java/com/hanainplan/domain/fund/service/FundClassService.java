@@ -14,11 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * 펀드 클래스 서비스 (하나인플랜)
- * - 하나은행 FundClassService와 동일한 로직
- * - 하나인플랜 DB에서 조회
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,14 +23,11 @@ public class FundClassService {
     private final FundClassRepository fundClassRepository;
     private final FundNavRepository fundNavRepository;
 
-    /**
-     * 모든 판매중인 펀드 클래스 조회 (상세 정보 포함)
-     */
     public List<FundClassDetailDto> getAllOnSaleFundClasses() {
         log.info("판매중인 펀드 클래스 목록 조회");
-        
+
         List<FundClass> fundClasses = fundClassRepository.findBySaleStatusOrderByChildFundCdAsc("ON");
-        
+
         return fundClasses.stream()
                 .map(fc -> {
                     FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
@@ -45,33 +37,27 @@ public class FundClassService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 클래스 코드로 상세 조회
-     */
     public Optional<FundClassDetailDto> getFundClassByCode(String childFundCd) {
         log.info("펀드 클래스 상세 조회 - childFundCd: {}", childFundCd);
-        
+
         Optional<FundClass> fundClassOpt = fundClassRepository.findById(childFundCd);
-        
+
         if (fundClassOpt.isEmpty()) {
             return Optional.empty();
         }
-        
+
         FundClass fundClass = fundClassOpt.get();
         FundNav latestNav = fundNavRepository.findLatestByChildFundCd(childFundCd)
                 .orElse(null);
-        
+
         return Optional.of(toDetailDto(fundClass, latestNav));
     }
 
-    /**
-     * 모펀드 코드로 클래스 목록 조회
-     */
     public List<FundClassDetailDto> getFundClassesByMasterCode(String fundCd) {
         log.info("모펀드의 클래스 목록 조회 - fundCd: {}", fundCd);
-        
+
         List<FundClass> fundClasses = fundClassRepository.findByFundMasterFundCd(fundCd);
-        
+
         return fundClasses.stream()
                 .map(fc -> {
                     FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
@@ -81,14 +67,11 @@ public class FundClassService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 자산 유형별 조회
-     */
     public List<FundClassDetailDto> getFundClassesByAssetType(String assetType) {
         log.info("자산 유형별 펀드 클래스 조회 - assetType: {}", assetType);
-        
+
         List<FundClass> fundClasses = fundClassRepository.findByAssetType(assetType);
-        
+
         return fundClasses.stream()
                 .map(fc -> {
                     FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
@@ -98,14 +81,11 @@ public class FundClassService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 클래스 코드별 조회 (A/C/P 등)
-     */
     public List<FundClassDetailDto> getFundClassesByClassCode(String classCode) {
         log.info("클래스 코드별 조회 - classCode: {}", classCode);
-        
+
         List<FundClass> fundClasses = fundClassRepository.findByClassCode(classCode);
-        
+
         return fundClasses.stream()
                 .map(fc -> {
                     FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
@@ -115,18 +95,15 @@ public class FundClassService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 최소 투자금액 이하 펀드 조회
-     */
     public List<FundClassDetailDto> getFundClassesByMaxAmount(int maxAmount) {
         log.info("최소 투자금액 {}원 이하 펀드 조회", maxAmount);
-        
+
         List<FundClass> fundClasses = fundClassRepository.findBySaleStatusOrderByChildFundCdAsc("ON").stream()
                 .filter(fc -> fc.getFundRules() != null && 
                              fc.getFundRules().getMinInitialAmount() != null &&
                              fc.getFundRules().getMinInitialAmount().intValue() <= maxAmount)
                 .collect(Collectors.toList());
-        
+
         return fundClasses.stream()
                 .map(fc -> {
                     FundNav latestNav = fundNavRepository.findLatestByChildFundCd(fc.getChildFundCd())
@@ -136,9 +113,6 @@ public class FundClassService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * FundClass Entity -> FundClassDetailDto 변환
-     */
     private FundClassDetailDto toDetailDto(FundClass entity, FundNav latestNav) {
         FundClassDetailDto.FundClassDetailDtoBuilder builder = FundClassDetailDto.builder()
                 .childFundCd(entity.getChildFundCd())
@@ -148,7 +122,6 @@ public class FundClassService {
                 .saleStatus(entity.getSaleStatus())
                 .sourceUrl(entity.getSourceUrl());
 
-        // 모펀드 정보
         if (entity.getFundMaster() != null) {
             builder.fundMaster(FundClassDetailDto.FundMasterDto.builder()
                     .fundCd(entity.getFundMaster().getFundCd())
@@ -161,7 +134,6 @@ public class FundClassService {
                     .build());
         }
 
-        // 거래 규칙
         if (entity.getFundRules() != null) {
             builder.rules(FundClassDetailDto.FundRulesDto.builder()
                     .cutoffTime(entity.getFundRules().getCutoffTime())
@@ -179,7 +151,6 @@ public class FundClassService {
                     .build());
         }
 
-        // 수수료
         if (entity.getFundFees() != null) {
             builder.fees(FundClassDetailDto.FundFeesDto.builder()
                     .mgmtFeeBps(entity.getFundFees().getMgmtFeeBps())
@@ -196,7 +167,6 @@ public class FundClassService {
                     .build());
         }
 
-        // 최신 기준가
         if (latestNav != null) {
             builder.latestNav(latestNav.getNav())
                    .latestNavDate(latestNav.getNavDate());

@@ -23,91 +23,91 @@ public class ProductSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "subscription_id")
-    private Long subscriptionId; // 가입pk
+    private Long subscriptionId;
 
     @Column(name = "customer_ci", nullable = false, length = 64)
-    private String customerCi; // 고객CI
+    private String customerCi;
 
     @Column(name = "product_code", nullable = false, length = 20)
-    private String productCode; // 상품코드
+    private String productCode;
 
     @Column(name = "account_number", nullable = false, length = 20)
-    private String accountNumber; // 계좌번호
+    private String accountNumber;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // 상태 (ACTIVE, INACTIVE, MATURED, CANCELLED)
+    private String status;
 
     @Column(name = "subscription_date", nullable = false)
-    private LocalDate subscriptionDate; // 가입일자
+    private LocalDate subscriptionDate;
 
     @Column(name = "maturity_date")
-    private LocalDate maturityDate; // 만기일자
+    private LocalDate maturityDate;
 
     @Column(name = "contract_period")
-    private Integer contractPeriod; // 약정기간 (개월)
-    
+    private Integer contractPeriod;
+
     @Column(name = "maturity_period", length = 50)
-    private String maturityPeriod; // 만기기간 (예: "12개월", "24개월", "36개월")
+    private String maturityPeriod;
 
     @Column(name = "rate_type", length = 10)
-    private String rateType; // 고정/변동여부 (FIXED, VARIABLE)
+    private String rateType;
 
     @Column(name = "base_rate", precision = 5, scale = 4)
-    private BigDecimal baseRate; // 기준금리
+    private BigDecimal baseRate;
 
     @Column(name = "preferential_rate", precision = 5, scale = 4)
-    private BigDecimal preferentialRate; // 우대금리(선택)
+    private BigDecimal preferentialRate;
 
     @Column(name = "final_applied_rate", precision = 5, scale = 4)
-    private BigDecimal finalAppliedRate; // 최종 적용금리
+    private BigDecimal finalAppliedRate;
 
     @Column(name = "preferential_reason", length = 200)
-    private String preferentialReason; // 우대사유(선택)
+    private String preferentialReason;
 
     @Column(name = "interest_calculation_basis", length = 50)
-    private String interestCalculationBasis; // 이자 계산기준
+    private String interestCalculationBasis;
 
     @Column(name = "interest_payment_method", length = 20)
-    private String interestPaymentMethod; // 이자 지급방식 (MATURITY, MONTHLY, QUARTERLY)
+    private String interestPaymentMethod;
 
     @Column(name = "interest_type", length = 10)
-    private String interestType; // 단리/복리여부 (SIMPLE, COMPOUND)
+    private String interestType;
 
     @Column(name = "contract_principal", precision = 15, scale = 2)
-    private BigDecimal contractPrincipal; // 약정 원금
+    private BigDecimal contractPrincipal;
 
     @Column(name = "current_balance", precision = 15, scale = 2)
-    private BigDecimal currentBalance; // 현재 잔액
+    private BigDecimal currentBalance;
 
     @Column(name = "unpaid_interest", precision = 15, scale = 2)
-    private BigDecimal unpaidInterest; // 미지급 이자(누계)
+    private BigDecimal unpaidInterest;
 
     @Column(name = "unpaid_tax", precision = 15, scale = 2)
-    private BigDecimal unpaidTax; // 미지급 세액(누계, 선택)
+    private BigDecimal unpaidTax;
 
     @Column(name = "last_interest_calculation_date")
-    private LocalDate lastInterestCalculationDate; // 마지막 이자계산 일자
+    private LocalDate lastInterestCalculationDate;
 
     @Column(name = "next_interest_payment_date")
-    private LocalDate nextInterestPaymentDate; // 다음 이자지급 예정일
+    private LocalDate nextInterestPaymentDate;
 
     @Column(name = "branch_name", length = 100)
-    private String branchName; // 취급점
+    private String branchName;
 
     @Column(name = "monthly_payment_amount", precision = 15, scale = 2)
-    private BigDecimal monthlyPaymentAmount; // 회차당 납입액(선택)
+    private BigDecimal monthlyPaymentAmount;
 
     @Column(name = "monthly_payment_day")
-    private Integer monthlyPaymentDay; // 매월 납입일(선택)
+    private Integer monthlyPaymentDay;
 
     @Column(name = "total_installments")
-    private Integer totalInstallments; // 약정 총 회차(선택)
+    private Integer totalInstallments;
 
     @Column(name = "completed_installments")
-    private Integer completedInstallments; // 납입 완료 회차(선택)
+    private Integer completedInstallments;
 
     @Column(name = "missed_installments")
-    private Integer missedInstallments; // 미납 회차(선택)
+    private Integer missedInstallments;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -115,12 +115,10 @@ public class ProductSubscription {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // 고객과의 관계 (다대일)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_ci", referencedColumnName = "ci", insertable = false, updatable = false)
     private Customer customer;
 
-    // 계좌와의 관계 (다대일)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_number", referencedColumnName = "account_number", insertable = false, updatable = false)
     private Account account;

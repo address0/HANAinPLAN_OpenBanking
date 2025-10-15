@@ -11,9 +11,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * IRP 계좌 엔터티
- */
 @Entity
 @Table(name = "hana_irp_accounts")
 @Data
@@ -27,99 +24,95 @@ public class IrpAccount {
     @Column(name = "irp_account_id")
     private Long irpAccountId;
 
-    // HANAinPLAN 고객 ID는 하나은행에서 사용하지 않음
-    // @Column(name = "customer_id", nullable = true)
-    // private Long customerId;
-
     @Column(name = "customer_ci", nullable = false, length = 64)
-    private String customerCi; // 고객 CI
+    private String customerCi;
 
     @Column(name = "bank_code", nullable = false, length = 10)
     @Builder.Default
-    private String bankCode = "HANA"; // 은행 코드 (항상 HANA)
+    private String bankCode = "HANA";
 
     @Column(name = "account_number", nullable = false, length = 50)
-    private String accountNumber; // IRP 계좌번호
+    private String accountNumber;
 
     @Column(name = "account_status", length = 20)
     @Builder.Default
-    private String accountStatus = "ACTIVE"; // ACTIVE, CLOSED, SUSPENDED
+    private String accountStatus = "ACTIVE";
 
     @Column(name = "initial_deposit", precision = 15, scale = 2)
-    private BigDecimal initialDeposit; // 초기 납입금액
+    private BigDecimal initialDeposit;
 
     @Column(name = "monthly_deposit", precision = 15, scale = 2)
-    private BigDecimal monthlyDeposit; // 월 자동납입금액
+    private BigDecimal monthlyDeposit;
 
     @Column(name = "current_balance", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal currentBalance = BigDecimal.ZERO; // 현재 잔고
+    private BigDecimal currentBalance = BigDecimal.ZERO;
 
     @Column(name = "total_contribution", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal totalContribution = BigDecimal.ZERO; // 총 납입금
+    private BigDecimal totalContribution = BigDecimal.ZERO;
 
     @Column(name = "current_year_deposit", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal currentYearDeposit = BigDecimal.ZERO; // 금년도 납입금 (연간 한도 체크용)
+    private BigDecimal currentYearDeposit = BigDecimal.ZERO;
 
     @Column(name = "total_return", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal totalReturn = BigDecimal.ZERO; // 총 수익금
+    private BigDecimal totalReturn = BigDecimal.ZERO;
 
     @Column(name = "return_rate", precision = 7, scale = 4)
     @Builder.Default
-    private BigDecimal returnRate = BigDecimal.ZERO; // 수익률 (%)
+    private BigDecimal returnRate = BigDecimal.ZERO;
 
     @Column(name = "investment_style", length = 30)
-    private String investmentStyle; // CONSERVATIVE, MODERATE_CONSERVATIVE, MODERATE, AGGRESSIVE
+    private String investmentStyle;
 
     @Column(name = "is_auto_deposit")
     @Builder.Default
-    private Boolean isAutoDeposit = false; // 자동납입 여부
+    private Boolean isAutoDeposit = false;
 
     @Column(name = "deposit_day")
-    private Integer depositDay; // 자동납입일 (1-31)
+    private Integer depositDay;
 
     @Column(name = "linked_main_account", length = 50)
-    private String linkedMainAccount; // 연결된 주계좌
+    private String linkedMainAccount;
 
     @Column(name = "product_code", length = 20)
-    private String productCode; // IRP 상품코드
+    private String productCode;
 
     @Column(name = "product_name", length = 100)
-    private String productName; // IRP 상품명
+    private String productName;
 
     @Column(name = "management_fee_rate", precision = 5, scale = 4)
-    private BigDecimal managementFeeRate; // 운용수수료율
+    private BigDecimal managementFeeRate;
 
     @Column(name = "trust_fee_rate", precision = 5, scale = 4)
-    private BigDecimal trustFeeRate; // 신탁수수료율
+    private BigDecimal trustFeeRate;
 
     @Column(name = "open_date")
-    private LocalDate openDate; // 계좌 개설일
+    private LocalDate openDate;
 
     @Column(name = "maturity_date")
-    private LocalDate maturityDate; // 만기일
+    private LocalDate maturityDate;
 
     @Column(name = "last_contribution_date")
-    private LocalDate lastContributionDate; // 마지막 납입일
+    private LocalDate lastContributionDate;
 
     @Column(name = "last_sync_date")
-    private LocalDateTime lastSyncDate; // 마지막 동기화 일시
+    private LocalDateTime lastSyncDate;
 
     @Column(name = "sync_status", length = 20)
     @Builder.Default
-    private String syncStatus = "PENDING"; // PENDING, SUCCESS, FAILED
+    private String syncStatus = "PENDING";
 
     @Column(name = "sync_error_message", length = 500)
-    private String syncErrorMessage; // 동기화 오류 메시지
+    private String syncErrorMessage;
 
     @Column(name = "external_account_id", length = 100)
-    private String externalAccountId; // 은행별 내부 계좌 ID
+    private String externalAccountId;
 
     @Column(name = "external_last_updated")
-    private LocalDateTime externalLastUpdated; // 은행별 마지막 업데이트 일시
+    private LocalDateTime externalLastUpdated;
 
     @Setter
     @Column(name = "closed_at")
@@ -142,16 +135,10 @@ public class IrpAccount {
         updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 계좌 활성화 상태 확인
-     */
     public boolean isActive() {
         return "ACTIVE".equals(accountStatus);
     }
 
-    /**
-     * 계좌 만기 확인
-     */
     public boolean isMatured() {
         if (maturityDate == null) {
             return false;

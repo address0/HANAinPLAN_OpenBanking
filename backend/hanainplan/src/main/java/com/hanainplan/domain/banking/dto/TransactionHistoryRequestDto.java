@@ -16,21 +16,21 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionHistoryRequestDto {
-    
-    private Long accountId; // 기존 호환성을 위해 유지
 
-    private String accountNumber; // 계좌번호 기반 조회용
-    
+    private Long accountId;
+
+    private String accountNumber;
+
     private Transaction.TransactionType transactionType;
-    
+
     private Transaction.TransactionCategory transactionCategory;
-    
+
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startDate;
-    
+
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endDate;
-    
+
     @Builder.Default
     private int page = 0;
     @Builder.Default

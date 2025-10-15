@@ -15,9 +15,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 회원가입 서비스
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,20 +27,14 @@ public class SignUpService {
     private final PasswordEncoder passwordEncoder;
     private final VerificationService verificationService;
 
-    /**
-     * 회원가입 처리
-     */
     @Transactional
     public SignUpResponseDto signUp(SignUpRequestDto request) {
         try {
-            // 1. 중복 검사
             validateDuplicateUser(request);
 
-            // 2. 사용자 기본 정보 생성
             User user = createUser(request);
             User savedUser = userRepository.save(user);
 
-            // 3. 사용자 타입에 따른 추가 정보 저장
             if (request.isGeneralCustomer()) {
                 createCustomer(savedUser, request);
             } else if (request.isCounselor()) {
@@ -70,9 +61,6 @@ public class SignUpService {
         }
     }
 
-    /**
-     * 중복 사용자 검사
-     */
     private void validateDuplicateUser(SignUpRequestDto request) {
         if (userRepository.existsBySocialNumber(request.getSocialNumber())) {
             throw new IllegalArgumentException("이미 가입된 주민번호입니다.");
@@ -90,21 +78,9 @@ public class SignUpService {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
-        // 전화번호 인증 완료 여부 확인 (카카오 로그인이 아닌 경우만)
-        // User 서버 연동 이슈로 인해 임시로 주석 처리
-        // TODO: User 서버 인증 상태 저장/조회 로직 수정 후 활성화
-        /*
-        if (!request.isKakaoLogin() && !verificationService.isPhoneNumberVerified(request.getPhoneNumber())) {
-            throw new IllegalArgumentException("전화번호 인증이 완료되지 않았습니다.");
-        }
-        */
     }
 
-    /**
-     * 사용자 엔터티 생성
-     */
     private User createUser(SignUpRequestDto request) {
-        // 주민번호에서 생년월일과 성별 추출
         LocalDate birthDate = User.extractBirthDateFromSocialNumber(request.getSocialNumber());
         User.Gender gender = User.extractGenderFromSocialNumber(request.getSocialNumber());
 
@@ -115,15 +91,13 @@ public class SignUpService {
                 .phoneNumber(request.getPhoneNumber())
                 .birthDate(birthDate)
                 .gender(gender)
-                .ci(request.getCi()) // CI값 저장
-                .isPhoneVerified(true); // 인증번호 확인 완료 가정
+                .ci(request.getCi())
+                .isPhoneVerified(true);
 
-        // 이메일 추가 (있는 경우)
         if (request.getEmail() != null && !request.getEmail().isEmpty()) {
             userBuilder.email(request.getEmail());
         }
 
-        // 로그인 타입에 따른 처리
         if (request.isKakaoLogin()) {
             userBuilder.kakaoId(request.getKakaoId())
                       .loginType(User.LoginType.KAKAO);
@@ -135,9 +109,6 @@ public class SignUpService {
         return userBuilder.build();
     }
 
-    /**
-     * 일반고객 정보 생성
-     */
     private void createCustomer(User user, SignUpRequestDto request) {
         SignUpRequestDto.HealthInfoDto healthInfo = request.getHealthInfo();
         SignUpRequestDto.JobInfoDto jobInfo = request.getJobInfo();
@@ -146,7 +117,6 @@ public class SignUpService {
             throw new IllegalArgumentException("일반고객 가입시 건강정보와 직업정보는 필수입니다.");
         }
 
-        // 고객 기본 정보 생성
         Customer customer = Customer.builder()
                 .customerId(user.getUserId())
                 .recentMedicalAdvice(healthInfo.getRecentMedicalAdvice())
@@ -163,11 +133,10 @@ public class SignUpService {
 
         customerRepository.save(customer);
 
-        // 질병 상세 정보 저장
         if (Boolean.TRUE.equals(healthInfo.getMajorDisease()) && 
             healthInfo.getDiseaseDetails() != null && 
             !healthInfo.getDiseaseDetails().isEmpty()) {
-            
+
             List<CustomerDiseaseDetail> diseaseDetails = healthInfo.getDiseaseDetails().stream()
                     .map(dto -> CustomerDiseaseDetail.builder()
                             .customerId(user.getUserId())
@@ -188,9 +157,6 @@ public class SignUpService {
         log.info("일반고객 정보 저장 완료: customerId={}", customer.getCustomerId());
     }
 
-    /**
-     * 상담원 정보 생성
-     */
     private void createConsultant(User user, SignUpRequestDto request) {
         SignUpRequestDto.CounselorInfoDto counselorInfo = request.getCounselorInfo();
 
@@ -198,7 +164,6 @@ public class SignUpService {
             throw new IllegalArgumentException("상담원 가입시 상담원 정보는 필수입니다.");
         }
 
-        // 상담원 정보 생성
         Consultant.ConsultantBuilder builder = Consultant.builder()
                 .consultantId(user.getUserId())
                 .employeeId(counselorInfo.getEmployeeId())
@@ -210,12 +175,10 @@ public class SignUpService {
                 .workEmail(counselorInfo.getWorkEmail())
                 .workStatus(Consultant.WorkStatus.ACTIVE);
 
-        // specialty를 specialization JSON으로 저장 (배열 형태)
         if (counselorInfo.getSpecialty() != null && !counselorInfo.getSpecialty().isEmpty()) {
             builder.specialization("[\"" + counselorInfo.getSpecialty() + "\"]");
         }
 
-        // 지점 위도/경도 (Double -> BigDecimal 변환)
         if (counselorInfo.getBranchLatitude() != null) {
             builder.branchLatitude(BigDecimal.valueOf(counselorInfo.getBranchLatitude()));
         }
@@ -230,25 +193,16 @@ public class SignUpService {
                 consultant.getConsultantId(), consultant.getEmployeeId(), consultant.getBranchName());
     }
 
-    /**
-     * 주민번호 중복 확인
-     */
     @Transactional(readOnly = true)
     public boolean isDuplicateSocialNumber(String socialNumber) {
         return userRepository.existsBySocialNumber(socialNumber);
     }
 
-    /**
-     * 전화번호 중복 확인
-     */
     @Transactional(readOnly = true)
     public boolean isDuplicatePhoneNumber(String phoneNumber) {
         return userRepository.existsByPhoneNumber(phoneNumber);
     }
 
-    /**
-     * 카카오 ID 중복 확인
-     */
     @Transactional(readOnly = true)
     public boolean isDuplicateKakaoId(String kakaoId) {
         return userRepository.existsByKakaoId(kakaoId);

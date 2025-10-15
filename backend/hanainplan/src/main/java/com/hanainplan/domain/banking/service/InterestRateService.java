@@ -20,16 +20,13 @@ public class InterestRateService {
 
     public List<InterestRateDto> getAllInterestRates() {
         List<InterestRateDto> allRates = new ArrayList<>();
-        
-        // 하나은행 금리 (하드코딩 - 실제로는 DB나 API에서 조회)
+
         allRates.addAll(getHanaRates());
-        
-        // 국민은행 금리
+
         allRates.addAll(getKookminRates());
-        
-        // 신한은행 금리
+
         allRates.addAll(getShinhanRates());
-        
+
         return allRates;
     }
 
@@ -42,7 +39,7 @@ public class InterestRateService {
             {"3년", "0.0210"},
             {"5년", "0.0202"}
         };
-        
+
         for (String[] period : periods) {
             rates.add(InterestRateDto.builder()
                 .bankCode("HANA")
@@ -54,8 +51,7 @@ public class InterestRateService {
                 .interestType("BASIC")
                 .build());
         }
-        
-        // 디폴트옵션
+
         rates.add(InterestRateDto.builder()
             .bankCode("HANA")
             .bankName("하나은행")
@@ -66,7 +62,7 @@ public class InterestRateService {
             .interestType("BASIC")
             .isIrp(true)
             .build());
-        
+
         return rates;
     }
 
@@ -79,7 +75,7 @@ public class InterestRateService {
             {"3년", "0.0197"},
             {"5년", "0.0182"}
         };
-        
+
         for (String[] period : periods) {
             rates.add(InterestRateDto.builder()
                 .bankCode("KOOKMIN")
@@ -91,8 +87,7 @@ public class InterestRateService {
                 .interestType("BASIC")
                 .build());
         }
-        
-        // 디폴트옵션
+
         rates.add(InterestRateDto.builder()
             .bankCode("KOOKMIN")
             .bankName("국민은행")
@@ -103,7 +98,7 @@ public class InterestRateService {
             .interestType("BASIC")
             .isIrp(true)
             .build());
-        
+
         return rates;
     }
 
@@ -116,7 +111,7 @@ public class InterestRateService {
             {"3년", "0.0202"},
             {"5년", "0.0205"}
         };
-        
+
         for (String[] period : periods) {
             rates.add(InterestRateDto.builder()
                 .bankCode("SHINHAN")
@@ -128,8 +123,7 @@ public class InterestRateService {
                 .interestType("BASIC")
                 .build());
         }
-        
-        // 디폴트옵션
+
         rates.add(InterestRateDto.builder()
             .bankCode("SHINHAN")
             .bankName("신한은행")
@@ -140,7 +134,7 @@ public class InterestRateService {
             .interestType("BASIC")
             .isIrp(true)
             .build());
-        
+
         return rates;
     }
 }

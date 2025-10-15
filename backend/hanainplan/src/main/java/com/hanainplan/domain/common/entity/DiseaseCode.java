@@ -6,12 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 질병코드 엔터티
- * - 보험 가입 심사에 사용되는 질병 분류
- * - 고객의 질병 이력 관리
- * - 상품 추천 알고리즘에 활용
- */
 @Entity
 @Table(name = "disease_code")
 @Data
@@ -30,15 +24,9 @@ public class DiseaseCode {
     @Column(name = "disease_category", length = 50, nullable = false)
     private String diseaseCategory;
 
-    /**
-     * 위험등급: 상, 중, 하
-     */
     @Column(name = "risk_level", length = 10)
     private String riskLevel;
 
-    /**
-     * 가입 가능 여부: Y/N
-     */
     @Column(name = "is_insurable", length = 1, nullable = false)
     private String isInsurable;
 
@@ -69,23 +57,14 @@ public class DiseaseCode {
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
 
-    /**
-     * 보험 가입 가능 여부 확인
-     */
     public boolean canSubscribeInsurance() {
         return "Y".equals(this.isInsurable);
     }
 
-    /**
-     * 고위험 질병 여부 확인
-     */
     public boolean isHighRisk() {
         return "상".equals(this.riskLevel);
     }
 
-    /**
-     * 위험등급 enum 정의
-     */
     public enum RiskLevel {
         HIGH("상"), MEDIUM("중"), LOW("하");
 

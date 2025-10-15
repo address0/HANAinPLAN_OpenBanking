@@ -5,13 +5,11 @@ public class CiVerificationResponseDto {
     private boolean success;
     private String message;
     private boolean verified;
-    private String ci; // CI값 추가
+    private String ci;
     private String timestamp;
 
-    // 기본 생성자
     public CiVerificationResponseDto() {}
 
-    // 생성자
     public CiVerificationResponseDto(boolean success, String message, boolean verified, String ci) {
         this.success = success;
         this.message = message;
@@ -20,7 +18,6 @@ public class CiVerificationResponseDto {
         this.timestamp = java.time.LocalDateTime.now().toString();
     }
 
-    // 정적 팩토리 메서드
     public static CiVerificationResponseDto success(boolean verified, String ci) {
         String message = verified ? "CI 검증이 성공했습니다." : "CI 검증에 실패했습니다.";
         return new CiVerificationResponseDto(true, message, verified, ci);
@@ -34,7 +31,6 @@ public class CiVerificationResponseDto {
         return new CiVerificationResponseDto(false, message, false, null);
     }
 
-    // Getters and Setters
     public boolean isSuccess() {
         return success;
     }

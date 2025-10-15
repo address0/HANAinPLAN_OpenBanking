@@ -19,11 +19,7 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    /**
-     * 고객 생성
-     */
     public CustomerResponseDto createCustomer(CustomerRequestDto request) {
-        // CI 중복 확인
         if (customerRepository.existsByCi(request.getCi())) {
             throw new IllegalArgumentException("이미 존재하는 CI입니다: " + request.getCi());
         }
@@ -40,27 +36,18 @@ public class CustomerService {
         return CustomerResponseDto.from(savedCustomer);
     }
 
-    /**
-     * 고객 조회 (CI)
-     */
     @Transactional(readOnly = true)
     public Optional<CustomerResponseDto> getCustomerByCi(String ci) {
         return customerRepository.findByCi(ci)
                 .map(CustomerResponseDto::from);
     }
 
-    /**
-     * 고객 조회 (ID)
-     */
     @Transactional(readOnly = true)
     public Optional<CustomerResponseDto> getCustomerById(Long userId) {
         return customerRepository.findById(userId)
                 .map(CustomerResponseDto::from);
     }
 
-    /**
-     * 모든 고객 조회
-     */
     @Transactional(readOnly = true)
     public List<CustomerResponseDto> getAllCustomers() {
         List<Customer> customers = customerRepository.findAll();
@@ -69,14 +56,10 @@ public class CustomerService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 고객 수정
-     */
     public CustomerResponseDto updateCustomer(Long userId, CustomerRequestDto request) {
         Customer customer = customerRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("고객을 찾을 수 없습니다: " + userId));
 
-        // CI 변경 시 중복 확인
         if (!customer.getCi().equals(request.getCi()) && customerRepository.existsByCi(request.getCi())) {
             throw new IllegalArgumentException("이미 존재하는 CI입니다: " + request.getCi());
         }
@@ -91,9 +74,6 @@ public class CustomerService {
         return CustomerResponseDto.from(updatedCustomer);
     }
 
-    /**
-     * 고객 삭제
-     */
     public void deleteCustomer(Long userId) {
         if (!customerRepository.existsById(userId)) {
             throw new IllegalArgumentException("고객을 찾을 수 없습니다: " + userId);

@@ -10,11 +10,11 @@ import lombok.Builder;
 @AllArgsConstructor
 @Builder
 public class CiVerificationResponseDto {
-    
+
     private boolean success;
     private String message;
     private String ci;
-    
+
     public static CiVerificationResponseDto success(String ci) {
         return CiVerificationResponseDto.builder()
                 .success(true)
@@ -22,7 +22,7 @@ public class CiVerificationResponseDto {
                 .ci(ci)
                 .build();
     }
-    
+
     public static CiVerificationResponseDto error(String message) {
         return CiVerificationResponseDto.builder()
                 .success(false)

@@ -14,20 +14,18 @@ public class RestTemplateConfig {
     @Bean
     public RestTemplate restTemplate() {
         RestTemplate restTemplate = new RestTemplate();
-        
-        // JSON 메시지 컨버터 설정
+
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         ObjectMapper objectMapper = new ObjectMapper();
-        
-        // Java 8 Time 모듈 등록 (LocalDate, LocalDateTime 지원)
+
         objectMapper.registerModule(new JavaTimeModule());
-        
+
         converter.setObjectMapper(objectMapper);
         restTemplate.getMessageConverters().add(0, converter);
-        
+
         return restTemplate;
     }
-    
+
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -35,5 +33,3 @@ public class RestTemplateConfig {
         return objectMapper;
     }
 }
-
-

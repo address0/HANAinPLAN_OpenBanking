@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * 예금 가입 정보 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -26,24 +23,21 @@ public class DepositSubscriptionDto {
     private LocalDate subscriptionDate;
     private LocalDate maturityDate;
     private Integer contractPeriod;
-    private Integer productType; // 0:일반, 1:디폴트옵션, 2:일단위
+    private Integer productType;
     private String bankName;
     private String bankCode;
-    private String depositCode; // 예금 상품 코드
+    private String depositCode;
     private BigDecimal rate;
     private BigDecimal currentBalance;
     private BigDecimal unpaidInterest;
     private LocalDate lastInterestCalculationDate;
     private LocalDate nextInterestPaymentDate;
 
-    /**
-     * Entity를 DTO로 변환
-     */
     public static DepositSubscriptionDto fromEntity(DepositSubscription entity) {
         if (entity == null) {
             return null;
         }
-        
+
         return DepositSubscriptionDto.builder()
                 .subscriptionId(entity.getSubscriptionId())
                 .userId(entity.getUserId())
@@ -65,9 +59,6 @@ public class DepositSubscriptionDto {
                 .build();
     }
 
-    /**
-     * DTO를 Entity로 변환
-     */
     public DepositSubscription toEntity() {
         return DepositSubscription.builder()
                 .subscriptionId(this.subscriptionId)
@@ -89,27 +80,18 @@ public class DepositSubscriptionDto {
                 .nextInterestPaymentDate(this.nextInterestPaymentDate)
                 .build();
     }
-    
-    /**
-     * 계약 기간 단위 반환 (일/개월)
-     */
+
     public String getContractPeriodUnit() {
         if (productType == null) {
             return "개월";
         }
         return productType == 2 ? "일" : "개월";
     }
-    
-    /**
-     * 만기 여부 확인
-     */
+
     public boolean isMatured() {
         return maturityDate != null && !maturityDate.isAfter(LocalDate.now());
     }
-    
-    /**
-     * 활성 상태 확인
-     */
+
     public boolean isActive() {
         return "ACTIVE".equals(status);
     }

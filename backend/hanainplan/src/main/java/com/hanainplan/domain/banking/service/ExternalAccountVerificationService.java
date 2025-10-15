@@ -10,10 +10,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
-/**
- * 외부 계좌 검증 서비스
- * 계좌번호를 이용해 실제 은행 서버에서 계좌 존재 여부 및 정보를 확인합니다.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -30,9 +26,6 @@ public class ExternalAccountVerificationService {
     @Value("${external.api.shinhan-bank.base-url:http://localhost:8083}")
     private String shinhanBankBaseUrl;
 
-    /**
-     * 계좌번호로 외부 계좌 검증
-     */
     public AccountVerificationResponseDto verifyExternalAccount(String accountNumber) {
         log.info("외부 계좌 검증 시작 - 계좌번호: {}", accountNumber);
 
@@ -41,7 +34,6 @@ public class ExternalAccountVerificationService {
         }
 
         try {
-            // 1. 계좌번호로 은행 코드 추출
             String bankCode = extractBankCode(accountNumber);
 
             if (bankCode == null) {
@@ -49,21 +41,17 @@ public class ExternalAccountVerificationService {
                 return AccountVerificationResponseDto.error("지원하지 않는 은행입니다");
             }
 
-            // 2. 하나은행인 경우 IRP 계좌 먼저 확인
             if ("081".equals(bankCode)) {
-                // 2-1. IRP 계좌 확인
                 AccountVerificationResponseDto irpResult = verifyHanaIrpAccount(accountNumber);
                 if (irpResult.isExists()) {
                     log.info("하나은행 IRP 계좌 확인 - 계좌번호: {}", accountNumber);
                     return irpResult;
                 }
 
-                // 2-2. 일반 계좌 확인
                 log.info("하나은행 일반 계좌 확인 시도 - 계좌번호: {}", accountNumber);
                 return verifyHanaGeneralAccount(accountNumber, bankCode);
             }
 
-            // 3. 기타 은행 일반 계좌 확인
             return verifyGeneralAccount(accountNumber, bankCode);
 
         } catch (Exception e) {
@@ -72,9 +60,6 @@ public class ExternalAccountVerificationService {
         }
     }
 
-    /**
-     * 계좌번호에서 은행 코드 추출 (프론트엔드 bankStore와 동일한 로직)
-     */
     private String extractBankCode(String accountNumber) {
         String cleanAccountNumber = accountNumber.replace("-", "");
         if (cleanAccountNumber.length() < 3) {
@@ -83,15 +68,12 @@ public class ExternalAccountVerificationService {
 
         String prefix = cleanAccountNumber.substring(0, 3);
 
-        // 하나은행: 110-119 또는 081
         if (prefix.equals("081") || (prefix.compareTo("110") >= 0 && prefix.compareTo("119") <= 0)) {
             return "081";
         }
-        // 국민은행: 123-129 또는 004
         else if (prefix.equals("004") || (prefix.compareTo("123") >= 0 && prefix.compareTo("129") <= 0)) {
             return "004";
         }
-        // 신한은행: 456-459 또는 088
         else if (prefix.equals("088") || (prefix.compareTo("456") >= 0 && prefix.compareTo("459") <= 0)) {
             return "088";
         }
@@ -99,9 +81,6 @@ public class ExternalAccountVerificationService {
         return null;
     }
 
-    /**
-     * 하나은행 IRP 계좌 확인
-     */
     private AccountVerificationResponseDto verifyHanaIrpAccount(String accountNumber) {
         try {
             String url = hanaBankBaseUrl + "/api/v1/irp/account/number/" + accountNumber;
@@ -131,9 +110,6 @@ public class ExternalAccountVerificationService {
         }
     }
 
-    /**
-     * 하나은행 일반 계좌 확인
-     */
     private AccountVerificationResponseDto verifyHanaGeneralAccount(String accountNumber, String bankCode) {
         try {
             String url = hanaBankBaseUrl + "/api/hana/accounts/" + accountNumber;
@@ -160,9 +136,6 @@ public class ExternalAccountVerificationService {
         }
     }
 
-    /**
-     * 일반 계좌 확인 (국민은행, 신한은행)
-     */
     private AccountVerificationResponseDto verifyGeneralAccount(String accountNumber, String bankCode) {
         try {
             String url = getBankApiUrl(bankCode) + "/" + accountNumber;
@@ -189,9 +162,6 @@ public class ExternalAccountVerificationService {
         }
     }
 
-    /**
-     * 은행 코드별 API URL 반환
-     */
     private String getBankApiUrl(String bankCode) {
         switch (bankCode) {
             case "081":
@@ -205,5 +175,3 @@ public class ExternalAccountVerificationService {
         }
     }
 }
-
-

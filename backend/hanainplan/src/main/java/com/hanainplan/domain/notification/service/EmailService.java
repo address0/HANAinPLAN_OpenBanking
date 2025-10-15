@@ -10,11 +10,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-/**
- * 이메일 발송 서비스
- * - 상담 수락 알림 이메일 발송
- * - HTML 이메일 지원
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,9 +23,6 @@ public class EmailService {
     @Value("${app.name:하나인플랜}")
     private String appName;
 
-    /**
-     * 간단한 텍스트 이메일 발송
-     */
     public boolean sendSimpleEmail(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -38,7 +30,7 @@ public class EmailService {
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
-            
+
             mailSender.send(message);
             log.info("Simple email sent to: {}", to);
             return true;
@@ -48,19 +40,16 @@ public class EmailService {
         }
     }
 
-    /**
-     * HTML 이메일 발송
-     */
     public boolean sendHtmlEmail(String to, String subject, String htmlContent) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
+
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
-            
+
             mailSender.send(message);
             log.info("HTML email sent to: {}", to);
             return true;
@@ -70,9 +59,6 @@ public class EmailService {
         }
     }
 
-    /**
-     * 상담 수락 알림 이메일 발송
-     */
     public boolean sendConsultationAcceptedEmail(
             String customerEmail,
             String customerName,
@@ -82,7 +68,7 @@ public class EmailService {
             String consultationUrl
     ) {
         String subject = "[" + appName + "] 상담이 수락되었습니다";
-        
+
         String htmlContent = buildConsultationAcceptedEmailHtml(
                 customerName,
                 consultantName,
@@ -94,9 +80,6 @@ public class EmailService {
         return sendHtmlEmail(customerEmail, subject, htmlContent);
     }
 
-    /**
-     * 상담 수락 이메일 HTML 템플릿 생성
-     */
     private String buildConsultationAcceptedEmailHtml(
             String customerName,
             String consultantName,
@@ -193,7 +176,7 @@ public class EmailService {
                     <div class="content">
                         <p><strong>%s</strong>님, 안녕하세요!</p>
                         <p>요청하신 상담이 수락되었습니다. 상담원과의 상담이 곧 시작됩니다.</p>
-                        
+
                         <div class="info-box">
                             <div class="info-row">
                                 <span class="label">상담 유형:</span>
@@ -208,11 +191,11 @@ public class EmailService {
                                 <span class="value">%s</span>
                             </div>
                         </div>
-                        
+
                         <div style="text-align: center;">
                             <a href="%s" class="button">상담 참여하기</a>
                         </div>
-                        
+
                         <div class="warning">
                             <strong>⚠️ 안내사항</strong>
                             <ul style="margin: 10px 0; padding-left: 20px;">
@@ -221,7 +204,7 @@ public class EmailService {
                                 <li>상담 중 개인정보 보호를 위해 화면 캡처가 제한될 수 있습니다.</li>
                             </ul>
                         </div>
-                        
+
                         <p style="color: #666; font-size: 14px;">
                             상담 시작 시간이 지연될 경우 상담원이 별도로 연락드릴 예정입니다.<br>
                             문의사항이 있으시면 고객센터(1588-1111)로 연락주시기 바랍니다.
@@ -243,9 +226,6 @@ public class EmailService {
         );
     }
 
-    /**
-     * 상담 완료 알림 이메일 발송
-     */
     public boolean sendConsultationCompletedEmail(
             String customerEmail,
             String customerName,
@@ -253,7 +233,7 @@ public class EmailService {
             int durationMinutes
     ) {
         String subject = "[" + appName + "] 상담이 완료되었습니다";
-        
+
         String htmlContent = """
                 <!DOCTYPE html>
                 <html lang="ko">

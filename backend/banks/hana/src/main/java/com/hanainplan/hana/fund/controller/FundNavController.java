@@ -14,9 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 하나은행 펀드 기준가 API 컨트롤러
- */
 @RestController
 @RequestMapping("/api/hana/fund-nav")
 @RequiredArgsConstructor
@@ -25,14 +22,6 @@ public class FundNavController {
 
     private final FundNavService fundNavService;
 
-    /**
-     * 펀드 기준가 업데이트 (단건)
-     * 
-     * POST /api/hana/fund-nav
-     * 
-     * @param request 기준가 업데이트 요청
-     * @return 업데이트된 기준가 정보
-     */
     @PostMapping
     public ResponseEntity<Map<String, Object>> updateFundNav(@Valid @RequestBody FundNavUpdateRequest request) {
         log.info("펀드 기준가 업데이트 요청: childFundCd={}, navDate={}, nav={}", 
@@ -58,24 +47,16 @@ public class FundNavController {
 
         } catch (Exception e) {
             log.error("펀드 기준가 업데이트 실패", e);
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "기준가 업데이트 실패: " + e.getMessage());
             errorResponse.put("childFundCd", request.getChildFundCd());
-            
+
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 
-    /**
-     * 펀드 기준가 배치 업데이트 (여러 건)
-     * 
-     * POST /api/hana/fund-nav/batch
-     * 
-     * @param requests 기준가 업데이트 요청 목록
-     * @return 업데이트 결과
-     */
     @PostMapping("/batch")
     public ResponseEntity<Map<String, Object>> updateFundNavBatch(@Valid @RequestBody List<FundNavUpdateRequest> requests) {
         log.info("펀드 기준가 배치 업데이트 요청: {} 건", requests.size());
@@ -109,11 +90,6 @@ public class FundNavController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 최신 기준가 조회
-     * 
-     * GET /api/hana/fund-nav/{childFundCd}/latest
-     */
     @GetMapping("/{childFundCd}/latest")
     public ResponseEntity<FundNav> getLatestNav(@PathVariable String childFundCd) {
         return fundNavService.getLatestNav(childFundCd)
@@ -121,11 +97,6 @@ public class FundNavController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * 특정 날짜 기준가 조회
-     * 
-     * GET /api/hana/fund-nav/{childFundCd}/{navDate}
-     */
     @GetMapping("/{childFundCd}/{navDate}")
     public ResponseEntity<FundNav> getNavByDate(
             @PathVariable String childFundCd,
@@ -135,4 +106,3 @@ public class FundNavController {
                 .orElse(ResponseEntity.notFound().build());
     }
 }
-

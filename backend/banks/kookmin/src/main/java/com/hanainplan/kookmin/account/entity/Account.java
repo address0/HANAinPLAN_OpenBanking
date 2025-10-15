@@ -20,19 +20,19 @@ public class Account {
 
     @Id
     @Column(name = "account_number", length = 20)
-    private String accountNumber; // 계좌번호 (PK)
+    private String accountNumber;
 
     @Column(name = "account_type", nullable = false)
-    private Integer accountType; // 계좌종류 (1: 수시입출금, 2: 예적금, 6: 수익증권, 0: 통합계좌)
+    private Integer accountType;
 
     @Column(name = "balance", precision = 15, scale = 2)
-    private BigDecimal balance; // 잔액
+    private BigDecimal balance;
 
     @Column(name = "opening_date")
-    private LocalDate openingDate; // 계좌개설일
+    private LocalDate openingDate;
 
     @Column(name = "customer_ci", nullable = false, length = 100)
-    private String customerCi; // 고객 CI (본인확인정보)
+    private String customerCi;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

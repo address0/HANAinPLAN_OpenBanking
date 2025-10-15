@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * CI 검증 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,10 +13,9 @@ public class CiVerificationResponseDto {
 
     private boolean success;
     private String message;
-    private String ci; // 실명인증 서버에서 반환받은 CI 값
-    private String errorCode; // 오류 코드 (선택사항)
+    private String ci;
+    private String errorCode;
 
-    // 성공 응답용 생성자
     public static CiVerificationResponseDto success(String ci) {
         return CiVerificationResponseDto.builder()
                 .success(true)
@@ -28,7 +24,6 @@ public class CiVerificationResponseDto {
                 .build();
     }
 
-    // 실패 응답용 생성자
     public static CiVerificationResponseDto failure(String message) {
         return CiVerificationResponseDto.builder()
                 .success(false)
@@ -36,7 +31,6 @@ public class CiVerificationResponseDto {
                 .build();
     }
 
-    // 실패 응답용 생성자 (오류 코드 포함)
     public static CiVerificationResponseDto failure(String message, String errorCode) {
         return CiVerificationResponseDto.builder()
                 .success(false)

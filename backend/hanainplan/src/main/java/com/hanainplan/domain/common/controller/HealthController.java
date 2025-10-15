@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * 헬스체크 컨트롤러
- */
 @Tag(name = "헬스체크", description = "서버 상태 확인 API")
 @RestController
 @RequestMapping("/api/health")
@@ -32,7 +29,6 @@ public class HealthController {
     @Operation(summary = "데이터베이스 연결 확인", description = "데이터베이스 연결 상태를 확인합니다.")
     @GetMapping("/db")
     public ResponseEntity<Map<String, Object>> dbHealth() {
-        // TODO: 실제 DB 연결 상태 확인 로직 추가
         return ResponseEntity.ok(Map.of(
                 "database", "UP",
                 "message", "데이터베이스 연결 정상",

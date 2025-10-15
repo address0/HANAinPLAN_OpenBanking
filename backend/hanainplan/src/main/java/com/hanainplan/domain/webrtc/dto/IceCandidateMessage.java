@@ -17,4 +17,3 @@ public class IceCandidateMessage {
     private Long senderId;
     private Long receiverId;
 }
-

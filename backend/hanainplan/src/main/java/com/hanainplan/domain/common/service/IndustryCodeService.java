@@ -18,34 +18,24 @@ public class IndustryCodeService {
 
     private final IndustryCodeRepository industryCodeRepository;
 
-    /**
-     * 모든 업종코드 조회
-     */
     public List<IndustryCode> getAllIndustries() {
         log.debug("모든 업종코드 조회");
         return industryCodeRepository.findAll();
     }
 
-    /**
-     * 키워드로 업종코드 검색
-     */
     public List<IndustryCode> searchIndustriesByKeyword(String keyword) {
         log.debug("키워드로 업종코드 검색: {}", keyword);
-        
+
         if (keyword == null || keyword.trim().isEmpty()) {
             return getAllIndustries();
         }
-        
+
         return industryCodeRepository.findByIndustryNameContainingIgnoreCaseOrIndustryCodeContainingIgnoreCase(keyword.trim());
     }
 
-    /**
-     * 업종코드로 단일 업종 조회
-     */
     public Optional<IndustryCode> getIndustryByCode(String industryCode) {
         log.debug("업종코드로 조회: {}", industryCode);
         return industryCodeRepository.findById(industryCode);
     }
-
 
 }

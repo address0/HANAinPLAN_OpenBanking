@@ -23,22 +23,16 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    /**
-     * 계좌 생성
-     */
     @PostMapping
     public ResponseEntity<AccountResponseDto> createAccount(@Valid @RequestBody AccountRequestDto request) {
         try {
             AccountResponseDto response = accountService.createAccount(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(null); // 또는 에러 메시지를 포함한 응답
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
-    /**
-     * 계좌 조회 (계좌번호)
-     */
     @GetMapping("/{accountNumber}")
     public ResponseEntity<AccountResponseDto> getAccountByNumber(@PathVariable String accountNumber) {
         Optional<AccountResponseDto> account = accountService.getAccountByNumber(accountNumber);
@@ -46,27 +40,18 @@ public class AccountController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * CI로 계좌 조회
-     */
     @GetMapping("/ci/{ci}")
     public ResponseEntity<List<AccountResponseDto>> getAccountsByCi(@PathVariable String ci) {
         List<AccountResponseDto> accounts = accountService.getAccountsByCi(ci);
         return ResponseEntity.ok(accounts);
     }
 
-    /**
-     * 모든 계좌 조회
-     */
     @GetMapping
     public ResponseEntity<List<AccountResponseDto>> getAllAccounts() {
         List<AccountResponseDto> accounts = accountService.getAllAccounts();
         return ResponseEntity.ok(accounts);
     }
 
-    /**
-     * 계좌 수정
-     */
     @PutMapping("/{accountNumber}")
     public ResponseEntity<AccountResponseDto> updateAccount(
             @PathVariable String accountNumber,
@@ -79,9 +64,6 @@ public class AccountController {
         }
     }
 
-    /**
-     * 계좌 삭제
-     */
     @DeleteMapping("/{accountNumber}")
     public ResponseEntity<Void> deleteAccount(@PathVariable String accountNumber) {
         try {
@@ -92,9 +74,6 @@ public class AccountController {
         }
     }
 
-    /**
-     * 계좌 잔액 업데이트
-     */
     @PatchMapping("/{accountNumber}/balance")
     public ResponseEntity<AccountResponseDto> updateBalance(
             @PathVariable String accountNumber,
@@ -107,9 +86,6 @@ public class AccountController {
         }
     }
 
-    /**
-     * 계좌 출금 처리 (타행 요청용)
-     */
     @PostMapping("/withdrawal")
     public ResponseEntity<Object> processWithdrawal(@RequestBody WithdrawalRequest request) {
         try {
@@ -118,29 +94,26 @@ public class AccountController {
                     request.getAmount(),
                     request.getDescription()
             );
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "출금 처리 완료");
             response.put("transactionId", transactionId);
             response.put("accountNumber", request.getAccountNumber());
             response.put("amount", request.getAmount());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "출금 처리 실패: " + e.getMessage());
             errorResponse.put("accountNumber", request.getAccountNumber());
-            
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
-    /**
-     * 계좌 입금 처리 (타행 요청용)
-     */
     @PostMapping("/deposit")
     public ResponseEntity<Object> processDeposit(@RequestBody DepositRequest request) {
         try {
@@ -149,29 +122,26 @@ public class AccountController {
                     request.getAmount(),
                     request.getDescription()
             );
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "입금 처리 완료");
             response.put("transactionId", transactionId);
             response.put("accountNumber", request.getAccountNumber());
             response.put("amount", request.getAmount());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "입금 처리 실패: " + e.getMessage());
             errorResponse.put("accountNumber", request.getAccountNumber());
-            
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
-    /**
-     * 잔액 업데이트 요청 DTO
-     */
     public static class BalanceUpdateRequest {
         private BigDecimal balance;
 
@@ -183,45 +153,37 @@ public class AccountController {
             this.balance = balance;
         }
     }
-    
-    /**
-     * 출금 요청 DTO
-     */
+
     public static class WithdrawalRequest {
         private String accountNumber;
         private BigDecimal amount;
         private String description;
         private String memo;
-        
-        // Getters and Setters
+
         public String getAccountNumber() { return accountNumber; }
         public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
-        
+
         public BigDecimal getAmount() { return amount; }
         public void setAmount(BigDecimal amount) { this.amount = amount; }
-        
+
         public String getDescription() { return description; }
         public void setDescription(String description) { this.description = description; }
-        
+
         public String getMemo() { return memo; }
         public void setMemo(String memo) { this.memo = memo; }
     }
 
-    /**
-     * 입금 요청 DTO
-     */
     public static class DepositRequest {
         private String accountNumber;
         private BigDecimal amount;
         private String description;
-        
-        // Getters and Setters
+
         public String getAccountNumber() { return accountNumber; }
         public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
-        
+
         public BigDecimal getAmount() { return amount; }
         public void setAmount(BigDecimal amount) { this.amount = amount; }
-        
+
         public String getDescription() { return description; }
         public void setDescription(String description) { this.description = description; }
     }

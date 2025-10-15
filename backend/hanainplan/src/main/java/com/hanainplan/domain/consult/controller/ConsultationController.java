@@ -16,9 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 상담 관리 컨트롤러
- */
 @RestController
 @RequestMapping("/api/consultations")
 @RequiredArgsConstructor
@@ -29,18 +26,15 @@ public class ConsultationController {
 
     private final ConsultService consultService;
 
-    /**
-     * 상담 신청
-     */
     @PostMapping
     @Operation(summary = "상담 신청", description = "고객이 특정 상담사에게 예약 상담을 신청합니다.")
     public ResponseEntity<?> createConsultation(@Valid @RequestBody ConsultationRequestDto request) {
         try {
             log.info("POST /api/consultations - customerId: {}, consultantId: {}", 
                     request.getCustomerId(), request.getConsultantId());
-            
+
             ConsultationResponseDto response = consultService.createConsultation(request);
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "success", true,
                 "consultation", response,
@@ -61,9 +55,6 @@ public class ConsultationController {
         }
     }
 
-    /**
-     * 고객의 상담 목록 조회
-     */
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "고객 상담 목록 조회", description = "특정 고객의 모든 상담 내역을 조회합니다.")
     public ResponseEntity<List<ConsultationResponseDto>> getCustomerConsultations(
@@ -71,14 +62,11 @@ public class ConsultationController {
             @PathVariable Long customerId
     ) {
         log.info("GET /api/consultations/customer/{} - customerId: {}", customerId, customerId);
-        
+
         List<ConsultationResponseDto> consultations = consultService.getCustomerConsultations(customerId);
         return ResponseEntity.ok(consultations);
     }
 
-    /**
-     * 상담사의 상담 목록 조회
-     */
     @GetMapping("/consultant/{consultantId}")
     @Operation(summary = "상담사 상담 목록 조회", description = "특정 상담사의 모든 상담 내역을 조회합니다.")
     public ResponseEntity<List<ConsultationResponseDto>> getConsultantConsultations(
@@ -86,14 +74,11 @@ public class ConsultationController {
             @PathVariable Long consultantId
     ) {
         log.info("GET /api/consultations/consultant/{} - consultantId: {}", consultantId, consultantId);
-        
+
         List<ConsultationResponseDto> consultations = consultService.getConsultantConsultations(consultantId);
         return ResponseEntity.ok(consultations);
     }
 
-    /**
-     * 상담사의 오늘 상담 조회
-     */
     @GetMapping("/consultant/{consultantId}/today")
     @Operation(summary = "오늘 상담 조회", description = "상담사의 오늘 상담 목록을 조회합니다.")
     public ResponseEntity<List<ConsultationResponseDto>> getTodayConsultations(
@@ -101,14 +86,11 @@ public class ConsultationController {
             @PathVariable Long consultantId
     ) {
         log.info("GET /api/consultations/consultant/{}/today - consultantId: {}", consultantId, consultantId);
-        
+
         List<ConsultationResponseDto> consultations = consultService.getTodayConsultations(consultantId);
         return ResponseEntity.ok(consultations);
     }
 
-    /**
-     * 상담사의 요청 내역 조회
-     */
     @GetMapping("/consultant/{consultantId}/requests")
     @Operation(summary = "상담 요청 내역 조회", description = "상담사에게 들어온 예약 신청 목록을 조회합니다.")
     public ResponseEntity<List<ConsultationResponseDto>> getConsultationRequests(
@@ -116,29 +98,26 @@ public class ConsultationController {
             @PathVariable Long consultantId
     ) {
         log.info("GET /api/consultations/consultant/{}/requests - consultantId: {}", consultantId, consultantId);
-        
+
         List<ConsultationResponseDto> requests = consultService.getConsultationRequests(consultantId);
         return ResponseEntity.ok(requests);
     }
 
-    /**
-     * 상담 상태 변경
-     */
     @PatchMapping("/{consultId}/status")
     @Operation(summary = "상담 상태 변경", description = "상담의 상태를 변경합니다.")
     public ResponseEntity<?> updateConsultationStatus(
             @Parameter(description = "상담 ID", required = true)
             @PathVariable String consultId,
-            
+
             @Parameter(description = "변경할 상태", required = true)
             @RequestParam String status
     ) {
         try {
             log.info("PATCH /api/consultations/{}/status - consultId: {}, status: {}", 
                     consultId, consultId, status);
-            
+
             ConsultationResponseDto response = consultService.updateConsultationStatus(consultId, status);
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "consultation", response,
@@ -159,9 +138,6 @@ public class ConsultationController {
         }
     }
 
-    /**
-     * 상담 상세 정보 조회 (화상 상담 입장용)
-     */
     @GetMapping("/{consultId}/details")
     @Operation(summary = "상담 상세 정보 조회", description = "화상 상담 입장을 위한 상담 상세 정보를 조회합니다.")
     public ResponseEntity<?> getConsultationDetails(
@@ -170,9 +146,9 @@ public class ConsultationController {
     ) {
         try {
             log.info("GET /api/consultations/{}/details - consultId: {}", consultId, consultId);
-            
+
             ConsultationResponseDto response = consultService.getConsultationDetails(consultId);
-            
+
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             log.error("상담 상세 정보 조회 실패: {}", e.getMessage());
@@ -189,24 +165,21 @@ public class ConsultationController {
         }
     }
 
-    /**
-     * 상담 취소 (고객용)
-     */
     @PostMapping("/{consultId}/cancel")
     @Operation(summary = "상담 취소", description = "고객이 예약한 상담을 취소합니다.")
     public ResponseEntity<?> cancelConsultation(
             @Parameter(description = "상담 ID", required = true)
             @PathVariable String consultId,
-            
+
             @Parameter(description = "고객 ID", required = true)
             @RequestParam Long customerId
     ) {
         try {
             log.info("POST /api/consultations/{}/cancel - consultId: {}, customerId: {}", 
                     consultId, consultId, customerId);
-            
+
             ConsultationResponseDto response = consultService.cancelConsultation(consultId, customerId);
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "consultation", response,
@@ -227,4 +200,3 @@ public class ConsultationController {
         }
     }
 }
-

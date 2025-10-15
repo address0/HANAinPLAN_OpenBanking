@@ -92,8 +92,6 @@ public class UserController {
         }
     }
 
-
-    // 응답 클래스들
     public static class ErrorResponse {
         private String error;
         private String message;

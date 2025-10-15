@@ -22,10 +22,10 @@ public class VideoCallRoom extends BaseTimeEntity {
     private String roomId;
 
     @Column(nullable = false)
-    private Long callerId;  // 통화를 시작한 사용자 ID
+    private Long callerId;
 
     @Column(nullable = false)
-    private Long calleeId;  // 통화를 받는 사용자 ID
+    private Long calleeId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -38,16 +38,16 @@ public class VideoCallRoom extends BaseTimeEntity {
     private LocalDateTime endTime;
 
     @Column(length = 1000)
-    private String callerSessionDescription;  // Caller의 SDP
+    private String callerSessionDescription;
 
     @Column(length = 1000)
-    private String calleeSessionDescription;  // Callee의 SDP
+    private String calleeSessionDescription;
 
     public enum CallStatus {
-        WAITING,    // 통화 대기중
-        CONNECTED,  // 통화 연결됨
-        ENDED,      // 통화 종료됨
-        REJECTED    // 통화 거절됨
+        WAITING,
+        CONNECTED,
+        ENDED,
+        REJECTED
     }
 
     public void updateStatus(CallStatus status) {
@@ -67,7 +67,6 @@ public class VideoCallRoom extends BaseTimeEntity {
         this.calleeSessionDescription = sessionDescription;
     }
 
-    // WebRTCService에서 필요한 메서드들
     public void acceptCall() {
         updateStatus(CallStatus.CONNECTED);
     }

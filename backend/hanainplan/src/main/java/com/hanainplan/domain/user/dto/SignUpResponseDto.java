@@ -8,9 +8,6 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-/**
- * 회원가입 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,9 +22,6 @@ public class SignUpResponseDto {
     private LocalDateTime createdDate;
     private String message;
 
-    /**
-     * 성공 응답 생성
-     */
     public static SignUpResponseDto success(Long userId, UserType userType, String name, String phoneNumber, LocalDateTime createdDate) {
         return SignUpResponseDto.builder()
                 .userId(userId)
@@ -40,9 +34,6 @@ public class SignUpResponseDto {
                 .build();
     }
 
-    /**
-     * 실패 응답 생성
-     */
     public static SignUpResponseDto failure(String message) {
         return SignUpResponseDto.builder()
                 .message(message)

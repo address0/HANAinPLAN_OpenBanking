@@ -21,26 +21,26 @@ public class InterestRate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "interest_rate_id")
-    private Long interestRateId; // 금리조건pk
+    private Long interestRateId;
 
     @Column(name = "product_code", nullable = false, length = 20)
-    private String productCode; // 상품코드(논리적fk. 실제 외래키 설정X)
+    private String productCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "interest_type", nullable = false, length = 20)
-    private InterestType interestType; // 금리종류(기본/우대/만기후/중도해지)
+    private InterestType interestType;
 
     @Column(name = "maturity_period", length = 50)
-    private String maturityPeriod; // 만기기간
+    private String maturityPeriod;
 
     @Column(name = "interest_rate", precision = 5, scale = 4, nullable = false)
-    private BigDecimal interestRate; // 금리(%)
+    private BigDecimal interestRate;
 
     @Column(name = "is_irp")
-    private Boolean isIrp; // IRP여부
+    private Boolean isIrp;
 
     @Column(name = "effective_date", nullable = false)
-    private LocalDate effectiveDate; // 적용일자
+    private LocalDate effectiveDate;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -59,7 +59,6 @@ public class InterestRate {
         updatedAt = LocalDateTime.now();
     }
 
-    // 금리종류 enum
     public enum InterestType {
         BASIC("기본"),
         PREFERENTIAL("우대"),

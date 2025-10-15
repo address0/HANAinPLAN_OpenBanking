@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * IRP 계좌 상태 확인 응답 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,7 +15,6 @@ public class IrpAccountStatusResponseDto {
     private boolean hasIrpAccount;
     private String message;
 
-    // 성공 응답용 생성자
     public static IrpAccountStatusResponseDto success(String customerCi, boolean hasIrpAccount) {
         String message = hasIrpAccount ?
             "IRP 계좌를 보유하고 있습니다" : "IRP 계좌를 보유하고 있지 않습니다";

@@ -10,10 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 펀드 기준가 (하나인플랜)
- * - 하나은행 FundNav와 동일한 구조
- */
 @Entity
 @Table(name = "fund_nav")
 @Data
@@ -28,16 +24,16 @@ public class FundNav {
     private Long navId;
 
     @Column(name = "child_fund_cd", length = 16, nullable = false)
-    private String childFundCd; // 클래스 펀드 코드
+    private String childFundCd;
 
     @Column(name = "nav_date", nullable = false)
-    private LocalDate navDate; // 기준가 기준일
+    private LocalDate navDate;
 
     @Column(name = "nav", nullable = false, precision = 15, scale = 4)
-    private BigDecimal nav; // 기준가
+    private BigDecimal nav;
 
     @Column(name = "published_at")
-    private LocalDateTime publishedAt; // 공시 시각
+    private LocalDateTime publishedAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -47,11 +43,7 @@ public class FundNav {
         createdAt = LocalDateTime.now();
     }
 
-    /**
-     * 기준가 문자열 반환
-     */
     public String getNavString() {
         return String.format("%,.2f", nav);
     }
 }
-

@@ -17,10 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * 펀드 포트폴리오 동기화 서비스
- * - 하나은행의 펀드 가입/거래 내역을 하나인플랜 DB에 동기화
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,9 +27,6 @@ public class FundPortfolioSyncService {
     private final FundTransactionRepository fundTransactionRepository;
     private final AccountRepository accountRepository;
 
-    /**
-     * 모든 사용자의 펀드 포트폴리오 동기화
-     */
     @Transactional
     public void syncAllUserPortfolios() {
         log.info("====================================================");
@@ -41,7 +34,6 @@ public class FundPortfolioSyncService {
         log.info("====================================================");
 
         try {
-            // 계좌 데이터에서 CI 목록 가져오기 (포트폴리오가 없어도 동기화 가능)
             List<BankingAccount> allAccounts = accountRepository.findAll();
             Map<String, List<BankingAccount>> accountsByCi = allAccounts.stream()
                     .filter(account -> account.getCustomerCi() != null && !account.getCustomerCi().isEmpty())
@@ -51,12 +43,11 @@ public class FundPortfolioSyncService {
             int syncedPortfolioCount = 0;
             int syncedTransactionCount = 0;
 
-            // 각 고객의 포트폴리오를 동기화
             for (String customerCi : accountsByCi.keySet()) {
                 try {
                     int portfolioCount = syncUserPortfolio(customerCi);
                     int transactionCount = syncUserTransactions(customerCi);
-                    
+
                     if (portfolioCount > 0 || transactionCount > 0) {
                         syncedUserCount++;
                         syncedPortfolioCount += portfolioCount;
@@ -82,22 +73,17 @@ public class FundPortfolioSyncService {
         }
     }
 
-    /**
-     * 특정 사용자의 펀드 포트폴리오 동기화
-     */
     @Transactional
     public int syncUserPortfolio(String customerCi) {
         log.info("사용자 펀드 포트폴리오 동기화 시작 - CI: {}", customerCi);
 
         try {
-            // 하나은행에서 사용자의 펀드 가입 목록 조회
             List<Map<String, Object>> hanaSubscriptions = hanaBankClient.getCustomerSubscriptions(customerCi);
-            
+
             log.info("하나은행에서 조회된 펀드 가입 내역: {}건", hanaSubscriptions.size());
 
             int syncedCount = 0;
 
-            // CI로 userId 조회 (한 번만 조회)
             Long userId = getUserIdByCustomerCi(customerCi);
             if (userId == null) {
                 log.warn("CI에 해당하는 사용자를 찾을 수 없음 - CI: {}", customerCi);
@@ -108,17 +94,14 @@ public class FundPortfolioSyncService {
                 try {
                     Long subscriptionId = ((Number) hanaSubscription.get("subscriptionId")).longValue();
 
-                    // 기존 포트폴리오 확인 (subscriptionId로 매핑)
                     FundPortfolio portfolio = fundPortfolioRepository
                             .findByCustomerCiAndSubscriptionId(customerCi, subscriptionId)
                             .orElse(null);
 
                     if (portfolio == null) {
-                        // 신규 포트폴리오 생성
                         portfolio = createNewPortfolio(userId, customerCi, hanaSubscription);
                         log.info("신규 펀드 포트폴리오 생성 - subscriptionId: {}", subscriptionId);
                     } else {
-                        // 기존 포트폴리오 업데이트
                         updateExistingPortfolio(portfolio, hanaSubscription);
                         log.debug("펀드 포트폴리오 업데이트 - subscriptionId: {}", subscriptionId);
                     }
@@ -141,22 +124,17 @@ public class FundPortfolioSyncService {
         }
     }
 
-    /**
-     * 특정 사용자의 펀드 거래 내역 동기화
-     */
     @Transactional
     public int syncUserTransactions(String customerCi) {
         log.info("사용자 펀드 거래 내역 동기화 시작 - CI: {}", customerCi);
 
         try {
-            // 하나은행에서 사용자의 펀드 거래 내역 조회
             List<Map<String, Object>> hanaTransactions = hanaBankClient.getCustomerTransactions(customerCi);
-            
+
             log.info("하나은행에서 조회된 펀드 거래 내역: {}건", hanaTransactions.size());
 
             int syncedCount = 0;
 
-            // CI로 userId 조회
             Long userId = getUserIdByCustomerCi(customerCi);
             if (userId == null) {
                 log.warn("CI에 해당하는 사용자를 찾을 수 없음 - CI: {}", customerCi);
@@ -167,7 +145,6 @@ public class FundPortfolioSyncService {
                 try {
                     Long hanaTransactionId = ((Number) hanaTransaction.get("transactionId")).longValue();
 
-                    // 이미 동기화된 거래인지 확인 (하나인플랜의 description에 하나은행 transactionId 저장)
                     boolean exists = fundTransactionRepository.existsByDescriptionContaining(
                             "HANA_TX_" + hanaTransactionId);
 
@@ -193,16 +170,12 @@ public class FundPortfolioSyncService {
         }
     }
 
-    /**
-     * 신규 포트폴리오 생성
-     */
     private FundPortfolio createNewPortfolio(Long userId, String customerCi, Map<String, Object> hanaSubscription) {
-        // null 체크 및 기본값 설정
         String fundType = hanaSubscription.get("fundType") != null ? 
                 (String) hanaSubscription.get("fundType") : "기타";
         String riskLevel = hanaSubscription.get("riskLevel") != null ? 
                 (String) hanaSubscription.get("riskLevel") : "정보없음";
-        
+
         return FundPortfolio.builder()
                 .userId(userId)
                 .customerCi(customerCi)
@@ -233,9 +206,6 @@ public class FundPortfolioSyncService {
                 .build();
     }
 
-    /**
-     * 기존 포트폴리오 업데이트
-     */
     private void updateExistingPortfolio(FundPortfolio portfolio, Map<String, Object> hanaSubscription) {
         portfolio.setCurrentUnits(new java.math.BigDecimal(hanaSubscription.get("currentUnits").toString()));
         portfolio.setCurrentNav(new java.math.BigDecimal(hanaSubscription.get("currentNav").toString()));
@@ -247,17 +217,14 @@ public class FundPortfolioSyncService {
         portfolio.setUpdatedAt(LocalDateTime.now());
     }
 
-    /**
-     * 신규 거래 내역 생성
-     */
     private FundTransaction createNewTransaction(Long userId, Map<String, Object> hanaTransaction) {
         Long hanaTransactionId = ((Number) hanaTransaction.get("transactionId")).longValue();
         Long subscriptionId = ((Number) hanaTransaction.get("subscriptionId")).longValue();
 
         return FundTransaction.builder()
-                .portfolioId(subscriptionId) // portfolioId = subscriptionId로 매핑
+                .portfolioId(subscriptionId)
                 .userId(userId)
-                .fundCode((String) hanaTransaction.get("childFundCd")) // fundCode = childFundCd
+                .fundCode((String) hanaTransaction.get("childFundCd"))
                 .transactionType((String) hanaTransaction.get("transactionType"))
                 .transactionDate(java.time.LocalDateTime.of(
                         java.time.LocalDate.parse(hanaTransaction.get("transactionDate").toString()),
@@ -268,26 +235,22 @@ public class FundPortfolioSyncService {
                 .units(new java.math.BigDecimal(hanaTransaction.get("units").toString()))
                 .amount(new java.math.BigDecimal(hanaTransaction.get("amount").toString()))
                 .fee(new java.math.BigDecimal(hanaTransaction.get("fee").toString()))
-                .balanceUnits(new java.math.BigDecimal(hanaTransaction.get("units").toString())) // 간단히 units로 설정
+                .balanceUnits(new java.math.BigDecimal(hanaTransaction.get("units").toString()))
                 .irpAccountNumber((String) hanaTransaction.get("irpAccountNumber"))
                 .description("HANA_TX_" + hanaTransactionId + " - " + hanaTransaction.get("note"))
                 .createdAt(LocalDateTime.now())
                 .build();
     }
 
-    /**
-     * CI로 userId 조회
-     */
     private Long getUserIdByCustomerCi(String customerCi) {
         List<BankingAccount> accounts = accountRepository.findAll().stream()
                 .filter(account -> customerCi.equals(account.getCustomerCi()))
                 .toList();
-        
+
         if (accounts.isEmpty()) {
             return null;
         }
-        
+
         return accounts.get(0).getUserId();
     }
 }
-

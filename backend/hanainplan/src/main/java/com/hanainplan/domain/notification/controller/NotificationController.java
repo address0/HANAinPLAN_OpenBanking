@@ -21,10 +21,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 알림 컨트롤러
- * - 알림 관련 REST API 엔드포인트 제공
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/notifications")
@@ -35,9 +31,6 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
 
-    /**
-     * 사용자 알림 목록 조회
-     */
     @GetMapping
     @Operation(summary = "사용자 알림 목록 조회", description = "현재 로그인한 사용자의 알림 목록을 페이징으로 조회합니다.")
     public ResponseEntity<Page<NotificationDto.Response>> getUserNotifications(
@@ -48,11 +41,9 @@ public class NotificationController {
 
         Long targetUserId;
 
-        // userId 파라미터가 제공되었으면 이를 우선 사용
         if (userId != null) {
             targetUserId = userId;
         } else {
-            // 인증 정보에서 사용자 ID 추출 시도
             targetUserId = getUserIdFromAuthentication(authentication);
             if (targetUserId == null) {
                 return ResponseEntity.badRequest().body(null);
@@ -64,9 +55,6 @@ public class NotificationController {
         return ResponseEntity.ok(notifications);
     }
 
-    /**
-     * 사용자 읽지 않은 알림 목록 조회
-     */
     @GetMapping("/unread")
     @Operation(summary = "읽지 않은 알림 목록 조회", description = "현재 로그인한 사용자의 읽지 않은 알림 목록을 페이징으로 조회합니다.")
     public ResponseEntity<Page<NotificationDto.Response>> getUserUnreadNotifications(
@@ -82,9 +70,6 @@ public class NotificationController {
         return ResponseEntity.ok(notifications);
     }
 
-    /**
-     * 알림 개수 요약 조회
-     */
     @GetMapping("/summary")
     @Operation(summary = "알림 개수 요약 조회", description = "현재 로그인한 사용자의 총 알림 수와 읽지 않은 알림 수를 조회합니다.")
     public ResponseEntity<NotificationDto.Summary> getNotificationSummary(
@@ -95,9 +80,6 @@ public class NotificationController {
         return ResponseEntity.ok(summary);
     }
 
-    /**
-     * 특정 타입의 알림 목록 조회
-     */
     @GetMapping("/type/{type}")
     @Operation(summary = "특정 타입 알림 목록 조회", description = "현재 로그인한 사용자의 특정 타입 알림 목록을 페이징으로 조회합니다.")
     public ResponseEntity<Page<NotificationDto.Response>> getUserNotificationsByType(
@@ -114,9 +96,6 @@ public class NotificationController {
         return ResponseEntity.ok(notifications);
     }
 
-    /**
-     * 기간별 알림 목록 조회
-     */
     @GetMapping("/period")
     @Operation(summary = "기간별 알림 목록 조회", description = "현재 로그인한 사용자의 특정 기간 알림 목록을 페이징으로 조회합니다.")
     public ResponseEntity<Page<NotificationDto.Response>> getUserNotificationsByPeriod(
@@ -133,9 +112,6 @@ public class NotificationController {
         return ResponseEntity.ok(notifications);
     }
 
-    /**
-     * 단일 알림 조회
-     */
     @GetMapping("/{notificationId}")
     @Operation(summary = "단일 알림 조회", description = "알림 ID로 특정 알림을 조회합니다.")
     public ResponseEntity<NotificationDto.Response> getNotification(
@@ -144,7 +120,6 @@ public class NotificationController {
             @Parameter(description = "사용자 ID (개발용)") @RequestParam(required = false) Long userId) {
 
         NotificationDto.Response notification = notificationService.getNotificationById(notificationId);
-        // 본인의 알림인지 확인
         Long targetUserId = (userId != null) ? userId : getUserIdFromAuthentication(authentication);
         if (!notification.getUserId().equals(targetUserId)) {
             return ResponseEntity.notFound().build();
@@ -153,9 +128,6 @@ public class NotificationController {
         return ResponseEntity.ok(notification);
     }
 
-    /**
-     * 알림 읽음 처리
-     */
     @PatchMapping("/{notificationId}/read")
     @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 처리합니다.")
     public ResponseEntity<ApiResponse> markAsRead(
@@ -166,12 +138,10 @@ public class NotificationController {
         try {
             Long targetUserId;
 
-            // userId 파라미터가 제공되었으면 이를 우선 사용
             if (userId != null) {
                 targetUserId = userId;
                 log.info("사용자 ID 파라미터 사용: {}", userId);
             } else {
-                // 인증 정보에서 사용자 ID 추출 시도
                 targetUserId = getUserIdFromAuthentication(authentication);
                 if (targetUserId == null) {
                     log.error("알림 읽음 처리 실패 - 사용자 ID를 확인할 수 없습니다");
@@ -182,16 +152,13 @@ public class NotificationController {
                 }
             }
 
-            // 알림 존재 확인
             if (!notificationRepository.existsById(notificationId)) {
                 log.warn("알림 읽음 처리 실패 - 알림 존재하지 않음, 알림 ID: {}", notificationId);
                 return ResponseEntity.notFound().build();
             }
 
-            // 알림 조회 및 본인 소유 확인
             NotificationDto.Response notification = notificationService.getNotificationById(notificationId);
 
-            // 본인의 알림인지 확인
             if (!notification.getUserId().equals(targetUserId)) {
                 log.warn("알림 읽음 처리 권한 없음 - 요청 사용자 ID: {}, 알림 소유자 ID: {}", targetUserId, notification.getUserId());
                 return ResponseEntity.notFound().build();
@@ -204,7 +171,6 @@ public class NotificationController {
                     .message("알림을 읽음 처리했습니다.")
                     .build());
         } catch (Exception e) {
-            // 기타 예외 처리
             log.error("알림 읽음 처리 중 오류 발생 - 알림 ID: {}", notificationId, e);
             return ResponseEntity.status(500).body(ApiResponse.builder()
                     .success(false)
@@ -213,9 +179,6 @@ public class NotificationController {
         }
     }
 
-    /**
-     * 모든 알림 읽음 처리
-     */
     @PatchMapping("/read-all")
     @Operation(summary = "모든 알림 읽음 처리", description = "현재 로그인한 사용자의 모든 알림을 읽음 처리합니다.")
     public ResponseEntity<ApiResponse> markAllAsRead(
@@ -230,9 +193,6 @@ public class NotificationController {
                 .build());
     }
 
-    /**
-     * 특정 타입의 모든 알림 읽음 처리
-     */
     @PatchMapping("/type/{type}/read-all")
     @Operation(summary = "특정 타입 모든 알림 읽음 처리", description = "현재 로그인한 사용자의 특정 타입 모든 알림을 읽음 처리합니다.")
     public ResponseEntity<ApiResponse> markAllAsReadByType(
@@ -249,9 +209,6 @@ public class NotificationController {
                 .build());
     }
 
-    /**
-     * 알림 삭제
-     */
     @DeleteMapping("/{notificationId}")
     @Operation(summary = "알림 삭제", description = "특정 알림을 삭제합니다.")
     public ResponseEntity<ApiResponse> deleteNotification(
@@ -268,9 +225,6 @@ public class NotificationController {
                 .build());
     }
 
-    /**
-     * 여러 알림 일괄 삭제
-     */
     @DeleteMapping("/batch")
     @Operation(summary = "여러 알림 일괄 삭제", description = "여러 알림을 일괄 삭제합니다.")
     public ResponseEntity<ApiResponse> deleteNotifications(
@@ -287,9 +241,6 @@ public class NotificationController {
                 .build());
     }
 
-    /**
-     * 오래된 알림 정리
-     */
     @DeleteMapping("/cleanup")
     @Operation(summary = "오래된 알림 정리", description = "30일 이전의 읽은 알림들을 정리합니다.")
     public ResponseEntity<ApiResponse> cleanupOldNotifications(
@@ -304,26 +255,18 @@ public class NotificationController {
                 .build());
     }
 
-    /**
-     * Authentication에서 사용자 ID 추출
-     */
     private Long getUserIdFromAuthentication(Authentication authentication) {
-        // 인증 정보가 없는 경우 (개발/테스트용)
         if (authentication == null || !authentication.isAuthenticated()) {
             log.warn("인증 정보가 없습니다. 인증되지 않은 요청입니다.");
             return null;
         }
 
-        // 실제 구현에서는 JWT 토큰이나 세션에서 사용자 ID를 추출
         try {
-            // Principal이 User 객체인 경우를 먼저 확인
             Object principal = authentication.getPrincipal();
             if (principal instanceof org.springframework.security.core.userdetails.User) {
-                // User 객체에서 username을 사용자 ID로 사용 (실제 구현 시 수정 필요)
                 String username = ((org.springframework.security.core.userdetails.User) principal).getUsername();
                 return Long.parseLong(username);
             } else if (principal instanceof String) {
-                // String인 경우 직접 파싱
                 return Long.parseLong((String) principal);
             } else {
                 log.warn("알 수 없는 Principal 타입: {}", principal.getClass());
@@ -335,9 +278,6 @@ public class NotificationController {
         }
     }
 
-    /**
-     * API 응답 래퍼 클래스
-     */
     @Getter
     @RequiredArgsConstructor
     public static class ApiResponse {

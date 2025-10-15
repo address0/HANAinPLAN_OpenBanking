@@ -69,13 +69,13 @@ public class CiController {
                 request.getGender(),
                 request.getResidentNumber()
             );
-            
+
             return ResponseEntity.ok(CiConversionResponseDto.success(ci));
-            
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                 .body(CiConversionResponseDto.error("입력 데이터 오류: " + e.getMessage()));
-                
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                 .body(CiConversionResponseDto.error("서버 오류: " + e.getMessage()));
@@ -114,7 +114,6 @@ public class CiController {
     })
     public ResponseEntity<CiVerificationResponseDto> verifyCi(@Valid @RequestBody CiVerificationRequestDto request) {
         try {
-            // 입력된 개인정보를 CI로 변환
             String ci = ciConversionService.convertToCi(
                 request.getName(),
                 request.getBirthDate(),
@@ -122,12 +121,10 @@ public class CiController {
                 request.getResidentNumber()
             );
 
-            // CI로 사용자 존재 여부 확인
             boolean userExists = userService.getUserByCi(ci).isPresent();
 
             String message = userExists ? "실명인증 사용자가 확인되었습니다." : "실명인증 사용자를 찾을 수 없습니다.";
 
-            // CI값을 포함한 응답 반환
             return ResponseEntity.ok(CiVerificationResponseDto.success(userExists, message, ci));
 
         } catch (IllegalArgumentException e) {
@@ -147,11 +144,11 @@ public class CiController {
             @RequestParam String birthDate,
             @RequestParam String gender,
             @RequestParam String residentNumber) {
-        
+
         try {
             String ci = ciConversionService.convertToCi(name, birthDate, gender, residentNumber);
             return ResponseEntity.ok(CiConversionResponseDto.success(ci));
-            
+
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                 .body(CiConversionResponseDto.error("테스트 오류: " + e.getMessage()));

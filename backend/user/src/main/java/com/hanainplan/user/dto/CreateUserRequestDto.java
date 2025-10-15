@@ -31,10 +31,8 @@ public class CreateUserRequestDto {
     @Pattern(regexp = "^\\d{13}$", message = "주민번호는 13자리 숫자여야 합니다.")
     private String residentNumber;
 
-    // 기본 생성자
     public CreateUserRequestDto() {}
 
-    // 생성자
     public CreateUserRequestDto(String name, String phone, 
                                String birthDate, String gender, String residentNumber) {
         this.name = name;

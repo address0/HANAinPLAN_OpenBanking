@@ -14,9 +14,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 은행별 입금 요청 서비스
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,9 +30,6 @@ public class BankDepositService {
     @Value("${external.api.shinhan-bank.base-url:http://localhost:8083}")
     private String shinhanBankBaseUrl;
 
-    /**
-     * 계좌 유형에 따라 입금 처리
-     */
     public BankDepositResult processDeposit(String accountNumber, BigDecimal amount, String description, 
                                             String accountType, String bankCode) {
         log.info("은행 입금 요청 - 계좌번호: {}, 은행코드: {}, 계좌유형: {}, 금액: {}원", 
@@ -43,10 +37,8 @@ public class BankDepositService {
 
         try {
             if ("IRP".equals(accountType)) {
-                // IRP 계좌 입금
                 return processHanaIrpDeposit(accountNumber, amount, description);
             } else {
-                // 일반 계좌 입금
                 return processGeneralDeposit(accountNumber, amount, description, bankCode);
             }
         } catch (Exception e) {
@@ -55,9 +47,6 @@ public class BankDepositService {
         }
     }
 
-    /**
-     * 하나은행 IRP 계좌 입금
-     */
     private BankDepositResult processHanaIrpDeposit(String accountNumber, BigDecimal amount, String description) {
         try {
             String url = hanaBankBaseUrl + "/api/v1/irp/deposit";
@@ -96,9 +85,6 @@ public class BankDepositService {
         }
     }
 
-    /**
-     * 일반 계좌 입금 (하나/국민/신한)
-     */
     private BankDepositResult processGeneralDeposit(String accountNumber, BigDecimal amount, String description, String bankCode) {
         try {
             String url = getBankDepositApiUrl(bankCode);
@@ -138,9 +124,6 @@ public class BankDepositService {
         }
     }
 
-    /**
-     * 은행 코드별 입금 API URL 반환
-     */
     private String getBankDepositApiUrl(String bankCode) {
         switch (bankCode) {
             case "081":
@@ -154,9 +137,6 @@ public class BankDepositService {
         }
     }
 
-    /**
-     * 은행 코드별 은행명 반환
-     */
     private String getBankName(String bankCode) {
         switch (bankCode) {
             case "081":
@@ -170,9 +150,6 @@ public class BankDepositService {
         }
     }
 
-    /**
-     * 은행 입금 결과 클래스
-     */
     public static class BankDepositResult {
         private final boolean success;
         private final String message;

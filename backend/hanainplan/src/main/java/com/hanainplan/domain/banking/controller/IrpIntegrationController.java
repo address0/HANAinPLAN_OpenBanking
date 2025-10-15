@@ -18,10 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * IRP 통합 관리 컨트롤러
- * - HANAinPLAN에서 은행별 IRP 데이터를 통합 관리하는 API
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/irp-integration")
@@ -31,18 +27,15 @@ public class IrpIntegrationController {
 
     private final IrpIntegrationService irpIntegrationService;
 
-    // ===== 계좌 관리 API =====
-
     @GetMapping("/accounts/customer/{customerId}")
     @Operation(summary = "고객 IRP 계좌 조회 (고객 ID)", description = "특정 고객의 IRP 계좌 정보를 고객 ID로 조회합니다")
     public ResponseEntity<?> getCustomerIrpAccountById(
             @Parameter(description = "고객 ID") @PathVariable Long customerId) {
         try {
             log.info("IRP 계좌 조회 API 호출 - 고객 ID: {}", customerId);
-            
-            // 고객 ID로 IRP 계좌 조회
+
             IrpAccountDto irpAccount = irpIntegrationService.getCustomerIrpAccountByCustomerId(customerId);
-            
+
             if (irpAccount != null) {
                 log.info("IRP 계좌 조회 성공 - 고객 ID: {}, 계좌번호: {}", customerId, irpAccount.getAccountNumber());
                 return ResponseEntity.ok(irpAccount);
@@ -172,8 +165,6 @@ public class IrpIntegrationController {
         }
     }
 
-    // ===== 계좌 개설 API =====
-
     @PostMapping("/accounts/open")
     @Operation(summary = "IRP 계좌 개설", description = "새로운 IRP 계좌를 개설합니다")
     public ResponseEntity<?> openIrpAccount(
@@ -199,8 +190,6 @@ public class IrpIntegrationController {
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
-
-    // ===== 통계 및 분석 API =====
 
     @GetMapping("/statistics/accounts")
     @Operation(summary = "IRP 계좌 통계", description = "은행별 IRP 계좌 통계를 조회합니다")
@@ -253,8 +242,6 @@ public class IrpIntegrationController {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
-
-    // ===== 헬퍼 메소드 =====
 
     private String getBankName(String bankCode) {
         switch (bankCode.toUpperCase()) {

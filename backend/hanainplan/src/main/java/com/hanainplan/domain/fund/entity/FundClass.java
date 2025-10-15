@@ -6,10 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 펀드 클래스 (판매단위) (하나인플랜)
- * - 하나은행 FundClass와 동일한 구조
- */
 @Entity
 @Table(name = "fund_class")
 @Data
@@ -20,47 +16,38 @@ public class FundClass {
 
     @Id
     @Column(name = "child_fund_cd", length = 16)
-    private String childFundCd; // 클래스 펀드 코드
+    private String childFundCd;
 
-    // 연관관계: 클래스 N : 1 모펀드
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fund_cd", nullable = false)
     private FundMaster fundMaster;
 
     @Column(name = "class_code", length = 8)
-    private String classCode; // A/C/I/P 등
+    private String classCode;
 
     @Column(name = "load_type", length = 16)
-    private String loadType; // FRONT/BACK/NONE/UNKNOWN
+    private String loadType;
 
     @Column(name = "tax_category", length = 32)
-    private String taxCategory; // 배당소득/양도소득 등
+    private String taxCategory;
 
     @Column(name = "sale_status", length = 16, nullable = false)
     @Builder.Default
-    private String saleStatus = "ON"; // ON/OFF/PAUSE
+    private String saleStatus = "ON";
 
     @Column(name = "source_url", length = 512)
-    private String sourceUrl; // 펀드 상세페이지 URL
+    private String sourceUrl;
 
-    // 연관관계: 클래스 1 : 1 거래규칙
     @OneToOne(mappedBy = "fundClass", cascade = CascadeType.ALL, orphanRemoval = true)
     private FundRules fundRules;
 
-    // 연관관계: 클래스 1 : 1 수수료
     @OneToOne(mappedBy = "fundClass", cascade = CascadeType.ALL, orphanRemoval = true)
     private FundFees fundFees;
 
-    /**
-     * 판매 중 여부 확인
-     */
     public boolean isOnSale() {
         return "ON".equals(saleStatus);
     }
 
-    /**
-     * 클래스 표시명 반환
-     */
     public String getDisplayName() {
         if (fundMaster == null) {
             return childFundCd;
@@ -69,9 +56,6 @@ public class FundClass {
         return fundMaster.getFundName() + className;
     }
 
-    /**
-     * Load Type 설명 반환
-     */
     public String getLoadTypeDescription() {
         return switch (loadType) {
             case "FRONT" -> "선취";
@@ -82,4 +66,3 @@ public class FundClass {
         };
     }
 }
-

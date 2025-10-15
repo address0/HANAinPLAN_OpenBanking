@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * 하나인플랜 펀드 매수 서비스
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -39,52 +36,41 @@ public class FundSubscriptionService {
     private final com.hanainplan.domain.banking.repository.TransactionRepository transactionRepository;
     private final FundPortfolioSyncService fundPortfolioSyncService;
 
-    /**
-     * 펀드 매수
-     */
     @Transactional
     public FundPurchaseResponseDto purchaseFund(FundPurchaseRequestDto request) {
         log.info("펀드 매수 요청 - userId: {}, childFundCd: {}, amount: {}",
                 request.getUserId(), request.getChildFundCd(), request.getPurchaseAmount());
 
         try {
-            // 유효성 검증
             request.validate();
 
-            // userId로 실제 사용자 정보 조회 (실제 CI 값 가져오기)
             User user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + request.getUserId()));
-            
+
             String realCustomerCi = user.getCi();
             if (realCustomerCi == null || realCustomerCi.isEmpty()) {
                 throw new IllegalArgumentException("사용자 CI 정보가 없습니다. 사용자 ID: " + request.getUserId());
             }
-            
+
             log.info("사용자 정보 조회 완료 - userId: {}, 실제 CI: {}", request.getUserId(), realCustomerCi);
 
-            // 하나은행 API 호출용 요청 변환 (실제 CI 사용)
             Map<String, Object> bankRequest = new HashMap<>();
-            bankRequest.put("customerCi", realCustomerCi);  // 실제 CI 사용!
+            bankRequest.put("customerCi", realCustomerCi);
             bankRequest.put("childFundCd", request.getChildFundCd());
             bankRequest.put("purchaseAmount", request.getPurchaseAmount());
-            // irpAccountNumber는 하나은행 API에서 customerCi로 자동 조회
-            
+
             log.info("하나은행 API 호출 - 실제 customerCi: {}, childFundCd: {}", 
                     realCustomerCi, request.getChildFundCd());
 
-            // 하나은행 API 호출
             Map<String, Object> bankResponse = hanaBankClient.purchaseFund(bankRequest);
 
-            // 응답 변환
             FundPurchaseResponseDto response = objectMapper.convertValue(bankResponse, FundPurchaseResponseDto.class);
 
             if (response.isSuccess()) {
                 log.info("펀드 매수 성공 - subscriptionId: {}", response.getSubscriptionId());
-                
-                // 하나인플랜 DB의 IRP 계좌 잔액도 동기화
+
                 syncIrpAccountBalance(realCustomerCi, request.getPurchaseAmount());
-                
-                // 하나인플랜 거래내역 생성 (펀드 매수 = 출금)
+
                 createHanainplanPurchaseTransaction(
                     realCustomerCi,
                     response.getIrpAccountNumber(),
@@ -93,15 +79,13 @@ public class FundSubscriptionService {
                     response.getFundName(),
                     response.getClassCode()
                 );
-                
-                // 펀드 포트폴리오 및 거래내역 즉시 동기화
+
                 try {
                     fundPortfolioSyncService.syncUserPortfolio(realCustomerCi);
                     fundPortfolioSyncService.syncUserTransactions(realCustomerCi);
                     log.info("펀드 포트폴리오 및 거래내역 동기화 완료 - customerCi: {}", realCustomerCi);
                 } catch (Exception e) {
                     log.error("펀드 포트폴리오 동기화 실패 - customerCi: {}", realCustomerCi, e);
-                    // 동기화 실패해도 매수는 성공으로 처리
                 }
             } else {
                 log.warn("펀드 매수 실패 - {}", response.getErrorMessage());
@@ -119,33 +103,28 @@ public class FundSubscriptionService {
         }
     }
 
-    /**
-     * 하나인플랜 DB의 IRP 계좌 잔액 동기화 (출금)
-     */
     private void syncIrpAccountBalance(String customerCi, BigDecimal withdrawAmount) {
         try {
-            // 1. IRP 계좌 테이블 업데이트 (tb_irp_account)
             List<IrpAccount> irpAccounts = irpAccountRepository.findByCustomerCiOrderByCreatedDateDesc(customerCi);
             if (!irpAccounts.isEmpty()) {
-                IrpAccount irpAccount = irpAccounts.get(0); // 첫 번째 활성 계좌
+                IrpAccount irpAccount = irpAccounts.get(0);
                 BigDecimal oldBalance = irpAccount.getCurrentBalance();
                 BigDecimal newBalance = oldBalance.subtract(withdrawAmount);
-                
+
                 irpAccount.setCurrentBalance(newBalance);
                 irpAccountRepository.save(irpAccount);
-                
+
                 log.info("하나인플랜 IRP 계좌 출금 완료 - 계좌번호: {}, {}원 -> {}원",
                         irpAccount.getAccountNumber(), oldBalance, newBalance);
 
-                // 2. 통합 계좌 테이블 업데이트 (tb_banking_account, account_type=6)
                 log.info("통합 계좌 테이블에서 IRP 계좌 조회 시도 - 계좌번호: {}", irpAccount.getAccountNumber());
                 Optional<BankingAccount> bankingAccountOpt = accountRepository.findByAccountNumber(irpAccount.getAccountNumber());
-                
+
                 if (bankingAccountOpt.isPresent()) {
                     BankingAccount bankingAccount = bankingAccountOpt.get();
                     log.info("통합 계좌 발견 - 계좌 ID: {}, 계좌번호: {}, 현재 잔액: {}", 
                             bankingAccount.getAccountId(), bankingAccount.getAccountNumber(), bankingAccount.getBalance());
-                    
+
                     bankingAccount.setBalance(newBalance);
                     accountRepository.save(bankingAccount);
                     log.info("✅ 통합 계좌 테이블 잔액 업데이트 완료 - 계좌번호: {}, 새 잔액: {}", 
@@ -159,37 +138,31 @@ public class FundSubscriptionService {
             }
         } catch (Exception e) {
             log.error("IRP 계좌 잔액 동기화 실패 - customerCi: {}", customerCi, e);
-            // 동기화 실패는 로그만 남기고 매수 성공은 유지
         }
     }
 
-    /**
-     * 하나인플랜 DB의 IRP 계좌 잔액 동기화 (입금)
-     */
     private void syncIrpAccountBalanceDeposit(String customerCi, BigDecimal depositAmount) {
         try {
-            // 1. IRP 계좌 테이블 업데이트 (tb_irp_account)
             List<IrpAccount> irpAccounts = irpAccountRepository.findByCustomerCiOrderByCreatedDateDesc(customerCi);
             if (!irpAccounts.isEmpty()) {
-                IrpAccount irpAccount = irpAccounts.get(0); // 첫 번째 활성 계좌
+                IrpAccount irpAccount = irpAccounts.get(0);
                 BigDecimal oldBalance = irpAccount.getCurrentBalance();
                 BigDecimal newBalance = oldBalance.add(depositAmount);
-                
+
                 irpAccount.setCurrentBalance(newBalance);
                 irpAccountRepository.save(irpAccount);
-                
+
                 log.info("하나인플랜 IRP 계좌 입금 완료 - 계좌번호: {}, {}원 -> {}원",
                         irpAccount.getAccountNumber(), oldBalance, newBalance);
 
-                // 2. 통합 계좌 테이블 업데이트 (tb_banking_account, account_type=6)
                 log.info("통합 계좌 테이블에서 IRP 계좌 조회 시도 - 계좌번호: {}", irpAccount.getAccountNumber());
                 Optional<BankingAccount> bankingAccountOpt = accountRepository.findByAccountNumber(irpAccount.getAccountNumber());
-                
+
                 if (bankingAccountOpt.isPresent()) {
                     BankingAccount bankingAccount = bankingAccountOpt.get();
                     log.info("통합 계좌 발견 - 계좌 ID: {}, 계좌번호: {}, 현재 잔액: {}", 
                             bankingAccount.getAccountId(), bankingAccount.getAccountNumber(), bankingAccount.getBalance());
-                    
+
                     bankingAccount.setBalance(newBalance);
                     accountRepository.save(bankingAccount);
                     log.info("✅ 통합 계좌 테이블 잔액 업데이트 완료 - 계좌번호: {}, 새 잔액: {}", 
@@ -203,61 +176,49 @@ public class FundSubscriptionService {
             }
         } catch (Exception e) {
             log.error("IRP 계좌 잔액 동기화 실패 - customerCi: {}", customerCi, e);
-            // 동기화 실패는 로그만 남기고 매도 성공은 유지
         }
     }
 
-    /**
-     * 펀드 매도 (환매)
-     */
     @Transactional
     public FundRedemptionResponseDto redeemFund(FundRedemptionRequestDto request) {
         log.info("펀드 매도 요청 - userId: {}, subscriptionId: {}, sellUnits: {}",
                 request.getUserId(), request.getSubscriptionId(), request.getSellUnits());
 
         try {
-            // 유효성 검증
             request.validate();
 
-            // userId로 실제 사용자 정보 조회 (실제 CI 값 가져오기)
             User user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + request.getUserId()));
-            
+
             String realCustomerCi = user.getCi();
             if (realCustomerCi == null || realCustomerCi.isEmpty()) {
                 throw new IllegalArgumentException("사용자 CI 정보가 없습니다. 사용자 ID: " + request.getUserId());
             }
-            
+
             log.info("사용자 정보 조회 완료 - userId: {}, 실제 CI: {}", request.getUserId(), realCustomerCi);
 
-            // 하나은행 API 호출용 요청 변환 (실제 CI 사용)
             Map<String, Object> bankRequest = new HashMap<>();
-            bankRequest.put("customerCi", realCustomerCi);  // 실제 CI 사용!
+            bankRequest.put("customerCi", realCustomerCi);
             bankRequest.put("subscriptionId", request.getSubscriptionId());
             bankRequest.put("sellUnits", request.getSellUnits());
             bankRequest.put("sellAll", request.getSellAll());
-            // irpAccountNumber는 하나은행 API에서 customerCi로 자동 조회
-            
+
             log.info("하나은행 API 호출 - 실제 customerCi: {}, subscriptionId: {}", 
                     realCustomerCi, request.getSubscriptionId());
 
-            // 하나은행 API 호출
             Map<String, Object> bankResponse = hanaBankClient.redeemFund(bankRequest);
 
-            // 응답 변환
             FundRedemptionResponseDto response = objectMapper.convertValue(
                     bankResponse, FundRedemptionResponseDto.class);
 
             if (response.isSuccess()) {
                 log.info("펀드 매도 성공 - 매도 좌수: {}, 실수령액: {}원, 실현 손익: {}원",
                         response.getSellUnits(), response.getNetAmount(), response.getProfit());
-                
-                // 하나인플랜 DB의 IRP 계좌 잔액도 동기화 (입금)
-                BigDecimal depositAmount = response.getNetAmount(); // 실수령액
+
+                BigDecimal depositAmount = response.getNetAmount();
                 if (depositAmount != null && depositAmount.compareTo(BigDecimal.ZERO) > 0) {
                     syncIrpAccountBalanceDeposit(realCustomerCi, depositAmount);
-                    
-                    // 하나인플랜 거래내역 생성 (펀드 매도 = 입금)
+
                     createHanainplanRedemptionTransaction(
                         realCustomerCi,
                         response.getIrpAccountNumber(),
@@ -267,15 +228,13 @@ public class FundSubscriptionService {
                         response.getClassCode(),
                         response.getProfit()
                     );
-                    
-                    // 펀드 포트폴리오 및 거래내역 즉시 동기화
+
                     try {
                         fundPortfolioSyncService.syncUserPortfolio(realCustomerCi);
                         fundPortfolioSyncService.syncUserTransactions(realCustomerCi);
                         log.info("펀드 포트폴리오 및 거래내역 동기화 완료 - customerCi: {}", realCustomerCi);
                     } catch (Exception e) {
                         log.error("펀드 포트폴리오 동기화 실패 - customerCi: {}", realCustomerCi, e);
-                        // 동기화 실패해도 매도는 성공으로 처리
                     }
                 }
             } else {
@@ -294,25 +253,20 @@ public class FundSubscriptionService {
         }
     }
 
-    /**
-     * 사용자의 활성 펀드 가입 목록 조회
-     */
     public java.util.List<java.util.Map<String, Object>> getActiveSubscriptions(Long userId) {
         log.info("활성 펀드 가입 목록 조회 - userId: {}", userId);
 
         try {
-            // userId로 실제 사용자 정보 조회 (실제 CI 값 가져오기)
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-            
+
             String realCustomerCi = user.getCi();
             if (realCustomerCi == null || realCustomerCi.isEmpty()) {
                 throw new IllegalArgumentException("사용자 CI 정보가 없습니다. 사용자 ID: " + userId);
             }
-            
+
             log.info("사용자 정보 조회 완료 - userId: {}, 실제 CI: {}", userId, realCustomerCi);
 
-            // 하나은행 API 호출
             @SuppressWarnings("unchecked")
             java.util.List<java.util.Map<String, Object>> subscriptions = 
                     (java.util.List<java.util.Map<String, Object>>) hanaBankClient.getActiveSubscriptions(realCustomerCi);
@@ -326,25 +280,20 @@ public class FundSubscriptionService {
         }
     }
 
-    /**
-     * 사용자의 펀드 거래 내역 조회
-     */
     public java.util.List<java.util.Map<String, Object>> getUserTransactions(Long userId) {
         log.info("펀드 거래 내역 조회 - userId: {}", userId);
 
         try {
-            // userId로 실제 사용자 정보 조회 (실제 CI 값 가져오기)
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-            
+
             String realCustomerCi = user.getCi();
             if (realCustomerCi == null || realCustomerCi.isEmpty()) {
                 throw new IllegalArgumentException("사용자 CI 정보가 없습니다. 사용자 ID: " + userId);
             }
-            
+
             log.info("사용자 정보 조회 완료 - userId: {}, 실제 CI: {}", userId, realCustomerCi);
 
-            // 하나은행 API 호출
             @SuppressWarnings("unchecked")
             java.util.List<java.util.Map<String, Object>> transactions = 
                     (java.util.List<java.util.Map<String, Object>>) hanaBankClient.getCustomerTransactions(realCustomerCi);
@@ -358,25 +307,20 @@ public class FundSubscriptionService {
         }
     }
 
-    /**
-     * 사용자의 펀드 거래 통계 조회
-     */
     public java.util.Map<String, Object> getTransactionStats(Long userId) {
         log.info("펀드 거래 통계 조회 - userId: {}", userId);
 
         try {
-            // userId로 실제 사용자 정보 조회 (실제 CI 값 가져오기)
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-            
+
             String realCustomerCi = user.getCi();
             if (realCustomerCi == null || realCustomerCi.isEmpty()) {
                 throw new IllegalArgumentException("사용자 CI 정보가 없습니다. 사용자 ID: " + userId);
             }
-            
+
             log.info("사용자 정보 조회 완료 - userId: {}, 실제 CI: {}", userId, realCustomerCi);
 
-            // 하나은행 API 호출
             @SuppressWarnings("unchecked")
             java.util.Map<String, Object> stats = 
                     (java.util.Map<String, Object>) hanaBankClient.getTransactionStats(realCustomerCi);
@@ -390,9 +334,6 @@ public class FundSubscriptionService {
         }
     }
 
-    /**
-     * 하나인플랜 펀드 매수 거래내역 생성 (출금)
-     */
     private void createHanainplanPurchaseTransaction(
             String customerCi,
             String accountNumber,
@@ -400,21 +341,18 @@ public class FundSubscriptionService {
             BigDecimal balanceAfter,
             String fundName,
             String classCode) {
-        
+
         try {
-            // IRP 계좌 조회 (fromAccountId 필요)
             java.util.Optional<BankingAccount> accountOpt = accountRepository.findByAccountNumber(accountNumber);
             if (accountOpt.isEmpty()) {
                 log.warn("하나인플랜 거래내역 생성 실패 - IRP 계좌를 찾을 수 없음: {}", accountNumber);
                 return;
             }
-            
+
             BankingAccount irpAccount = accountOpt.get();
-            
-            // 거래 번호 생성
+
             String transactionNumber = com.hanainplan.domain.banking.entity.Transaction.generateTransactionNumber();
-            
-            // 거래내역 생성
+
             com.hanainplan.domain.banking.entity.Transaction transaction = 
                     com.hanainplan.domain.banking.entity.Transaction.builder()
                     .transactionNumber(transactionNumber)
@@ -431,20 +369,16 @@ public class FundSubscriptionService {
                     .processedDate(java.time.LocalDateTime.now())
                     .referenceNumber(transactionNumber)
                     .build();
-            
+
             transactionRepository.save(transaction);
             log.info("하나인플랜 펀드 매수 거래내역 생성 완료 - transactionNumber: {}, 계좌번호: {}", 
                     transactionNumber, accountNumber);
-            
+
         } catch (Exception e) {
             log.error("하나인플랜 펀드 매수 거래내역 생성 실패 - 계좌번호: {}", accountNumber, e);
-            // 거래내역 생성 실패는 로그만 남기고 매수 성공은 유지
         }
     }
 
-    /**
-     * 하나인플랜 펀드 매도 거래내역 생성 (입금)
-     */
     private void createHanainplanRedemptionTransaction(
             String customerCi,
             String accountNumber,
@@ -453,26 +387,22 @@ public class FundSubscriptionService {
             String fundName,
             String classCode,
             BigDecimal profit) {
-        
+
         try {
-            // IRP 계좌 조회 (toAccountId 필요)
             java.util.Optional<BankingAccount> accountOpt = accountRepository.findByAccountNumber(accountNumber);
             if (accountOpt.isEmpty()) {
                 log.warn("하나인플랜 거래내역 생성 실패 - IRP 계좌를 찾을 수 없음: {}", accountNumber);
                 return;
             }
-            
+
             BankingAccount irpAccount = accountOpt.get();
-            
-            // 거래 번호 생성
+
             String transactionNumber = com.hanainplan.domain.banking.entity.Transaction.generateTransactionNumber();
-            
-            // 손익 텍스트 생성
+
             String profitText = profit != null && profit.compareTo(BigDecimal.ZERO) >= 0 
                     ? String.format("(+%,.0f원)", profit) 
                     : String.format("(%,.0f원)", profit != null ? profit : BigDecimal.ZERO);
-            
-            // 거래내역 생성
+
             com.hanainplan.domain.banking.entity.Transaction transaction = 
                     com.hanainplan.domain.banking.entity.Transaction.builder()
                     .transactionNumber(transactionNumber)
@@ -489,15 +419,13 @@ public class FundSubscriptionService {
                     .processedDate(java.time.LocalDateTime.now())
                     .referenceNumber(transactionNumber)
                     .build();
-            
+
             transactionRepository.save(transaction);
             log.info("하나인플랜 펀드 매도 거래내역 생성 완료 - transactionNumber: {}, 계좌번호: {}", 
                     transactionNumber, accountNumber);
-            
+
         } catch (Exception e) {
             log.error("하나인플랜 펀드 매도 거래내역 생성 실패 - 계좌번호: {}", accountNumber, e);
-            // 거래내역 생성 실패는 로그만 남기고 매도 성공은 유지
         }
     }
 }
-

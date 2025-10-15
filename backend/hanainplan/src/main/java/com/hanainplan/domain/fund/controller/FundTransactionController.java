@@ -13,9 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 하나인플랜 펀드 거래 내역 컨트롤러
- */
 @RestController
 @RequestMapping("/api/banking/fund-transactions")
 @RequiredArgsConstructor
@@ -26,9 +23,6 @@ public class FundTransactionController {
 
     private final FundTransactionService fundTransactionService;
 
-    /**
-     * 고객의 모든 거래 내역 조회
-     */
     @GetMapping("/customer/{customerCi}")
     @Operation(summary = "거래 내역 조회", description = "고객의 모든 펀드 거래 내역을 조회합니다")
     public ResponseEntity<List<FundTransactionDto>> getCustomerTransactions(
@@ -36,16 +30,13 @@ public class FundTransactionController {
             @PathVariable String customerCi
     ) {
         log.info("GET /api/banking/fund-transactions/customer/{} - 거래 내역 조회", customerCi);
-        
+
         List<FundTransactionDto> transactions = fundTransactionService.getCustomerTransactions(customerCi);
-        
+
         log.info("거래 내역 조회 완료 - {}건", transactions.size());
         return ResponseEntity.ok(transactions);
     }
 
-    /**
-     * 특정 가입의 거래 내역 조회
-     */
     @GetMapping("/subscription/{subscriptionId}")
     @Operation(summary = "가입별 거래 내역", description = "특정 가입의 거래 내역을 조회합니다")
     public ResponseEntity<List<FundTransactionDto>> getSubscriptionTransactions(
@@ -53,16 +44,13 @@ public class FundTransactionController {
             @PathVariable Long subscriptionId
     ) {
         log.info("GET /api/banking/fund-transactions/subscription/{} - 가입 거래 내역 조회", subscriptionId);
-        
+
         List<FundTransactionDto> transactions = fundTransactionService.getSubscriptionTransactions(subscriptionId);
-        
+
         log.info("거래 내역 조회 완료 - {}건", transactions.size());
         return ResponseEntity.ok(transactions);
     }
 
-    /**
-     * 거래 통계 조회
-     */
     @GetMapping("/customer/{customerCi}/stats")
     @Operation(summary = "거래 통계", description = "고객의 펀드 거래 통계를 조회합니다")
     public ResponseEntity<FundTransactionStatsDto> getTransactionStats(
@@ -70,11 +58,10 @@ public class FundTransactionController {
             @PathVariable String customerCi
     ) {
         log.info("GET /api/banking/fund-transactions/customer/{}/stats - 거래 통계 조회", customerCi);
-        
+
         FundTransactionStatsDto stats = fundTransactionService.getTransactionStats(customerCi);
-        
+
         log.info("거래 통계 조회 완료");
         return ResponseEntity.ok(stats);
     }
 }
-

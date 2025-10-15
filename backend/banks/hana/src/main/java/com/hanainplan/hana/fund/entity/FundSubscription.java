@@ -11,9 +11,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 하나은행 펀드 가입 정보 엔티티
- */
 @Entity
 @Table(name = "hana_fund_subscriptions",
        indexes = {
@@ -30,84 +27,78 @@ public class FundSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "subscription_id")
-    private Long subscriptionId; // 가입 ID
+    private Long subscriptionId;
 
     @Column(name = "customer_ci", nullable = false, length = 64)
-    private String customerCi; // 고객 CI
+    private String customerCi;
 
     @Column(name = "irp_account_number", length = 50)
-    private String irpAccountNumber; // IRP 계좌번호
+    private String irpAccountNumber;
 
-    // 펀드 정보
     @Column(name = "fund_code", nullable = false, length = 20)
-    private String fundCode; // 모펀드 코드
+    private String fundCode;
 
     @Column(name = "child_fund_cd", nullable = false, length = 16)
-    private String childFundCd; // 클래스 펀드 코드 (실제 매수 코드)
+    private String childFundCd;
 
     @Column(name = "fund_name", nullable = false, length = 100)
-    private String fundName; // 펀드명
+    private String fundName;
 
     @Column(name = "class_code", length = 8)
-    private String classCode; // 클래스 코드 (A/C/P 등)
+    private String classCode;
 
     @Column(name = "fund_type", length = 50)
-    private String fundType; // 펀드 유형
+    private String fundType;
 
     @Column(name = "risk_level", length = 20)
-    private String riskLevel; // 위험등급
+    private String riskLevel;
 
-    // 매수 정보
     @Column(name = "purchase_date", nullable = false)
-    private LocalDate purchaseDate; // 매수일
+    private LocalDate purchaseDate;
 
     @Column(name = "purchase_nav", nullable = false, precision = 15, scale = 4)
-    private BigDecimal purchaseNav; // 매수 기준가
+    private BigDecimal purchaseNav;
 
     @Column(name = "purchase_amount", nullable = false, precision = 15, scale = 2)
-    private BigDecimal purchaseAmount; // 매수 금액 (원금)
+    private BigDecimal purchaseAmount;
 
     @Column(name = "purchase_fee", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal purchaseFee = BigDecimal.ZERO; // 매수 수수료
+    private BigDecimal purchaseFee = BigDecimal.ZERO;
 
     @Column(name = "purchase_units", nullable = false, precision = 15, scale = 6)
-    private BigDecimal purchaseUnits; // 매수 좌수
+    private BigDecimal purchaseUnits;
 
-    // 현재 보유 정보
     @Column(name = "current_units", nullable = false, precision = 15, scale = 6)
-    private BigDecimal currentUnits; // 현재 보유 좌수
+    private BigDecimal currentUnits;
 
     @Column(name = "current_nav", precision = 15, scale = 4)
-    private BigDecimal currentNav; // 현재 기준가
+    private BigDecimal currentNav;
 
     @Column(name = "current_value", precision = 15, scale = 2)
-    private BigDecimal currentValue; // 현재 평가금액 (보유좌수 × 현재기준가)
+    private BigDecimal currentValue;
 
-    // 수익 정보
     @Column(name = "total_return", precision = 15, scale = 2)
-    private BigDecimal totalReturn; // 평가손익 (평가금액 - 원금)
+    private BigDecimal totalReturn;
 
     @Column(name = "return_rate", precision = 10, scale = 4)
-    private BigDecimal returnRate; // 수익률 (%)
+    private BigDecimal returnRate;
 
-    // 수수료 누적
     @Column(name = "accumulated_fees", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal accumulatedFees = BigDecimal.ZERO; // 누적 수수료
+    private BigDecimal accumulatedFees = BigDecimal.ZERO;
 
-    // 상태
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
-    private String status = "ACTIVE"; // 상태 (ACTIVE: 보유중, SOLD: 전량매도, PARTIAL_SOLD: 일부매도)
+    private String status = "ACTIVE";
 
     @Column(name = "bank_name", length = 50)
     @Builder.Default
-    private String bankName = "하나은행"; // 은행명
+    private String bankName = "하나은행";
 
     @Column(name = "bank_code", length = 10)
     @Builder.Default
-    private String bankCode = "HANA"; // 은행 코드
+    private String bankCode = "HANA";
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -126,21 +117,15 @@ public class FundSubscription {
         updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 평가금액 및 수익률 업데이트
-     */
     public void updateValuation(BigDecimal newNav) {
         this.currentNav = newNav;
-        
-        // 현재 평가금액 = 보유좌수 × 현재기준가
+
         this.currentValue = this.currentUnits
             .multiply(newNav)
             .setScale(2, RoundingMode.DOWN);
-        
-        // 평가손익 = 평가금액 - 원금
+
         this.totalReturn = this.currentValue.subtract(this.purchaseAmount);
-        
-        // 수익률 = (평가손익 / 원금) × 100
+
         if (this.purchaseAmount.compareTo(BigDecimal.ZERO) > 0) {
             this.returnRate = this.totalReturn
                 .divide(this.purchaseAmount, 4, RoundingMode.HALF_UP)
@@ -148,50 +133,35 @@ public class FundSubscription {
         }
     }
 
-    /**
-     * 추가 매수 처리
-     */
     public void addPurchase(BigDecimal amount, BigDecimal nav, BigDecimal fee, BigDecimal units) {
-        // 기존 원금에 추가
         this.purchaseAmount = this.purchaseAmount.add(amount);
         this.purchaseFee = this.purchaseFee.add(fee);
         this.purchaseUnits = this.purchaseUnits.add(units);
         this.currentUnits = this.currentUnits.add(units);
         this.accumulatedFees = this.accumulatedFees.add(fee);
-        
-        // 평균 매수 기준가 재계산
+
         BigDecimal netAmount = this.purchaseAmount.subtract(this.purchaseFee);
         if (this.purchaseUnits.compareTo(BigDecimal.ZERO) > 0) {
             this.purchaseNav = netAmount.divide(this.purchaseUnits, 4, RoundingMode.HALF_UP);
         }
     }
 
-    /**
-     * 매도 처리
-     */
     public void sellUnits(BigDecimal soldUnits) {
         this.currentUnits = this.currentUnits.subtract(soldUnits);
-        
+
         if (this.currentUnits.compareTo(BigDecimal.ZERO) <= 0) {
-            this.status = "SOLD"; // 전량 매도
+            this.status = "SOLD";
             this.currentUnits = BigDecimal.ZERO;
         } else {
-            this.status = "PARTIAL_SOLD"; // 일부 매도
+            this.status = "PARTIAL_SOLD";
         }
     }
 
-    /**
-     * 활성 상태 확인
-     */
     public boolean isActive() {
         return "ACTIVE".equals(status) || "PARTIAL_SOLD".equals(status);
     }
 
-    /**
-     * 수익 여부 확인
-     */
     public boolean isProfitable() {
         return totalReturn != null && totalReturn.compareTo(BigDecimal.ZERO) > 0;
     }
 }
-

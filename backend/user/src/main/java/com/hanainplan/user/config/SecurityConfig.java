@@ -15,7 +15,6 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                // 모든 요청을 허용 (개발 환경용)
                 .anyRequest().permitAll()
             )
             .httpBasic(httpBasic -> httpBasic.disable())

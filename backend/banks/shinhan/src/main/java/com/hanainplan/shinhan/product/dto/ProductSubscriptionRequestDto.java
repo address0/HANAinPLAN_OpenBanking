@@ -35,10 +35,10 @@ public class ProductSubscriptionRequestDto {
 
     private LocalDate maturityDate;
 
-    private Integer contractPeriod; // 약정기간 (개월)
-    
+    private Integer contractPeriod;
+
     @Size(max = 50, message = "만기기간은 50자를 초과할 수 없습니다.")
-    private String maturityPeriod; // 만기기간 (예: "12개월", "24개월", "36개월")
+    private String maturityPeriod;
 
     @Pattern(regexp = "^(FIXED|VARIABLE)$", message = "금리유형은 FIXED 또는 VARIABLE이어야 합니다.")
     private String rateType;
@@ -80,7 +80,6 @@ public class ProductSubscriptionRequestDto {
     @Size(max = 100, message = "취급점명은 100자를 초과할 수 없습니다.")
     private String branchName;
 
-    // 적금 관련 필드들 (선택사항)
     private BigDecimal monthlyPaymentAmount;
     private Integer monthlyPaymentDay;
     private Integer totalInstallments;

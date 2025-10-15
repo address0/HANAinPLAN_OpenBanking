@@ -16,7 +16,7 @@ public class AccountResponseDto {
     private Integer accountType;
     private BigDecimal balance;
     private LocalDate openingDate;
-    private String customerCi; // 고객 CI
+    private String customerCi;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

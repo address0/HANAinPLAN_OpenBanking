@@ -36,10 +36,8 @@ public class FinancialProductResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 기본 생성자
     public FinancialProductResponseDto() {}
 
-    // 생성자
     public FinancialProductResponseDto(FinancialProduct product) {
         this.productId = product.getProductId();
         this.productCode = product.getProductCode();
@@ -67,7 +65,6 @@ public class FinancialProductResponseDto {
         this.updatedAt = product.getUpdatedAt();
     }
 
-    // 정적 팩토리 메서드
     public static FinancialProductResponseDto from(FinancialProduct product) {
         return new FinancialProductResponseDto(product);
     }

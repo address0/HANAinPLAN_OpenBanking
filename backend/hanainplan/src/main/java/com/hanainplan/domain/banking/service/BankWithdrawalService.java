@@ -14,9 +14,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 은행별 출금 요청 서비스
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,14 +30,11 @@ public class BankWithdrawalService {
     @Value("${external.api.shinhan-bank.base-url:http://localhost:8083}")
     private String shinhanBankBaseUrl;
 
-    /**
-     * 계좌번호를 기반으로 해당 은행에 출금 요청
-     */
     public BankWithdrawalResult processWithdrawal(String accountNumber, BigDecimal amount, String description) {
         String bankCode = extractBankCodeFromAccountNumber(accountNumber);
-        
+
         log.info("은행 출금 요청 - 계좌번호: {}, 은행코드: {}, 금액: {}원", accountNumber, bankCode, amount);
-        
+
         try {
             switch (bankCode) {
                 case "081":
@@ -59,54 +53,46 @@ public class BankWithdrawalService {
         }
     }
 
-    /**
-     * 계좌번호에서 은행 코드 추출
-     */
     private String extractBankCodeFromAccountNumber(String accountNumber) {
         if (accountNumber == null || accountNumber.length() < 3) {
             return "UNKNOWN";
         }
-        
-        // 하이픈 제거하고 앞자리 3자리 추출
+
         String cleanAccountNumber = accountNumber.replace("-", "");
         String prefix = cleanAccountNumber.substring(0, 3);
-        
-        // 은행 코드 매핑
+
         if (prefix.equals("081") || (prefix.compareTo("110") >= 0 && prefix.compareTo("119") <= 0)) {
-            return "081"; // 하나은행
+            return "081";
         } else if (prefix.equals("004") || (prefix.compareTo("123") >= 0 && prefix.compareTo("129") <= 0)) {
-            return "004"; // 국민은행
+            return "004";
         } else if (prefix.equals("088") || (prefix.compareTo("456") >= 0 && prefix.compareTo("459") <= 0)) {
-            return "088"; // 신한은행
+            return "088";
         }
-        
-        return prefix; // 기본적으로 앞자리 3자리를 은행 코드로 사용
+
+        return prefix;
     }
 
-    /**
-     * 하나은행 출금 처리
-     */
     private BankWithdrawalResult processHanaBankWithdrawal(String accountNumber, BigDecimal amount, String description) {
         try {
             String url = hanaBankBaseUrl + "/api/hana/accounts/withdrawal";
-            
+
             Map<String, Object> request = new HashMap<>();
             request.put("accountNumber", accountNumber);
             request.put("amount", amount);
             request.put("description", description);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
-            
+
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
-            
+
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 Boolean success = (Boolean) responseBody.get("success");
                 String message = (String) responseBody.get("message");
-                
+
                 if (Boolean.TRUE.equals(success)) {
                     log.info("하나은행 출금 성공 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
                     return BankWithdrawalResult.success(message, (String) responseBody.get("transactionId"));
@@ -117,37 +103,34 @@ public class BankWithdrawalService {
             } else {
                 return BankWithdrawalResult.failure("하나은행 서버 응답 오류");
             }
-            
+
         } catch (Exception e) {
             log.error("하나은행 출금 요청 실패 - 계좌번호: {}, 오류: {}", accountNumber, e.getMessage());
             return BankWithdrawalResult.failure("하나은행 연동 실패: " + e.getMessage());
         }
     }
 
-    /**
-     * 국민은행 출금 처리
-     */
     private BankWithdrawalResult processKookminBankWithdrawal(String accountNumber, BigDecimal amount, String description) {
         try {
             String url = kookminBankBaseUrl + "/api/kookmin/accounts/withdrawal";
-            
+
             Map<String, Object> request = new HashMap<>();
             request.put("accountNumber", accountNumber);
             request.put("amount", amount);
             request.put("description", description);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
-            
+
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
-            
+
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 Boolean success = (Boolean) responseBody.get("success");
                 String message = (String) responseBody.get("message");
-                
+
                 if (Boolean.TRUE.equals(success)) {
                     log.info("국민은행 출금 성공 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
                     return BankWithdrawalResult.success(message, (String) responseBody.get("transactionId"));
@@ -158,37 +141,34 @@ public class BankWithdrawalService {
             } else {
                 return BankWithdrawalResult.failure("국민은행 서버 응답 오류");
             }
-            
+
         } catch (Exception e) {
             log.error("국민은행 출금 요청 실패 - 계좌번호: {}, 오류: {}", accountNumber, e.getMessage());
             return BankWithdrawalResult.failure("국민은행 연동 실패: " + e.getMessage());
         }
     }
 
-    /**
-     * 신한은행 출금 처리
-     */
     private BankWithdrawalResult processShinhanBankWithdrawal(String accountNumber, BigDecimal amount, String description) {
         try {
             String url = shinhanBankBaseUrl + "/api/shinhan/accounts/withdrawal";
-            
+
             Map<String, Object> request = new HashMap<>();
             request.put("accountNumber", accountNumber);
             request.put("amount", amount);
             request.put("description", description);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
-            
+
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
-            
+
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
                 Boolean success = (Boolean) responseBody.get("success");
                 String message = (String) responseBody.get("message");
-                
+
                 if (Boolean.TRUE.equals(success)) {
                     log.info("신한은행 출금 성공 - 계좌번호: {}, 금액: {}원", accountNumber, amount);
                     return BankWithdrawalResult.success(message, (String) responseBody.get("transactionId"));
@@ -199,16 +179,13 @@ public class BankWithdrawalService {
             } else {
                 return BankWithdrawalResult.failure("신한은행 서버 응답 오류");
             }
-            
+
         } catch (Exception e) {
             log.error("신한은행 출금 요청 실패 - 계좌번호: {}, 오류: {}", accountNumber, e.getMessage());
             return BankWithdrawalResult.failure("신한은행 연동 실패: " + e.getMessage());
         }
     }
 
-    /**
-     * 은행 출금 결과 클래스
-     */
     public static class BankWithdrawalResult {
         private final boolean success;
         private final String message;
@@ -241,4 +218,3 @@ public class BankWithdrawalService {
         }
     }
 }
-

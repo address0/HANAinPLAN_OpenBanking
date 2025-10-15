@@ -24,106 +24,106 @@ public class IrpProduct {
     private Long irpProductId;
 
     @Column(name = "product_code", unique = true, nullable = false, length = 20)
-    private String productCode; // IRP 상품코드
+    private String productCode;
 
     @Column(name = "product_name", nullable = false, length = 100)
-    private String productName; // IRP 상품명
+    private String productName;
 
     @Column(name = "product_type", length = 50)
-    private String productType; // 상품유형 (DC형, DB형, 혼합형)
+    private String productType;
 
     @Column(name = "management_company", length = 100)
-    private String managementCompany; // 운용회사
+    private String managementCompany;
 
     @Column(name = "trust_company", length = 100)
-    private String trustCompany; // 신탁회사
+    private String trustCompany;
 
     @Column(name = "minimum_contribution", precision = 15, scale = 2)
-    private BigDecimal minimumContribution; // 최소 납입금액
+    private BigDecimal minimumContribution;
 
     @Column(name = "maximum_contribution", precision = 15, scale = 2)
-    private BigDecimal maximumContribution; // 최대 납입금액
+    private BigDecimal maximumContribution;
 
     @Column(name = "annual_contribution_limit", precision = 15, scale = 2)
-    private BigDecimal annualContributionLimit; // 연간 납입한도
+    private BigDecimal annualContributionLimit;
 
     @Column(name = "management_fee_rate", precision = 5, scale = 4)
-    private BigDecimal managementFeeRate; // 운용수수료율
+    private BigDecimal managementFeeRate;
 
     @Column(name = "trust_fee_rate", precision = 5, scale = 4)
-    private BigDecimal trustFeeRate; // 신탁수수료율
+    private BigDecimal trustFeeRate;
 
     @Column(name = "sales_fee_rate", precision = 5, scale = 4)
-    private BigDecimal salesFeeRate; // 판매수수료율
+    private BigDecimal salesFeeRate;
 
     @Column(name = "total_fee_rate", precision = 5, scale = 4)
-    private BigDecimal totalFeeRate; // 총 수수료율
+    private BigDecimal totalFeeRate;
 
     @Column(name = "investment_options", length = 500)
-    private String investmentOptions; // 투자옵션 (안정형, 성장형, 균형형 등)
+    private String investmentOptions;
 
     @Column(name = "risk_level", length = 20)
-    private String riskLevel; // 위험등급 (1~5단계)
+    private String riskLevel;
 
     @Column(name = "expected_return_rate", precision = 5, scale = 4)
-    private BigDecimal expectedReturnRate; // 예상수익률
+    private BigDecimal expectedReturnRate;
 
     @Column(name = "guarantee_type", length = 50)
-    private String guaranteeType; // 보장유형 (원금보장, 수익보장, 무보장)
+    private String guaranteeType;
 
     @Column(name = "guarantee_rate", precision = 5, scale = 4)
-    private BigDecimal guaranteeRate; // 보장수익률
+    private BigDecimal guaranteeRate;
 
     @Column(name = "maturity_age", length = 20)
-    private String maturityAge; // 만기연령 (55세, 60세, 65세 등)
+    private String maturityAge;
 
     @Column(name = "early_withdrawal_penalty", length = 200)
-    private String earlyWithdrawalPenalty; // 조기인출시 불이익
+    private String earlyWithdrawalPenalty;
 
     @Column(name = "tax_benefit", length = 300)
-    private String taxBenefit; // 세제혜택 (소득공제, 비과세 등)
+    private String taxBenefit;
 
     @Column(name = "contribution_frequency", length = 50)
-    private String contributionFrequency; // 납입주기 (월납, 분기납, 연납)
+    private String contributionFrequency;
 
     @Column(name = "contribution_method", length = 200)
-    private String contributionMethod; // 납입방법 (자동이체, 수동납입)
+    private String contributionMethod;
 
     @Column(name = "minimum_holding_period")
-    private Integer minimumHoldingPeriod; // 최소 보유기간 (개월)
+    private Integer minimumHoldingPeriod;
 
     @Column(name = "auto_rebalancing", length = 10)
-    private String autoRebalancing; // 자동 리밸런싱 여부 (Y/N)
+    private String autoRebalancing;
 
     @Column(name = "rebalancing_frequency", length = 50)
-    private String rebalancingFrequency; // 리밸런싱 주기
+    private String rebalancingFrequency;
 
     @Column(name = "performance_fee", precision = 5, scale = 4)
-    private BigDecimal performanceFee; // 성과수수료율
+    private BigDecimal performanceFee;
 
     @Column(name = "performance_fee_threshold", precision = 5, scale = 4)
-    private BigDecimal performanceFeeThreshold; // 성과수수료 기준수익률
+    private BigDecimal performanceFeeThreshold;
 
     @Column(name = "fund_allocation", length = 1000)
-    private String fundAllocation; // 펀드 배분 비율 (JSON 형태)
+    private String fundAllocation;
 
     @Column(name = "benchmark_index", length = 100)
-    private String benchmarkIndex; // 벤치마크 지수
+    private String benchmarkIndex;
 
     @Column(name = "description", length = 1000)
-    private String description; // 상품설명
+    private String description;
 
     @Column(name = "precautions", length = 1000)
-    private String precautions; // 유의사항
+    private String precautions;
 
     @Column(name = "is_active")
-    private Boolean isActive; // 활성화여부
+    private Boolean isActive;
 
     @Column(name = "start_date")
-    private LocalDate startDate; // 판매시작일
+    private LocalDate startDate;
 
     @Column(name = "end_date")
-    private LocalDate endDate; // 판매종료일
+    private LocalDate endDate;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

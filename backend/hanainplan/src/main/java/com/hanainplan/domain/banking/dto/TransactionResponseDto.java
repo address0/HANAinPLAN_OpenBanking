@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionResponseDto {
-    
+
     private boolean success;
     private String message;
     private String transactionNumber;
@@ -23,8 +23,7 @@ public class TransactionResponseDto {
     private String transactionStatus;
     private LocalDateTime transactionDate;
     private String failureReason;
-    
-    // 성공 응답 생성
+
     public static TransactionResponseDto success(String message, String transactionNumber, 
                                                BigDecimal amount, BigDecimal balanceAfter, 
                                                BigDecimal fee, String transactionStatus) {
@@ -39,8 +38,7 @@ public class TransactionResponseDto {
                 .transactionDate(LocalDateTime.now())
                 .build();
     }
-    
-    // 실패 응답 생성
+
     public static TransactionResponseDto failure(String message, String failureReason) {
         return TransactionResponseDto.builder()
                 .success(false)

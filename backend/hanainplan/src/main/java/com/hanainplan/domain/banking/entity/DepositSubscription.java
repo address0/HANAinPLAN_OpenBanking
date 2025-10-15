@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * 예금 가입 정보 엔티티
- */
 @Entity
 @Table(name = "tb_deposit_subscription")
 @Data
@@ -24,58 +21,58 @@ public class DepositSubscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "subscription_id")
-    private Long subscriptionId; // 가입 ID
+    private Long subscriptionId;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId; // HANAinPLAN 사용자 ID
+    private Long userId;
 
     @Column(name = "customer_ci", nullable = false, length = 100)
-    private String customerCi; // 고객 CI
+    private String customerCi;
 
     @Column(name = "account_number", nullable = false, length = 20)
-    private String accountNumber; // 계좌번호
+    private String accountNumber;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // 상태 (ACTIVE, MATURED, CLOSED)
+    private String status;
 
     @Column(name = "subscription_date", nullable = false)
-    private LocalDate subscriptionDate; // 가입일
+    private LocalDate subscriptionDate;
 
     @Column(name = "maturity_date")
-    private LocalDate maturityDate; // 만기일
+    private LocalDate maturityDate;
 
     @Column(name = "contract_period")
-    private Integer contractPeriod; // 계약기간 (product_type=2: 일단위, 그외: 개월단위)
+    private Integer contractPeriod;
 
     @Column(name = "product_type", nullable = false)
     @Builder.Default
-    private Integer productType = 0; // 상품유형 (0:일반, 1:디폴트옵션, 2:일단위)
+    private Integer productType = 0;
 
     @Column(name = "bank_name", nullable = false, length = 50)
-    private String bankName; // 은행명
+    private String bankName;
 
     @Column(name = "bank_code", nullable = false, length = 10)
-    private String bankCode; // 은행 코드
+    private String bankCode;
 
     @Column(name = "deposit_code", nullable = false, length = 20)
-    private String depositCode; // 예금 상품 코드
+    private String depositCode;
 
     @Column(name = "rate", precision = 5, scale = 4)
-    private BigDecimal rate; // 적용 금리
+    private BigDecimal rate;
 
     @Column(name = "current_balance", precision = 15, scale = 2, nullable = false)
     @Builder.Default
-    private BigDecimal currentBalance = BigDecimal.ZERO; // 현재 잔액
+    private BigDecimal currentBalance = BigDecimal.ZERO;
 
     @Column(name = "unpaid_interest", precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal unpaidInterest = BigDecimal.ZERO; // 미지급 이자
+    private BigDecimal unpaidInterest = BigDecimal.ZERO;
 
     @Column(name = "last_interest_calculation_date")
-    private LocalDate lastInterestCalculationDate; // 최종 이자 계산일
+    private LocalDate lastInterestCalculationDate;
 
     @Column(name = "next_interest_payment_date")
-    private LocalDate nextInterestPaymentDate; // 다음 이자 지급일
+    private LocalDate nextInterestPaymentDate;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -94,34 +91,21 @@ public class DepositSubscription {
         updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 이자 지급 처리
-     */
     public void processInterestPayment(BigDecimal interestAmount) {
         this.currentBalance = this.currentBalance.add(interestAmount);
         this.unpaidInterest = BigDecimal.ZERO;
         this.lastInterestCalculationDate = LocalDate.now();
-        // 다음 이자 지급일 계산 로직 추가 가능
     }
 
-    /**
-     * 이자 계산
-     */
     public void calculateInterest(BigDecimal interestAmount) {
         this.unpaidInterest = this.unpaidInterest.add(interestAmount);
         this.lastInterestCalculationDate = LocalDate.now();
     }
 
-    /**
-     * 만기 여부 확인
-     */
     public boolean isMatured() {
         return maturityDate != null && !maturityDate.isAfter(LocalDate.now());
     }
 
-    /**
-     * 활성 상태 확인
-     */
     public boolean isActive() {
         return "ACTIVE".equals(status);
     }

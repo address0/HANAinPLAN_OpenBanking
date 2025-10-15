@@ -15,10 +15,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 알림 서비스
- * - 알림 생성, 조회, 읽음 처리 등의 비즈니스 로직 구현
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,9 +23,6 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    /**
-     * 알림 생성
-     */
     @Transactional
     public NotificationDto.Response createNotification(NotificationDto.CreateRequest request) {
         Notification notification = request.toEntity();
@@ -37,9 +30,6 @@ public class NotificationService {
         return NotificationDto.Response.from(savedNotification);
     }
 
-    /**
-     * 사용자 알림 목록 조회 (페이징)
-     */
     public Page<NotificationDto.Response> getUserNotifications(Long userId, Pageable pageable) {
         log.debug("Fetching notifications for user: {}, page: {}", userId, pageable.getPageNumber());
 
@@ -47,9 +37,6 @@ public class NotificationService {
         return notifications.map(NotificationDto.Response::from);
     }
 
-    /**
-     * 사용자 읽지 않은 알림 목록 조회 (페이징)
-     */
     public Page<NotificationDto.Response> getUserUnreadNotifications(Long userId, Pageable pageable) {
         log.debug("Fetching unread notifications for user: {}, page: {}", userId, pageable.getPageNumber());
 
@@ -57,9 +44,6 @@ public class NotificationService {
         return notifications.map(NotificationDto.Response::from);
     }
 
-    /**
-     * 사용자 알림 개수 요약 조회
-     */
     public NotificationDto.Summary getNotificationSummary(Long userId) {
         Long totalCount = notificationRepository.countByUserId(userId);
         Long unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
@@ -67,9 +51,6 @@ public class NotificationService {
         return NotificationDto.Summary.of(totalCount, unreadCount);
     }
 
-    /**
-     * 특정 타입의 사용자 알림 조회 (페이징)
-     */
     public Page<NotificationDto.Response> getUserNotificationsByType(Long userId, NotificationType type, Pageable pageable) {
         log.debug("Fetching notifications for user: {}, type: {}, page: {}", userId, type, pageable.getPageNumber());
 
@@ -77,9 +58,6 @@ public class NotificationService {
         return notifications.map(NotificationDto.Response::from);
     }
 
-    /**
-     * 특정 기간 동안의 사용자 알림 조회 (페이징)
-     */
     public Page<NotificationDto.Response> getUserNotificationsByPeriod(Long userId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         log.debug("Fetching notifications for user: {}, period: {} to {}, page: {}", userId, startDate, endDate, pageable.getPageNumber());
 
@@ -87,9 +65,6 @@ public class NotificationService {
         return notifications.map(NotificationDto.Response::from);
     }
 
-    /**
-     * 단일 알림 조회
-     */
     public NotificationDto.Response getNotificationById(Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("알림을 찾을 수 없습니다. ID: " + notificationId));
@@ -97,9 +72,6 @@ public class NotificationService {
         return NotificationDto.Response.from(notification);
     }
 
-    /**
-     * 알림을 읽음 처리
-     */
     @Transactional
     public NotificationDto.Response markAsRead(Long notificationId) {
         log.info("Marking notification as read: {}", notificationId);
@@ -113,9 +85,6 @@ public class NotificationService {
         return NotificationDto.Response.from(savedNotification);
     }
 
-    /**
-     * 사용자의 모든 알림을 읽음 처리
-     */
     @Transactional
     public int markAllAsRead(Long userId) {
         log.info("Marking all notifications as read for user: {}", userId);
@@ -126,9 +95,6 @@ public class NotificationService {
         return updatedCount;
     }
 
-    /**
-     * 특정 타입의 모든 알림을 읽음 처리
-     */
     @Transactional
     public int markAllAsReadByType(Long userId, NotificationType type) {
         log.info("Marking all {} notifications as read for user: {}", type, userId);
@@ -139,9 +105,6 @@ public class NotificationService {
         return updatedCount;
     }
 
-    /**
-     * 알림 삭제
-     */
     @Transactional
     public void deleteNotification(Long notificationId, Long userId) {
         log.info("Deleting notification: {} for user: {}", notificationId, userId);
@@ -157,9 +120,6 @@ public class NotificationService {
         log.info("Notification deleted: {}", notificationId);
     }
 
-    /**
-     * 여러 알림 일괄 삭제
-     */
     @Transactional
     public int deleteNotifications(List<Long> notificationIds, Long userId) {
         log.info("Deleting {} notifications for user: {}", notificationIds.size(), userId);
@@ -170,9 +130,6 @@ public class NotificationService {
         return deletedCount;
     }
 
-    /**
-     * 오래된 읽은 알림들 정리 (30일 이전)
-     */
     @Transactional
     public int cleanupOldNotifications(Long userId) {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
@@ -184,9 +141,6 @@ public class NotificationService {
         return deletedCount;
     }
 
-    /**
-     * 알림 업데이트
-     */
     @Transactional
     public NotificationDto.Response updateNotification(Long notificationId, NotificationDto.UpdateRequest request) {
         log.info("Updating notification: {}", notificationId);

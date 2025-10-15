@@ -19,11 +19,7 @@ public class FinancialProductService {
     @Autowired
     private FinancialProductRepository financialProductRepository;
 
-    /**
-     * 금융상품 생성
-     */
     public FinancialProductResponseDto createProduct(FinancialProductRequestDto request) {
-        // 상품코드 중복 확인
         if (financialProductRepository.existsByProductCode(request.getProductCode())) {
             throw new IllegalArgumentException("이미 존재하는 상품코드입니다: " + request.getProductCode());
         }
@@ -53,27 +49,18 @@ public class FinancialProductService {
         return FinancialProductResponseDto.from(savedProduct);
     }
 
-    /**
-     * 금융상품 조회 (ID)
-     */
     @Transactional(readOnly = true)
     public Optional<FinancialProductResponseDto> getProductById(Long productId) {
         return financialProductRepository.findById(productId)
             .map(FinancialProductResponseDto::from);
     }
 
-    /**
-     * 금융상품 조회 (상품코드)
-     */
     @Transactional(readOnly = true)
     public Optional<FinancialProductResponseDto> getProductByCode(String productCode) {
         return financialProductRepository.findByProductCode(productCode)
             .map(FinancialProductResponseDto::from);
     }
 
-    /**
-     * 모든 금융상품 조회
-     */
     @Transactional(readOnly = true)
     public List<FinancialProductResponseDto> getAllProducts() {
         List<FinancialProduct> products = financialProductRepository.findAll();
@@ -82,9 +69,6 @@ public class FinancialProductService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 활성화된 금융상품 조회
-     */
     @Transactional(readOnly = true)
     public List<FinancialProductResponseDto> getActiveProducts() {
         List<FinancialProduct> products = financialProductRepository.findByIsActiveTrue();
@@ -93,9 +77,6 @@ public class FinancialProductService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품명으로 검색
-     */
     @Transactional(readOnly = true)
     public List<FinancialProductResponseDto> searchProductsByName(String productName) {
         List<FinancialProduct> products = financialProductRepository.findByProductNameContainingIgnoreCase(productName);
@@ -104,9 +85,6 @@ public class FinancialProductService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 상품유형으로 검색
-     */
     @Transactional(readOnly = true)
     public List<FinancialProductResponseDto> getProductsByCategory(String productCategory) {
         List<FinancialProduct> products = financialProductRepository.findByProductCategory(productCategory);
@@ -115,14 +93,10 @@ public class FinancialProductService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * 금융상품 수정
-     */
     public FinancialProductResponseDto updateProduct(Long productId, FinancialProductRequestDto request) {
         FinancialProduct product = financialProductRepository.findById(productId)
             .orElseThrow(() -> new IllegalArgumentException("금융상품을 찾을 수 없습니다: " + productId));
 
-        // 상품코드 변경 시 중복 확인
         if (!product.getProductCode().equals(request.getProductCode()) && 
             financialProductRepository.existsByProductCode(request.getProductCode())) {
             throw new IllegalArgumentException("이미 존재하는 상품코드입니다: " + request.getProductCode());
@@ -151,9 +125,6 @@ public class FinancialProductService {
         return FinancialProductResponseDto.from(updatedProduct);
     }
 
-    /**
-     * 금융상품 활성화/비활성화
-     */
     public FinancialProductResponseDto toggleProductStatus(Long productId) {
         FinancialProduct product = financialProductRepository.findById(productId)
             .orElseThrow(() -> new IllegalArgumentException("금융상품을 찾을 수 없습니다: " + productId));
@@ -163,9 +134,6 @@ public class FinancialProductService {
         return FinancialProductResponseDto.from(updatedProduct);
     }
 
-    /**
-     * 금융상품 삭제
-     */
     public void deleteProduct(Long productId) {
         if (!financialProductRepository.existsById(productId)) {
             throw new IllegalArgumentException("금융상품을 찾을 수 없습니다: " + productId);
@@ -173,4 +141,3 @@ public class FinancialProductService {
         financialProductRepository.deleteById(productId);
     }
 }
-

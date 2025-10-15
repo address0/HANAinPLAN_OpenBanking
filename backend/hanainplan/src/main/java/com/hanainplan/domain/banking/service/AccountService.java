@@ -20,28 +20,25 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional(readOnly = true)
 public class AccountService {
-    
+
     private final AccountRepository accountRepository;
-    
-    // 계좌 생성 (새로운 방식)
+
     @Transactional
     public AccountDto createAccount(CreateAccountRequest request) {
         log.info("계좌 생성 요청 - 사용자 ID: {}, 계좌 유형: {}, 계좌명: {}", 
                 request.getUserId(), request.getAccountType(), request.getAccountName());
-        
-        // 계좌번호 생성 (중복 확인)
+
         String accountNumber;
         do {
             accountNumber = BankingAccount.generateAccountNumber();
         } while (accountRepository.existsByAccountNumber(accountNumber));
-        
-        // 만료일 계산 (적금/정기예금의 경우)
+
         LocalDateTime expiryDate = null;
         if (request.getDepositPeriod() != null && 
             (request.getAccountType() == BankingAccount.AccountType.SAVINGS)) {
             expiryDate = LocalDateTime.now().plusMonths(request.getDepositPeriod());
         }
-        
+
         BankingAccount account = BankingAccount.builder()
                 .userId(request.getUserId())
                 .accountNumber(accountNumber)
@@ -57,27 +54,25 @@ public class AccountService {
                 .monthlyDepositAmount(request.getMonthlyDepositAmount())
                 .depositPeriod(request.getDepositPeriod())
                 .interestPaymentMethod(request.getInterestPaymentMethod())
-                .accountPassword(request.getAccountPassword()) // 실제로는 암호화해야 함
+                .accountPassword(request.getAccountPassword())
                 .build();
-        
+
         BankingAccount savedAccount = accountRepository.save(account);
         log.info("계좌 생성 완료 - 계좌 ID: {}, 계좌번호: {}", savedAccount.getAccountId(), savedAccount.getAccountNumber());
-        
+
         return AccountDto.fromEntity(savedAccount);
     }
-    
-    // 계좌 생성 (기존 방식 - 호환성을 위해 유지)
+
     @Transactional
     public AccountDto createAccount(Long userId, Integer accountType, String accountName, 
                                    BigDecimal initialBalance, String description) {
         log.info("계좌 생성 요청 - 사용자 ID: {}, 계좌 유형: {}, 계좌명: {}", userId, accountType, accountName);
-        
-        // 계좌번호 생성 (중복 확인)
+
         String accountNumber;
         do {
             accountNumber = BankingAccount.generateAccountNumber();
         } while (accountRepository.existsByAccountNumber(accountNumber));
-        
+
         BankingAccount account = BankingAccount.builder()
                 .userId(userId)
                 .accountNumber(accountNumber)
@@ -89,142 +84,129 @@ public class AccountService {
                 .openedDate(LocalDateTime.now())
                 .description(description)
                 .build();
-        
+
         BankingAccount savedAccount = accountRepository.save(account);
         log.info("계좌 생성 완료 - 계좌 ID: {}, 계좌번호: {}", savedAccount.getAccountId(), savedAccount.getAccountNumber());
-        
+
         return AccountDto.fromEntity(savedAccount);
     }
-    
-    // 사용자 계좌 목록 조회
+
     public List<AccountDto> getUserAccounts(Long userId) {
         log.info("사용자 계좌 목록 조회 - 사용자 ID: {}", userId);
-        
+
         List<BankingAccount> accounts = accountRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return accounts.stream()
                 .map(AccountDto::fromEntity)
                 .collect(Collectors.toList());
     }
-    
-    // 활성 계좌 목록 조회
+
     public List<AccountDto> getActiveUserAccounts(Long userId) {
         log.info("활성 계좌 목록 조회 - 사용자 ID: {}", userId);
-        
+
         List<BankingAccount> accounts = accountRepository.findActiveAccountsByUserId(userId);
         return accounts.stream()
                 .map(AccountDto::fromEntity)
                 .collect(Collectors.toList());
     }
-    
-    // 계좌 상세 조회
+
     public Optional<AccountDto> getAccount(Long accountId) {
         log.info("계좌 상세 조회 - 계좌 ID: {}", accountId);
-        
+
         return accountRepository.findById(accountId)
                 .map(AccountDto::fromEntity);
     }
-    
-    // 계좌번호로 계좌 조회
+
     public Optional<AccountDto> getAccountByNumber(String accountNumber) {
         log.info("계좌번호로 계좌 조회 - 계좌번호: {}", accountNumber);
-        
+
         return accountRepository.findByAccountNumber(accountNumber)
                 .map(AccountDto::fromEntity);
     }
-    
-    // 사용자 계좌 조회 (권한 확인)
+
     public Optional<AccountDto> getUserAccount(Long userId, Long accountId) {
         log.info("사용자 계좌 조회 - 사용자 ID: {}, 계좌 ID: {}", userId, accountId);
-        
+
         return accountRepository.findById(accountId)
                 .filter(account -> account.getUserId().equals(userId))
                 .map(AccountDto::fromEntity);
     }
-    
-    // 계좌 상태 변경
+
     @Transactional
     public AccountDto updateAccountStatus(Long accountId, BankingAccount.AccountStatus newStatus) {
         log.info("계좌 상태 변경 - 계좌 ID: {}, 새 상태: {}", accountId, newStatus);
-        
+
         BankingAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + accountId));
-        
+
         account.setAccountStatus(newStatus);
         BankingAccount savedAccount = accountRepository.save(account);
-        
+
         log.info("계좌 상태 변경 완료 - 계좌 ID: {}, 상태: {}", savedAccount.getAccountId(), savedAccount.getAccountStatus());
         return AccountDto.fromEntity(savedAccount);
     }
-    
-    // 계좌 정보 수정
+
     @Transactional
     public AccountDto updateAccount(Long accountId, String accountName, String description) {
         log.info("계좌 정보 수정 - 계좌 ID: {}, 계좌명: {}", accountId, accountName);
-        
+
         BankingAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + accountId));
-        
+
         if (accountName != null) {
             account.setAccountName(accountName);
         }
         if (description != null) {
             account.setDescription(description);
         }
-        
+
         BankingAccount savedAccount = accountRepository.save(account);
-        
+
         log.info("계좌 정보 수정 완료 - 계좌 ID: {}", savedAccount.getAccountId());
         return AccountDto.fromEntity(savedAccount);
     }
-    
-    // 계좌 잔액 조회
+
     public BigDecimal getAccountBalance(Long accountId) {
         log.info("계좌 잔액 조회 - 계좌 ID: {}", accountId);
-        
+
         BankingAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + accountId));
-        
+
         return account.getBalance();
     }
-    
-    // 계좌 잔액 업데이트 (내부용)
+
     @Transactional
     public void updateAccountBalance(Long accountId, BigDecimal amount) {
         log.debug("계좌 잔액 업데이트 - 계좌 ID: {}, 금액: {}", accountId, amount);
-        
+
         BankingAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + accountId));
-        
+
         account.updateBalance(amount);
         accountRepository.save(account);
-        
+
         log.debug("계좌 잔액 업데이트 완료 - 계좌 ID: {}, 새 잔액: {}", accountId, account.getBalance());
     }
-    
-    // 계좌 존재 여부 확인
+
     public boolean existsAccount(Long accountId) {
         return accountRepository.existsById(accountId);
     }
-    
-    // 사용자 계좌 존재 여부 확인
+
     public boolean existsUserAccount(Long userId, Long accountId) {
         return accountRepository.findById(accountId)
                 .map(account -> account.getUserId().equals(userId))
                 .orElse(false);
     }
-    
-    // 계좌 잔액 충분 여부 확인
+
     public boolean hasSufficientBalance(Long accountId, BigDecimal amount) {
         BankingAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("계좌를 찾을 수 없습니다: " + accountId));
-        
+
         return account.hasSufficientBalance(amount);
     }
-    
-    // 계좌 통계 조회
+
     public List<Object[]> getAccountStats(Long userId) {
         log.info("계좌 통계 조회 - 사용자 ID: {}", userId);
-        
+
         return accountRepository.getBalanceSumByAccountType(userId);
     }
 }

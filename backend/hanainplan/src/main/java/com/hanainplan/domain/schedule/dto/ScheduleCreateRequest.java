@@ -11,9 +11,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 일정 생성 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -43,9 +40,6 @@ public class ScheduleCreateRequest {
     private String location;
     private String memo;
 
-    /**
-     * DTO -> Entity 변환
-     */
     public Schedule toEntity(Long consultantId) {
         return Schedule.builder()
                 .consultantId(consultantId)
@@ -63,9 +57,6 @@ public class ScheduleCreateRequest {
                 .build();
     }
 
-    /**
-     * 프론트엔드 형식 지원을 위한 대체 생성자
-     */
     public static ScheduleCreateRequest fromFrontend(String title, String description, 
                                                      String type, String clientName, 
                                                      String start, String end) {
@@ -80,4 +71,3 @@ public class ScheduleCreateRequest {
                 .build();
     }
 }
-

@@ -11,9 +11,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-/**
- * 회원가입 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,26 +35,21 @@ public class SignUpRequestDto {
     private String verificationCode;
 
     @NotBlank(message = "CI값은 필수입니다.")
-    private String ci; // 실명인증 CI값
+    private String ci;
 
-    private String password; // 카카오 로그인시 null 가능
+    private String password;
 
     private String confirmPassword;
 
-    private String kakaoId; // 카카오 OAuth ID
+    private String kakaoId;
 
-    private String email; // 카카오 로그인시 이메일
+    private String email;
 
-    // 일반고객 전용 필드들
     private HealthInfoDto healthInfo;
     private JobInfoDto jobInfo;
 
-    // 상담원 전용 필드들
     private CounselorInfoDto counselorInfo;
 
-    /**
-     * 건강 정보 DTO
-     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -71,9 +63,6 @@ public class SignUpRequestDto {
         private Boolean insuranceRejection;
     }
 
-    /**
-     * 질병 상세 정보 DTO
-     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -88,9 +77,6 @@ public class SignUpRequestDto {
         private String description;
     }
 
-    /**
-     * 직업 정보 DTO
-     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -101,51 +87,34 @@ public class SignUpRequestDto {
         private String assetLevel;
     }
 
-    /**
-     * 상담원 정보 DTO
-     */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CounselorInfoDto {
-        // 직원 정보
-        private String employeeId;          // 직원번호
-        
-        // 전문직 정보
-        private String specialty;           // 전문직종 (PENSION, FUND, DEPOSIT, ASSET)
-        private String position;            // 직책 (JUNIOR, SENIOR, MANAGER, etc.)
-        private String workPhoneNumber;     // 업무용 연락처
-        private String workEmail;           // 업무용 이메일
-        
-        // 지점 정보
-        private String branchCode;          // 지점 코드
-        private String branchName;          // 지점명
-        private String branchAddress;       // 지점 주소
-        private Double branchLatitude;      // 지점 위도
-        private Double branchLongitude;     // 지점 경도
-        
-        // 증빙서류 정보
-        private String additionalNotes;     // 추가 메모
-        // verificationDocuments는 파일이므로 별도 처리 필요
+        private String employeeId;
+
+        private String specialty;
+        private String position;
+        private String workPhoneNumber;
+        private String workEmail;
+
+        private String branchCode;
+        private String branchName;
+        private String branchAddress;
+        private Double branchLatitude;
+        private Double branchLongitude;
+
+        private String additionalNotes;
     }
 
-    /**
-     * 일반고객 여부 확인
-     */
     public boolean isGeneralCustomer() {
         return UserType.GENERAL.equals(userType);
     }
 
-    /**
-     * 상담원 여부 확인
-     */
     public boolean isCounselor() {
         return UserType.COUNSELOR.equals(userType);
     }
 
-    /**
-     * 카카오 로그인 여부 확인
-     */
     public boolean isKakaoLogin() {
         return kakaoId != null && !kakaoId.trim().isEmpty();
     }

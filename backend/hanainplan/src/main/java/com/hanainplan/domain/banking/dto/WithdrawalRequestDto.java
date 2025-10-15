@@ -15,19 +15,19 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WithdrawalRequestDto {
-    
+
     @NotNull(message = "계좌 ID는 필수입니다")
     private Long accountId;
-    
+
     @NotNull(message = "출금 금액은 필수입니다")
     @DecimalMin(value = "0.01", message = "출금 금액은 0.01원 이상이어야 합니다")
     private BigDecimal amount;
-    
+
     @Size(max = 200, message = "거래 설명은 200자를 초과할 수 없습니다")
     private String description;
-    
+
     @Size(max = 500, message = "메모는 500자를 초과할 수 없습니다")
     private String memo;
-    
+
     private String referenceNumber;
 }

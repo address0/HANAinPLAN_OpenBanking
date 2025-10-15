@@ -10,10 +10,7 @@ import java.util.List;
 
 @Repository
 public interface IndustryCodeRepository extends JpaRepository<IndustryCode, String> {
-    
-    /**
-     * 업종명으로 키워드 검색
-     */
+
     @Query("SELECT ic FROM IndustryCode ic WHERE " +
            "(LOWER(ic.industryName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(ic.industryCode) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +

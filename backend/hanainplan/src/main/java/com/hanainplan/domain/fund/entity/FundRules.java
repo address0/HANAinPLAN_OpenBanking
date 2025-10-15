@@ -9,10 +9,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 
-/**
- * 펀드 거래 규칙 (하나인플랜)
- * - 하나은행 FundRules와 동일한 구조
- */
 @Entity
 @Table(name = "fund_rules")
 @Data
@@ -30,48 +26,44 @@ public class FundRules {
     private FundClass fundClass;
 
     @Column(name = "cutoff_time")
-    private LocalTime cutoffTime; // 당일 매수/환매 마감 시각
+    private LocalTime cutoffTime;
 
     @Column(name = "nav_publish_time")
-    private LocalTime navPublishTime; // 기준가 공시 시각
+    private LocalTime navPublishTime;
 
     @Column(name = "buy_settle_days")
-    private Integer buySettleDays; // 매수 결제일 (T+N)
+    private Integer buySettleDays;
 
     @Column(name = "redeem_settle_days")
-    private Integer redeemSettleDays; // 환매 결제일 (T+N)
+    private Integer redeemSettleDays;
 
     @Column(name = "unit_type", length = 16)
-    private String unitType; // KRW/USD 등
+    private String unitType;
 
     @Column(name = "min_initial_amount", precision = 15, scale = 2)
-    private BigDecimal minInitialAmount; // 최초 최소 매수금액
+    private BigDecimal minInitialAmount;
 
     @Column(name = "min_additional", precision = 15, scale = 2)
-    private BigDecimal minAdditional; // 추가 최소 매수금액
+    private BigDecimal minAdditional;
 
     @Column(name = "increment_amount", precision = 15, scale = 2)
-    private BigDecimal incrementAmount; // 매수단위 (이 금액의 배수로만 매수 가능)
+    private BigDecimal incrementAmount;
 
     @Column(name = "allow_sip")
     @Builder.Default
-    private Boolean allowSip = false; // 적립식 가능 여부
+    private Boolean allowSip = false;
 
     @Column(name = "allow_switch")
     @Builder.Default
-    private Boolean allowSwitch = false; // 펀드 전환 가능 여부
+    private Boolean allowSwitch = false;
 
     @Column(name = "redemption_fee_rate", precision = 7, scale = 4)
-    private BigDecimal redemptionFeeRate; // 환매수수료율
+    private BigDecimal redemptionFeeRate;
 
     @Column(name = "redemption_fee_days")
-    private Integer redemptionFeeDays; // 환매수수료 면제일 (N일 이상 보유 시 면제)
+    private Integer redemptionFeeDays;
 
-    /**
-     * 환매수수료 적용 여부
-     */
     public boolean hasRedemptionFee() {
         return redemptionFeeRate != null && redemptionFeeRate.compareTo(BigDecimal.ZERO) > 0;
     }
 }
-

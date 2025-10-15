@@ -17,9 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 예금 상품 컨트롤러
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/banking/deposit-products")
@@ -29,9 +26,6 @@ public class DepositProductController {
 
     private final DepositProductService depositProductService;
 
-    /**
-     * 모든 예금 상품 조회
-     */
     @GetMapping
     @Operation(summary = "모든 예금 상품 조회", description = "등록된 모든 예금 상품을 조회합니다")
     public ResponseEntity<?> getAllDepositProducts() {
@@ -54,9 +48,6 @@ public class DepositProductController {
         }
     }
 
-    /**
-     * 은행별 예금 상품 조회
-     */
     @GetMapping("/bank/{bankCode}")
     @Operation(summary = "은행별 예금 상품 조회", description = "특정 은행의 예금 상품을 조회합니다")
     public ResponseEntity<?> getDepositProductsByBank(
@@ -81,9 +72,6 @@ public class DepositProductController {
         }
     }
 
-    /**
-     * 정기예금 상품 추천
-     */
     @PostMapping("/recommend")
     @Operation(summary = "정기예금 상품 추천", 
                description = "은퇴 시점과 예치 희망 금액을 기반으로 최적의 정기예금 상품을 추천합니다")
@@ -124,9 +112,6 @@ public class DepositProductController {
         }
     }
 
-    /**
-     * 에러 응답 생성
-     */
     private Map<String, Object> createErrorResponse(String error, String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
@@ -135,4 +120,3 @@ public class DepositProductController {
         return response;
     }
 }
-

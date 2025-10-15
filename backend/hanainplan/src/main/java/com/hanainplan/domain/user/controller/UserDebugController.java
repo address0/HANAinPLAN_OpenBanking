@@ -11,9 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * 사용자 정보 확인 컨트롤러 (디버깅용)
- */
 @RestController
 @RequestMapping("/api/debug")
 @RequiredArgsConstructor
@@ -24,15 +21,12 @@ public class UserDebugController {
 
     private final UserRepository userRepository;
 
-    /**
-     * 사용자 이메일 정보 확인
-     */
     @GetMapping("/user/{userId}/email")
     @Operation(summary = "사용자 이메일 정보 확인", description = "특정 사용자의 이메일 정보를 확인합니다.")
     public ResponseEntity<?> getUserEmailInfo(@PathVariable Long userId) {
         try {
             log.info("사용자 이메일 정보 조회 요청 - userId: {}", userId);
-            
+
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
 
@@ -54,17 +48,14 @@ public class UserDebugController {
         }
     }
 
-    /**
-     * 모든 사용자의 이메일 정보 확인
-     */
     @GetMapping("/users/email-info")
     @Operation(summary = "모든 사용자 이메일 정보 확인", description = "모든 사용자의 이메일 정보를 확인합니다.")
     public ResponseEntity<?> getAllUsersEmailInfo() {
         try {
             log.info("모든 사용자 이메일 정보 조회 요청");
-            
+
             var users = userRepository.findAll();
-            
+
             var emailInfo = users.stream()
                     .map(user -> Map.of(
                         "userId", user.getUserId(),
@@ -91,4 +82,3 @@ public class UserDebugController {
         }
     }
 }
-

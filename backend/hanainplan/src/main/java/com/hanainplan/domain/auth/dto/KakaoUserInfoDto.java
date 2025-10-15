@@ -18,12 +18,3 @@ public class KakaoUserInfoDto {
     private String profileImage;
     private String accessToken;
 }
-
-
-
-
-
-
-
-
-

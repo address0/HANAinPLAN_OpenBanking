@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-/**
- * CI 검증 요청 DTO
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,9 +22,7 @@ public class CiVerificationRequestDto {
     @Size(min = 13, max = 13, message = "주민번호는 13자리여야 합니다")
     private String residentNumber;
 
-    // 8자리 생년월일 (주민번호에서 자동 추출)
     private String birthDate;
 
-    // 성별 (주민번호에서 자동 추출)
     private String gender;
 }

@@ -16,14 +16,12 @@ public class AccountResponseDto {
     private Integer accountType;
     private BigDecimal balance;
     private LocalDate openingDate;
-    private String customerCi; // 고객 CI
+    private String customerCi;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 기본 생성자
     public AccountResponseDto() {}
 
-    // 생성자
     public AccountResponseDto(Account account) {
         this.accountNumber = account.getAccountNumber();
         this.accountType = account.getAccountType();
@@ -34,7 +32,6 @@ public class AccountResponseDto {
         this.updatedAt = account.getUpdatedAt();
     }
 
-    // 정적 팩토리 메서드
     public static AccountResponseDto from(Account account) {
         return new AccountResponseDto(account);
     }

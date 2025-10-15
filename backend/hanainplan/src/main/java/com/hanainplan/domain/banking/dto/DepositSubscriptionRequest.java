@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * 정기예금 가입 요청 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,7 +18,7 @@ public class DepositSubscriptionRequest {
     private Long userId;
 
     @NotBlank(message = "은행 코드는 필수입니다")
-    private String bankCode; // HANA, SHINHAN, KOOKMIN
+    private String bankCode;
 
     @NotBlank(message = "IRP 계좌번호는 필수입니다")
     private String irpAccountNumber;
@@ -45,9 +42,6 @@ public class DepositSubscriptionRequest {
     @DecimalMin(value = "10000", message = "가입 금액은 10,000원 이상이어야 합니다")
     private BigDecimal subscriptionAmount;
 
-    /**
-     * 가입 기간 검증
-     */
     public void validateContractPeriod() {
         switch (productType) {
             case 0:
@@ -73,4 +67,3 @@ public class DepositSubscriptionRequest {
         return productType == 2 ? "일" : "개월";
     }
 }
-

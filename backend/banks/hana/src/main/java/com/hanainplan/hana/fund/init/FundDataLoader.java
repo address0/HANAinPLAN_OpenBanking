@@ -16,14 +16,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-/**
- * 실제 하나은행 펀드 상품 데이터 초기화
- * - 미래에셋 퇴직플랜 2종
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@Profile({"dev", "local"}) // 개발/로컬 환경에서만 실행
+@Profile({"dev", "local"})
 public class FundDataLoader implements CommandLineRunner {
 
     private final FundMasterRepository fundMasterRepository;
@@ -35,55 +31,38 @@ public class FundDataLoader implements CommandLineRunner {
     public void run(String... args) {
         log.info("===== 실제 펀드 상품 데이터 초기화 시작 =====");
 
-        // 1. 미래에셋 퇴직플랜 20 (채권혼합)
         createFundIfNotExists("513061", this::createMiraeAssetPlan20);
 
-        // 2. 미래에셋 퇴직연금 고배당포커스 40 (채권혼합)
         createFundIfNotExists("308100", this::createMiraeAssetDividend40);
 
-        // 3. 미래에셋퇴직플랜KRX100인덱스안정형40 (채권혼합)
         createFundIfNotExists("480214", this::createMiraeAssetKRX100);
 
-        // 4. 미래에셋퇴직플랜40 (채권혼합)
         createFundIfNotExists("513041", this::createMiraeAssetPlan40);
 
-        // 5. 미래에셋퇴직플랜 (채권혼합)
         createFundIfNotExists("513031", this::createMiraeAssetPlan);
 
-        // 6. 미래에셋퇴직플랜30 (채권혼합)
         createFundIfNotExists("513051", this::createMiraeAssetPlan30);
 
-        // 7. 미래에셋퇴직플랜목돈분할투자3/10 (채권혼합)
         createFundIfNotExists("513920", this::createMiraeAssetLumpSum);
 
         log.info("===== 실제 펀드 상품 데이터 초기화 완료 =====");
     }
 
-    /**
-     * 펀드 마스터와 클래스 확인 후 생성
-     * - FundMaster가 있으면 조회해서 재사용
-     * - 각 클래스가 있는지 확인하고 없으면 생성
-     */
     private void createFundIfNotExists(String fundCd, Runnable creator) {
         log.info("펀드 {} 확인 및 생성", fundCd);
-        // 항상 creator를 실행하되, creator 내부에서 FundMaster와 FundClass를 각각 체크
         creator.run();
     }
 
-    /**
-     * 미래에셋 퇴직플랜 20 펀드 생성
-     */
     private void createMiraeAssetPlan20() {
         log.info("미래에셋 퇴직플랜 20 생성 중...");
 
-        // 모펀드 조회 또는 생성
         FundMaster master = fundMasterRepository.findById("513061")
                 .orElseGet(() -> {
                     log.info("FundMaster 513061 생성");
                     FundMaster newMaster = FundMaster.builder()
                             .fundCd("513061")
                             .fundName("미래에셋퇴직플랜20증권자투자신탁1호(채권혼합)")
-                            .fundGb(2) // 사모
+                            .fundGb(2)
                             .assetType("채권혼합")
                             .riskGrade(null)
                             .currency("KRW")
@@ -92,7 +71,6 @@ public class FundDataLoader implements CommandLineRunner {
                     return fundMasterRepository.save(newMaster);
                 });
 
-        // 클래스 P가 이미 있는지 확인
         if (fundClassRepository.existsById("51306P")) {
             log.info("클래스 51306P는 이미 존재합니다. 스킵합니다.");
             return;
@@ -100,7 +78,6 @@ public class FundDataLoader implements CommandLineRunner {
 
         log.info("클래스 51306P 생성");
 
-        // 클래스 P 생성
         FundClass classP = FundClass.builder()
                 .childFundCd("51306P")
                 .fundMaster(master)
@@ -111,7 +88,6 @@ public class FundDataLoader implements CommandLineRunner {
                 .sourceUrl("https://investments.miraeasset.com/magi/fund/view.do?fundGb=2&fundCd=513061&childFundCd=51306P&childFundGb=2")
                 .build();
 
-        // 거래 규칙
         FundRules rules = FundRules.builder()
                 .childFundCd("51306P")
                 .fundClass(classP)
@@ -129,16 +105,15 @@ public class FundDataLoader implements CommandLineRunner {
                 .redemptionFeeDays(null)
                 .build();
 
-        // 수수료
         FundFees fees = FundFees.builder()
                 .childFundCd("51306P")
                 .fundClass(classP)
-                .mgmtFeeBps(45)    // 0.45%
-                .salesFeeBps(25)   // 0.25%
-                .trusteeFeeBps(3)  // 0.03%
-                .adminFeeBps(2)    // 0.02%
+                .mgmtFeeBps(45)
+                .salesFeeBps(25)
+                .trusteeFeeBps(3)
+                .adminFeeBps(2)
                 .frontLoadPct(null)
-                .totalFeeBps(75)   // 0.75%
+                .totalFeeBps(75)
                 .build();
 
         classP.setFundRules(rules);
@@ -146,9 +121,8 @@ public class FundDataLoader implements CommandLineRunner {
 
         fundClassRepository.save(classP);
 
-        // 기준가 데이터 (최근 2일)
         LocalDate today = LocalDate.now();
-        
+
         FundNav nav1 = FundNav.builder()
                 .childFundCd("51306P")
                 .navDate(today.minusDays(2))
@@ -169,20 +143,16 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋 퇴직플랜 20 생성 완료 - 클래스 P");
     }
 
-    /**
-     * 미래에셋 퇴직연금 고배당포커스 40 펀드 생성
-     */
     private void createMiraeAssetDividend40() {
         log.info("미래에셋 퇴직연금 고배당포커스 40 생성 중...");
 
-        // 모펀드 조회 또는 생성
         FundMaster master = fundMasterRepository.findById("308100")
                 .orElseGet(() -> {
                     log.info("FundMaster 308100 생성");
                     FundMaster newMaster = FundMaster.builder()
                             .fundCd("308100")
                             .fundName("미래에셋퇴직연금고배당포커스40증권자투자신탁1호(채권혼합)")
-                            .fundGb(2) // 사모
+                            .fundGb(2)
                             .assetType("채권혼합")
                             .riskGrade(null)
                             .currency("KRW")
@@ -191,7 +161,6 @@ public class FundDataLoader implements CommandLineRunner {
                     return fundMasterRepository.save(newMaster);
                 });
 
-        // 클래스 C가 이미 있는지 확인
         if (fundClassRepository.existsById("30810C")) {
             log.info("클래스 30810C는 이미 존재합니다. 스킵합니다.");
             return;
@@ -199,7 +168,6 @@ public class FundDataLoader implements CommandLineRunner {
 
         log.info("클래스 30810C 생성");
 
-        // 클래스 C 생성
         FundClass classC = FundClass.builder()
                 .childFundCd("30810C")
                 .fundMaster(master)
@@ -210,7 +178,6 @@ public class FundDataLoader implements CommandLineRunner {
                 .sourceUrl("https://investments.miraeasset.com/magi/fund/view.do?fundGb=2&fundCd=308100&childFundCd=30810C&childFundGb=2")
                 .build();
 
-        // 거래 규칙
         FundRules rules = FundRules.builder()
                 .childFundCd("30810C")
                 .fundClass(classC)
@@ -224,20 +191,19 @@ public class FundDataLoader implements CommandLineRunner {
                 .incrementAmount(new BigDecimal("1000.00"))
                 .allowSip(true)
                 .allowSwitch(true)
-                .redemptionFeeRate(new BigDecimal("0.0070")) // 0.7%
+                .redemptionFeeRate(new BigDecimal("0.0070"))
                 .redemptionFeeDays(90)
                 .build();
 
-        // 수수료
         FundFees fees = FundFees.builder()
                 .childFundCd("30810C")
                 .fundClass(classC)
-                .mgmtFeeBps(55)    // 0.55%
-                .salesFeeBps(35)   // 0.35%
-                .trusteeFeeBps(3)  // 0.03%
-                .adminFeeBps(2)    // 0.02%
+                .mgmtFeeBps(55)
+                .salesFeeBps(35)
+                .trusteeFeeBps(3)
+                .adminFeeBps(2)
                 .frontLoadPct(null)
-                .totalFeeBps(95)   // 0.95%
+                .totalFeeBps(95)
                 .build();
 
         classC.setFundRules(rules);
@@ -245,9 +211,8 @@ public class FundDataLoader implements CommandLineRunner {
 
         fundClassRepository.save(classC);
 
-        // 기준가 데이터 (최근 2일)
         LocalDate today = LocalDate.now();
-        
+
         FundNav nav1 = FundNav.builder()
                 .childFundCd("30810C")
                 .navDate(today.minusDays(2))
@@ -268,9 +233,6 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋 퇴직연금 고배당포커스 40 생성 완료 - 클래스 C");
     }
 
-    /**
-     * 미래에셋퇴직플랜KRX100인덱스안정형40 펀드 생성
-     */
     private void createMiraeAssetKRX100() {
         log.info("미래에셋퇴직플랜KRX100인덱스안정형40 생성 중...");
 
@@ -354,9 +316,6 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋퇴직플랜KRX100인덱스안정형40 생성 완료 - 클래스 E");
     }
 
-    /**
-     * 미래에셋퇴직플랜40 펀드 생성
-     */
     private void createMiraeAssetPlan40() {
         log.info("미래에셋퇴직플랜40 생성 중...");
 
@@ -440,9 +399,6 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋퇴직플랜40 생성 완료 - 클래스 P");
     }
 
-    /**
-     * 미래에셋퇴직플랜 펀드 생성
-     */
     private void createMiraeAssetPlan() {
         log.info("미래에셋퇴직플랜 생성 중...");
 
@@ -526,9 +482,6 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋퇴직플랜 생성 완료 - 클래스 C");
     }
 
-    /**
-     * 미래에셋퇴직플랜30 펀드 생성
-     */
     private void createMiraeAssetPlan30() {
         log.info("미래에셋퇴직플랜30 생성 중...");
 
@@ -612,9 +565,6 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋퇴직플랜30 생성 완료 - 클래스 P");
     }
 
-    /**
-     * 미래에셋퇴직플랜목돈분할투자3/10 펀드 생성
-     */
     private void createMiraeAssetLumpSum() {
         log.info("미래에셋퇴직플랜목돈분할투자3/10 생성 중...");
 
@@ -698,4 +648,3 @@ public class FundDataLoader implements CommandLineRunner {
         log.info("미래에셋퇴직플랜목돈분할투자3/10 생성 완료");
     }
 }
-
