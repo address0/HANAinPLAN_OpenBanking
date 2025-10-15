@@ -36,6 +36,8 @@ public class FundSubscriptionService {
     private final UserRepository userRepository;
     private final IrpAccountRepository irpAccountRepository;
     private final AccountRepository accountRepository;
+    private final com.hanainplan.domain.banking.repository.TransactionRepository transactionRepository;
+    private final FundPortfolioSyncService fundPortfolioSyncService;
 
     /**
      * 펀드 매수
@@ -81,6 +83,26 @@ public class FundSubscriptionService {
                 
                 // 하나인플랜 DB의 IRP 계좌 잔액도 동기화
                 syncIrpAccountBalance(realCustomerCi, request.getPurchaseAmount());
+                
+                // 하나인플랜 거래내역 생성 (펀드 매수 = 출금)
+                createHanainplanPurchaseTransaction(
+                    realCustomerCi,
+                    response.getIrpAccountNumber(),
+                    request.getPurchaseAmount(),
+                    response.getIrpBalanceAfter(),
+                    response.getFundName(),
+                    response.getClassCode()
+                );
+                
+                // 펀드 포트폴리오 및 거래내역 즉시 동기화
+                try {
+                    fundPortfolioSyncService.syncUserPortfolio(realCustomerCi);
+                    fundPortfolioSyncService.syncUserTransactions(realCustomerCi);
+                    log.info("펀드 포트폴리오 및 거래내역 동기화 완료 - customerCi: {}", realCustomerCi);
+                } catch (Exception e) {
+                    log.error("펀드 포트폴리오 동기화 실패 - customerCi: {}", realCustomerCi, e);
+                    // 동기화 실패해도 매수는 성공으로 처리
+                }
             } else {
                 log.warn("펀드 매수 실패 - {}", response.getErrorMessage());
             }
@@ -234,6 +256,27 @@ public class FundSubscriptionService {
                 BigDecimal depositAmount = response.getNetAmount(); // 실수령액
                 if (depositAmount != null && depositAmount.compareTo(BigDecimal.ZERO) > 0) {
                     syncIrpAccountBalanceDeposit(realCustomerCi, depositAmount);
+                    
+                    // 하나인플랜 거래내역 생성 (펀드 매도 = 입금)
+                    createHanainplanRedemptionTransaction(
+                        realCustomerCi,
+                        response.getIrpAccountNumber(),
+                        depositAmount,
+                        response.getIrpBalanceAfter(),
+                        response.getFundName(),
+                        response.getClassCode(),
+                        response.getProfit()
+                    );
+                    
+                    // 펀드 포트폴리오 및 거래내역 즉시 동기화
+                    try {
+                        fundPortfolioSyncService.syncUserPortfolio(realCustomerCi);
+                        fundPortfolioSyncService.syncUserTransactions(realCustomerCi);
+                        log.info("펀드 포트폴리오 및 거래내역 동기화 완료 - customerCi: {}", realCustomerCi);
+                    } catch (Exception e) {
+                        log.error("펀드 포트폴리오 동기화 실패 - customerCi: {}", realCustomerCi, e);
+                        // 동기화 실패해도 매도는 성공으로 처리
+                    }
                 }
             } else {
                 log.warn("펀드 매도 실패 - {}", response.getErrorMessage());
@@ -344,6 +387,116 @@ public class FundSubscriptionService {
         } catch (Exception e) {
             log.error("거래 통계 조회 실패 - userId: {}", userId, e);
             throw new RuntimeException("거래 통계 조회에 실패했습니다: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 하나인플랜 펀드 매수 거래내역 생성 (출금)
+     */
+    private void createHanainplanPurchaseTransaction(
+            String customerCi,
+            String accountNumber,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            String fundName,
+            String classCode) {
+        
+        try {
+            // IRP 계좌 조회 (fromAccountId 필요)
+            java.util.Optional<BankingAccount> accountOpt = accountRepository.findByAccountNumber(accountNumber);
+            if (accountOpt.isEmpty()) {
+                log.warn("하나인플랜 거래내역 생성 실패 - IRP 계좌를 찾을 수 없음: {}", accountNumber);
+                return;
+            }
+            
+            BankingAccount irpAccount = accountOpt.get();
+            
+            // 거래 번호 생성
+            String transactionNumber = com.hanainplan.domain.banking.entity.Transaction.generateTransactionNumber();
+            
+            // 거래내역 생성
+            com.hanainplan.domain.banking.entity.Transaction transaction = 
+                    com.hanainplan.domain.banking.entity.Transaction.builder()
+                    .transactionNumber(transactionNumber)
+                    .fromAccountId(irpAccount.getAccountId())
+                    .fromAccountNumber(accountNumber)
+                    .transactionType(com.hanainplan.domain.banking.entity.Transaction.TransactionType.WITHDRAWAL)
+                    .transactionCategory(com.hanainplan.domain.banking.entity.Transaction.TransactionCategory.INVESTMENT)
+                    .transactionDirection(com.hanainplan.domain.banking.entity.Transaction.TransactionDirection.DEBIT)
+                    .amount(amount)
+                    .balanceAfter(balanceAfter)
+                    .description(String.format("펀드 매수 - %s (%s클래스)", fundName, classCode))
+                    .transactionStatus(com.hanainplan.domain.banking.entity.Transaction.TransactionStatus.COMPLETED)
+                    .transactionDate(java.time.LocalDateTime.now())
+                    .processedDate(java.time.LocalDateTime.now())
+                    .referenceNumber(transactionNumber)
+                    .build();
+            
+            transactionRepository.save(transaction);
+            log.info("하나인플랜 펀드 매수 거래내역 생성 완료 - transactionNumber: {}, 계좌번호: {}", 
+                    transactionNumber, accountNumber);
+            
+        } catch (Exception e) {
+            log.error("하나인플랜 펀드 매수 거래내역 생성 실패 - 계좌번호: {}", accountNumber, e);
+            // 거래내역 생성 실패는 로그만 남기고 매수 성공은 유지
+        }
+    }
+
+    /**
+     * 하나인플랜 펀드 매도 거래내역 생성 (입금)
+     */
+    private void createHanainplanRedemptionTransaction(
+            String customerCi,
+            String accountNumber,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            String fundName,
+            String classCode,
+            BigDecimal profit) {
+        
+        try {
+            // IRP 계좌 조회 (toAccountId 필요)
+            java.util.Optional<BankingAccount> accountOpt = accountRepository.findByAccountNumber(accountNumber);
+            if (accountOpt.isEmpty()) {
+                log.warn("하나인플랜 거래내역 생성 실패 - IRP 계좌를 찾을 수 없음: {}", accountNumber);
+                return;
+            }
+            
+            BankingAccount irpAccount = accountOpt.get();
+            
+            // 거래 번호 생성
+            String transactionNumber = com.hanainplan.domain.banking.entity.Transaction.generateTransactionNumber();
+            
+            // 손익 텍스트 생성
+            String profitText = profit != null && profit.compareTo(BigDecimal.ZERO) >= 0 
+                    ? String.format("(+%,.0f원)", profit) 
+                    : String.format("(%,.0f원)", profit != null ? profit : BigDecimal.ZERO);
+            
+            // 거래내역 생성
+            com.hanainplan.domain.banking.entity.Transaction transaction = 
+                    com.hanainplan.domain.banking.entity.Transaction.builder()
+                    .transactionNumber(transactionNumber)
+                    .toAccountId(irpAccount.getAccountId())
+                    .toAccountNumber(accountNumber)
+                    .transactionType(com.hanainplan.domain.banking.entity.Transaction.TransactionType.DEPOSIT)
+                    .transactionCategory(com.hanainplan.domain.banking.entity.Transaction.TransactionCategory.INVESTMENT)
+                    .transactionDirection(com.hanainplan.domain.banking.entity.Transaction.TransactionDirection.CREDIT)
+                    .amount(amount)
+                    .balanceAfter(balanceAfter)
+                    .description(String.format("펀드 매도 - %s (%s클래스) %s", fundName, classCode, profitText))
+                    .transactionStatus(com.hanainplan.domain.banking.entity.Transaction.TransactionStatus.COMPLETED)
+                    .transactionDate(java.time.LocalDateTime.now())
+                    .processedDate(java.time.LocalDateTime.now())
+                    .referenceNumber(transactionNumber)
+                    .build();
+            
+            transactionRepository.save(transaction);
+            log.info("하나인플랜 펀드 매도 거래내역 생성 완료 - transactionNumber: {}, 계좌번호: {}", 
+                    transactionNumber, accountNumber);
+            
+        } catch (Exception e) {
+            log.error("하나인플랜 펀드 매도 거래내역 생성 실패 - 계좌번호: {}", accountNumber, e);
+            // 거래내역 생성 실패는 로그만 남기고 매도 성공은 유지
         }
     }
 }

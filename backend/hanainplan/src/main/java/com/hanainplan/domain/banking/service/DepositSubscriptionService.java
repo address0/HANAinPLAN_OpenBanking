@@ -35,6 +35,7 @@ public class DepositSubscriptionService {
     private final TransactionRepository transactionRepository;
     private final DepositPortfolioRepository depositPortfolioRepository;
     private final DepositSubscriptionRepository depositSubscriptionRepository;
+    private final com.hanainplan.domain.banking.repository.IrpAccountRepository irpAccountRepository;
 
     /**
      * 정기예금 가입
@@ -70,18 +71,34 @@ public class DepositSubscriptionService {
             // 4. 응답 파싱
             DepositSubscriptionResponseDto subscriptionResponse = parseResponse(response, request);
             
-            // 5. 하나인플랜 DB에 IRP 계좌 출금 거래내역 저장
+            // 5. 하나인플랜 DB에 IRP 계좌 잔액 먼저 업데이트
+            BigDecimal newBankingBalance = irpAccount.getBalance().subtract(request.getSubscriptionAmount());
+            irpAccount.setBalance(newBankingBalance);
+            accountRepository.save(irpAccount);
+            
+            log.info("하나인플랜 BankingAccount(IRP) 출금 완료 - 계좌: {}, 출금액: {}원, 남은 잔액: {}원", 
+                    request.getIrpAccountNumber(), request.getSubscriptionAmount(), newBankingBalance);
+            
+            // 5-1. tb_irp_account 테이블도 업데이트
+            com.hanainplan.domain.banking.entity.IrpAccount irpAccountEntity = 
+                    irpAccountRepository.findByAccountNumber(request.getIrpAccountNumber())
+                    .orElse(null);
+            
+            if (irpAccountEntity != null) {
+                BigDecimal newIrpBalance = irpAccountEntity.getCurrentBalance().subtract(request.getSubscriptionAmount());
+                irpAccountEntity.setCurrentBalance(newIrpBalance);
+                irpAccountRepository.save(irpAccountEntity);
+                
+                log.info("하나인플랜 IrpAccount(tb_irp_account) 출금 완료 - 계좌: {}, 출금액: {}원, 남은 잔액: {}원", 
+                        request.getIrpAccountNumber(), request.getSubscriptionAmount(), newIrpBalance);
+            } else {
+                log.warn("tb_irp_account에서 IRP 계좌를 찾을 수 없습니다 - 계좌번호: {}", request.getIrpAccountNumber());
+            }
+            
+            // 6. 잔액 업데이트 후 거래내역 저장
             String productName = request.getProductName() != null ? request.getProductName() : request.getDepositCode();
             saveIrpWithdrawalTransaction(irpAccount, request.getSubscriptionAmount(), 
                     user.getUserId(), request.getDepositCode(), productName);
-            
-            // 6. 하나인플랜 DB에 IRP 계좌 잔액 업데이트
-            BigDecimal newBalance = irpAccount.getBalance().subtract(request.getSubscriptionAmount());
-            irpAccount.setBalance(newBalance);
-            accountRepository.save(irpAccount);
-            
-            log.info("하나인플랜 IRP 계좌 출금 완료 - 계좌: {}, 출금액: {}원, 남은 잔액: {}원", 
-                    request.getIrpAccountNumber(), request.getSubscriptionAmount(), newBalance);
             
             // 7. 정기예금 포트폴리오 저장
             saveDepositPortfolio(request, user, subscriptionResponse);
@@ -257,7 +274,8 @@ public class DepositSubscriptionService {
                                                Long userId, String depositCode, String productName) {
         try {
             String transactionNumber = Transaction.generateTransactionNumber();
-            BigDecimal balanceAfter = irpAccount.getBalance().subtract(amount);
+            // irpAccount.getBalance()는 이미 차감된 상태
+            BigDecimal balanceAfter = irpAccount.getBalance();
             
             Transaction transaction = Transaction.builder()
                     .transactionNumber(transactionNumber + "_OUT")
