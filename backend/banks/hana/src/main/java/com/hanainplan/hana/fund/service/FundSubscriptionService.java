@@ -34,6 +34,7 @@ public class FundSubscriptionService {
     private final IrpAccountRepository irpAccountRepository;
     private final com.hanainplan.hana.fund.repository.FundTransactionRepository fundTransactionRepository;
     private final com.hanainplan.hana.account.repository.AccountRepository accountRepository;
+    private final com.hanainplan.hana.account.repository.TransactionRepository transactionRepository;
 
     /**
      * 펀드 매수
@@ -222,7 +223,18 @@ public class FundSubscriptionService {
             fundTransactionRepository.save(transaction);
             log.info("거래 내역 저장 완료 - transactionId: {}", transaction.getTransactionId());
 
-            // 14. 응답 생성
+            // 14. IRP 계좌 거래내역 생성 (펀드 매수 = IRP 출금)
+            com.hanainplan.hana.account.entity.Transaction irpTransaction = createFundPurchaseTransaction(
+                irpAccount.getAccountNumber(),
+                request.getPurchaseAmount(),
+                newBalance,
+                fundClass.getFundMaster().getFundName(),
+                fundClass.getClassCode()
+            );
+            transactionRepository.save(irpTransaction);
+            log.info("IRP 계좌 거래내역 저장 완료 - transactionId: {}", irpTransaction.getTransactionId());
+
+            // 15. 응답 생성
             return FundPurchaseResponseDto.success(saved, newBalance, settlementDate);
 
         } catch (IllegalArgumentException e) {
@@ -406,7 +418,19 @@ public class FundSubscriptionService {
             fundTransactionRepository.save(transaction);
             log.info("거래 내역 저장 완료 - transactionId: {}", transaction.getTransactionId());
 
-            // 14. 응답 생성
+            // 14. IRP 계좌 거래내역 생성 (펀드 매도 = IRP 입금)
+            com.hanainplan.hana.account.entity.Transaction irpTransaction = createFundRedemptionTransaction(
+                irpAccount.getAccountNumber(),
+                netAmount,
+                newBalance,
+                subscription.getFundName(),
+                subscription.getClassCode(),
+                profit
+            );
+            transactionRepository.save(irpTransaction);
+            log.info("IRP 계좌 거래내역 저장 완료 - transactionId: {}", irpTransaction.getTransactionId());
+
+            // 15. 응답 생성
             return com.hanainplan.hana.fund.dto.FundRedemptionResponseDto.success(
                     subscription, sellUnits, sellNav, sellAmount, redemptionFee,
                     profit, profitRate, newBalance, settlementDate);
@@ -452,6 +476,73 @@ public class FundSubscriptionService {
             log.info("환매수수료 면제 - {}일 경과", rules.getRedemptionFeeDays());
             return BigDecimal.ZERO;
         }
+    }
+
+    /**
+     * 펀드 매수 IRP 계좌 거래내역 생성 (출금)
+     * IrpDepositController의 saveIrpDepositTransaction 메서드 참고
+     */
+    private com.hanainplan.hana.account.entity.Transaction createFundPurchaseTransaction(
+            String accountNumber,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            String fundName,
+            String classCode) {
+        
+        // IRP 거래 ID 형식: HANA-IRP-FP-{timestamp}-{random}
+        String transactionId = "HANA-IRP-FP-" + System.currentTimeMillis() + "-" + 
+                              String.format("%04d", (int)(Math.random() * 10000));
+        
+        return com.hanainplan.hana.account.entity.Transaction.builder()
+                .transactionId(transactionId)
+                .accountNumber(accountNumber)  // IRP 계좌번호
+                .transactionDatetime(LocalDateTime.now())
+                .transactionType("펀드 매수")
+                .transactionCategory("투자")  // IRP 입금과 동일하게 "투자" 카테고리
+                .transactionDirection("DEBIT")  // 펀드 매수 = IRP 출금
+                .amount(amount)
+                .balanceAfter(balanceAfter)
+                .branchName("하나은행 본점")
+                .description(String.format("펀드 매수 - %s (%s클래스)", fundName, classCode))
+                .transactionStatus("COMPLETED")
+                .referenceNumber(transactionId)
+                .build();
+    }
+
+    /**
+     * 펀드 매도 IRP 계좌 거래내역 생성 (입금)
+     * IrpDepositController의 saveIrpDepositTransaction 메서드 참고
+     */
+    private com.hanainplan.hana.account.entity.Transaction createFundRedemptionTransaction(
+            String accountNumber,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            String fundName,
+            String classCode,
+            BigDecimal profit) {
+        
+        // IRP 거래 ID 형식: HANA-IRP-FR-{timestamp}-{random}
+        String transactionId = "HANA-IRP-FR-" + System.currentTimeMillis() + "-" + 
+                              String.format("%04d", (int)(Math.random() * 10000));
+        
+        String profitText = profit.compareTo(BigDecimal.ZERO) >= 0 
+                ? String.format("(+%,.0f원)", profit) 
+                : String.format("(%,.0f원)", profit);
+        
+        return com.hanainplan.hana.account.entity.Transaction.builder()
+                .transactionId(transactionId)
+                .accountNumber(accountNumber)  // IRP 계좌번호
+                .transactionDatetime(LocalDateTime.now())
+                .transactionType("펀드 매도")
+                .transactionCategory("투자")  // IRP 입금과 동일하게 "투자" 카테고리
+                .transactionDirection("CREDIT")  // 펀드 매도 = IRP 입금
+                .amount(amount)
+                .balanceAfter(balanceAfter)
+                .branchName("하나은행 본점")
+                .description(String.format("펀드 매도 - %s (%s클래스) %s", fundName, classCode, profitText))
+                .transactionStatus("COMPLETED")
+                .referenceNumber(transactionId)
+                .build();
     }
 }
 

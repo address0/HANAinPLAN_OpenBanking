@@ -39,7 +39,7 @@ public class FundDataLoader implements CommandLineRunner {
         createFundIfNotExists("513061", this::createMiraeAssetPlan20);
 
         // 2. 미래에셋 퇴직연금 고배당포커스 40 (채권혼합)
-        createFundIfNotExists("308101", this::createMiraeAssetDividend40);
+        createFundIfNotExists("308100", this::createMiraeAssetDividend40);
 
         // 3. 미래에셋퇴직플랜KRX100인덱스안정형40 (채권혼합)
         createFundIfNotExists("480214", this::createMiraeAssetKRX100);
@@ -60,18 +60,14 @@ public class FundDataLoader implements CommandLineRunner {
     }
 
     /**
-     * 펀드가 없는 경우에만 생성
-     * findById를 사용하여 안전하게 확인
+     * 펀드 마스터와 클래스 확인 후 생성
+     * - FundMaster가 있으면 조회해서 재사용
+     * - 각 클래스가 있는지 확인하고 없으면 생성
      */
     private void createFundIfNotExists(String fundCd, Runnable creator) {
-        // existsById 대신 findById를 사용하여 엔티티를 직접 조회
-        // 존재하지 않으면 Optional.empty() 반환
-        if (fundMasterRepository.findById(fundCd).isPresent()) {
-            log.info("펀드 {} 는 이미 존재합니다. 스킵합니다.", fundCd);
-        } else {
-            log.info("펀드 {} 를 새로 생성합니다.", fundCd);
-            creator.run();
-        }
+        log.info("펀드 {} 확인 및 생성", fundCd);
+        // 항상 creator를 실행하되, creator 내부에서 FundMaster와 FundClass를 각각 체크
+        creator.run();
     }
 
     /**
@@ -80,18 +76,29 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetPlan20() {
         log.info("미래에셋 퇴직플랜 20 생성 중...");
 
-        // 모펀드 생성
-        FundMaster master = FundMaster.builder()
-                .fundCd("513061")
-                .fundName("미래에셋퇴직플랜20증권자투자신탁1호(채권혼합)")
-                .fundGb(2) // 사모
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
+        // 모펀드 조회 또는 생성
+        FundMaster master = fundMasterRepository.findById("513061")
+                .orElseGet(() -> {
+                    log.info("FundMaster 513061 생성");
+                    FundMaster newMaster = FundMaster.builder()
+                            .fundCd("513061")
+                            .fundName("미래에셋퇴직플랜20증권자투자신탁1호(채권혼합)")
+                            .fundGb(2) // 사모
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build();
+                    return fundMasterRepository.save(newMaster);
+                });
 
-        fundMasterRepository.save(master);
+        // 클래스 P가 이미 있는지 확인
+        if (fundClassRepository.existsById("51306P")) {
+            log.info("클래스 51306P는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 51306P 생성");
 
         // 클래스 P 생성
         FundClass classP = FundClass.builder()
@@ -168,18 +175,29 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetDividend40() {
         log.info("미래에셋 퇴직연금 고배당포커스 40 생성 중...");
 
-        // 모펀드 생성
-        FundMaster master = FundMaster.builder()
-                .fundCd("308100")
-                .fundName("미래에셋퇴직연금고배당포커스40증권자투자신탁1호(채권혼합)")
-                .fundGb(2) // 사모
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
+        // 모펀드 조회 또는 생성
+        FundMaster master = fundMasterRepository.findById("308100")
+                .orElseGet(() -> {
+                    log.info("FundMaster 308100 생성");
+                    FundMaster newMaster = FundMaster.builder()
+                            .fundCd("308100")
+                            .fundName("미래에셋퇴직연금고배당포커스40증권자투자신탁1호(채권혼합)")
+                            .fundGb(2) // 사모
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build();
+                    return fundMasterRepository.save(newMaster);
+                });
 
-        fundMasterRepository.save(master);
+        // 클래스 C가 이미 있는지 확인
+        if (fundClassRepository.existsById("30810C")) {
+            log.info("클래스 30810C는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 30810C 생성");
 
         // 클래스 C 생성
         FundClass classC = FundClass.builder()
@@ -256,16 +274,26 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetKRX100() {
         log.info("미래에셋퇴직플랜KRX100인덱스안정형40 생성 중...");
 
-        FundMaster master = FundMaster.builder()
-                .fundCd("480214")
-                .fundName("미래에셋퇴직플랜KRX100인덱스안정형40증권자투자신탁1호(채권혼합)")
-                .fundGb(2)
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
-        fundMasterRepository.save(master);
+        FundMaster master = fundMasterRepository.findById("480214")
+                .orElseGet(() -> {
+                    log.info("FundMaster 480214 생성");
+                    return fundMasterRepository.save(FundMaster.builder()
+                            .fundCd("480214")
+                            .fundName("미래에셋퇴직플랜KRX100인덱스안정형40증권자투자신탁1호(채권혼합)")
+                            .fundGb(2)
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build());
+                });
+
+        if (fundClassRepository.existsById("48021E")) {
+            log.info("클래스 48021E는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 48021E 생성");
 
         FundClass classE = FundClass.builder()
                 .childFundCd("48021E")
@@ -332,16 +360,26 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetPlan40() {
         log.info("미래에셋퇴직플랜40 생성 중...");
 
-        FundMaster master = FundMaster.builder()
-                .fundCd("513041")
-                .fundName("미래에셋퇴직플랜40증권자투자신탁1호(채권혼합)")
-                .fundGb(2)
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
-        fundMasterRepository.save(master);
+        FundMaster master = fundMasterRepository.findById("513041")
+                .orElseGet(() -> {
+                    log.info("FundMaster 513041 생성");
+                    return fundMasterRepository.save(FundMaster.builder()
+                            .fundCd("513041")
+                            .fundName("미래에셋퇴직플랜40증권자투자신탁1호(채권혼합)")
+                            .fundGb(2)
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build());
+                });
+
+        if (fundClassRepository.existsById("51304P")) {
+            log.info("클래스 51304P는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 51304P 생성");
 
         FundClass classP = FundClass.builder()
                 .childFundCd("51304P")
@@ -408,16 +446,26 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetPlan() {
         log.info("미래에셋퇴직플랜 생성 중...");
 
-        FundMaster master = FundMaster.builder()
-                .fundCd("513031")
-                .fundName("미래에셋퇴직플랜증권자투자신탁1호(채권혼합)")
-                .fundGb(2)
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
-        fundMasterRepository.save(master);
+        FundMaster master = fundMasterRepository.findById("513031")
+                .orElseGet(() -> {
+                    log.info("FundMaster 513031 생성");
+                    return fundMasterRepository.save(FundMaster.builder()
+                            .fundCd("513031")
+                            .fundName("미래에셋퇴직플랜증권자투자신탁1호(채권혼합)")
+                            .fundGb(2)
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build());
+                });
+
+        if (fundClassRepository.existsById("51303C")) {
+            log.info("클래스 51303C는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 51303C 생성");
 
         FundClass classC = FundClass.builder()
                 .childFundCd("51303C")
@@ -484,16 +532,26 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetPlan30() {
         log.info("미래에셋퇴직플랜30 생성 중...");
 
-        FundMaster master = FundMaster.builder()
-                .fundCd("513051")
-                .fundName("미래에셋퇴직플랜30증권자투자신탁1호(채권혼합)")
-                .fundGb(2)
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
-        fundMasterRepository.save(master);
+        FundMaster master = fundMasterRepository.findById("513051")
+                .orElseGet(() -> {
+                    log.info("FundMaster 513051 생성");
+                    return fundMasterRepository.save(FundMaster.builder()
+                            .fundCd("513051")
+                            .fundName("미래에셋퇴직플랜30증권자투자신탁1호(채권혼합)")
+                            .fundGb(2)
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build());
+                });
+
+        if (fundClassRepository.existsById("51305P")) {
+            log.info("클래스 51305P는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 51305P 생성");
 
         FundClass classP = FundClass.builder()
                 .childFundCd("51305P")
@@ -560,16 +618,26 @@ public class FundDataLoader implements CommandLineRunner {
     private void createMiraeAssetLumpSum() {
         log.info("미래에셋퇴직플랜목돈분할투자3/10 생성 중...");
 
-        FundMaster master = FundMaster.builder()
-                .fundCd("513920")
-                .fundName("미래에셋퇴직플랜목돈분할투자3/10증권자투자신탁4호(채권혼합)")
-                .fundGb(2)
-                .assetType("채권혼합")
-                .riskGrade(null)
-                .currency("KRW")
-                .isActive(true)
-                .build();
-        fundMasterRepository.save(master);
+        FundMaster master = fundMasterRepository.findById("513920")
+                .orElseGet(() -> {
+                    log.info("FundMaster 513920 생성");
+                    return fundMasterRepository.save(FundMaster.builder()
+                            .fundCd("513920")
+                            .fundName("미래에셋퇴직플랜목돈분할투자3/10증권자투자신탁4호(채권혼합)")
+                            .fundGb(2)
+                            .assetType("채권혼합")
+                            .riskGrade(null)
+                            .currency("KRW")
+                            .isActive(true)
+                            .build());
+                });
+
+        if (fundClassRepository.existsById("513921")) {
+            log.info("클래스 513921는 이미 존재합니다. 스킵합니다.");
+            return;
+        }
+
+        log.info("클래스 513921 생성");
 
         FundClass fundClass = FundClass.builder()
                 .childFundCd("513921")
