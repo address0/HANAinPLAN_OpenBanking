@@ -116,6 +116,8 @@ public class Transaction {
         MEDICAL("의료비"),
         EDUCATION("교육비"),
         ENTERTAINMENT("오락비"),
+        INTEREST("이자"),
+        TAX("세금"),
         OTHER("기타");
 
         private final String description;

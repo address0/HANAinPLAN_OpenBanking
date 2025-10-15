@@ -36,6 +36,7 @@ public class DepositSubscriptionService {
     private final DepositPortfolioRepository depositPortfolioRepository;
     private final DepositSubscriptionRepository depositSubscriptionRepository;
     private final com.hanainplan.domain.banking.repository.IrpAccountRepository irpAccountRepository;
+    private final TaxCalculationService taxCalculationService;
 
     public DepositSubscriptionResponseDto subscribeDeposit(DepositSubscriptionRequestDto request) throws Exception {
         log.info("정기예금 가입 요청 - 사용자 ID: {}, 추천 은행: {}, IRP 계좌: {}", 
@@ -89,9 +90,11 @@ public class DepositSubscriptionService {
                     user.getUserId(), request.getDepositCode(), productName);
 
             saveDepositPortfolio(request, user, subscriptionResponse);
-
+            
             saveDepositSubscription(request, user, subscriptionResponse);
-
+            
+            saveMaturityReminderNote(user, subscriptionResponse);
+            
             return subscriptionResponse;
 
         } catch (Exception e) {
@@ -339,6 +342,9 @@ public class DepositSubscriptionService {
                     user.getUserId(), e.getMessage());
             throw new RuntimeException("가입내역 저장 실패: " + e.getMessage());
         }
+    }
+
+    private void saveMaturityReminderNote(User user, DepositSubscriptionResponseDto subscriptionResponse) {
     }
 
     @FunctionalInterface

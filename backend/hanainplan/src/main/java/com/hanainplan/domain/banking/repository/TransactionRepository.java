@@ -120,4 +120,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         @Param("accountNumber") String accountNumber,
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "JOIN BankingAccount a ON (t.toAccountId = a.accountId) " +
+           "WHERE a.customerCi = :customerCi " +
+           "AND a.accountType = 'SECURITIES' " +
+           "AND t.transactionType = 'DEPOSIT' " +
+           "AND YEAR(t.transactionDate) = :year " +
+           "AND t.transactionStatus = 'COMPLETED'")
+    Optional<java.math.BigDecimal> sumIrpDepositsByCustomerCiAndYear(
+        @Param("customerCi") String customerCi,
+        @Param("year") int year);
 }

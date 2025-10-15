@@ -52,4 +52,6 @@ public interface DepositSubscriptionRepository extends JpaRepository<DepositSubs
 
     @Query("SELECT SUM(ds.currentBalance) FROM DepositSubscription ds WHERE ds.userId = :userId AND ds.status = 'ACTIVE'")
     BigDecimal getTotalBalanceByUserId(@Param("userId") Long userId);
+
+    List<DepositSubscription> findByMaturityDateAndStatus(LocalDate maturityDate, String status);
 }

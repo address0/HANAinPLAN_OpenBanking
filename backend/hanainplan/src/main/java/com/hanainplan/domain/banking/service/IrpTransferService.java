@@ -29,6 +29,7 @@ public class IrpTransferService {
     private final ExternalAccountVerificationService verificationService;
     private final BankWithdrawalService withdrawalService;
     private final BankDepositService depositService;
+    private final IrpLimitService irpLimitService;
 
     @Transactional
     public TransactionResponseDto transferToIrp(TransferToIrpRequestDto request) {
@@ -65,6 +66,17 @@ public class IrpTransferService {
             if (!"ACTIVE".equals(verificationResult.getAccountStatus())) {
                 return TransactionResponseDto.failure("비활성 상태의 IRP 계좌입니다",
                         "계좌 상태: " + verificationResult.getAccountStatus());
+            }
+
+            String customerCi = fromAccount.getCustomerCi();
+            if (customerCi != null) {
+                try {
+                    irpLimitService.checkAnnualLimit(customerCi, request.getAmount());
+                    log.info("IRP 연간 한도 체크 통과 - customerCi: {}, 금액: {}원", customerCi, request.getAmount());
+                } catch (com.hanainplan.domain.banking.exception.IrpLimitExceededException e) {
+                    log.warn("IRP 연간 한도 초과 - {}", e.getMessage());
+                    return TransactionResponseDto.failure("IRP 연간 납입 한도 초과", e.getMessage());
+                }
             }
 
             BankWithdrawalService.BankWithdrawalResult withdrawalResult =

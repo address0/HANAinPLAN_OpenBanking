@@ -57,4 +57,6 @@ public interface FundTransactionRepository extends JpaRepository<FundTransaction
            "WHERE t.customerCi = :customerCi " +
            "AND t.status = 'COMPLETED'")
     java.math.BigDecimal getTotalFees(@Param("customerCi") String customerCi);
+
+    List<FundTransaction> findBySettlementDateAndStatus(LocalDate settlementDate, String status);
 }

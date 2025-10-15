@@ -68,6 +68,18 @@ public class DepositSubscription {
     @Builder.Default
     private BigDecimal unpaidInterest = BigDecimal.ZERO;
 
+    @Column(name = "gross_interest", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal grossInterest = BigDecimal.ZERO;
+
+    @Column(name = "tax_amount", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal taxAmount = BigDecimal.ZERO;
+
+    @Column(name = "net_interest", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal netInterest = BigDecimal.ZERO;
+
     @Column(name = "last_interest_calculation_date")
     private LocalDate lastInterestCalculationDate;
 

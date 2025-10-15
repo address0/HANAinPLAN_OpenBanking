@@ -35,6 +35,7 @@ public class FundSubscriptionService {
     private final AccountRepository accountRepository;
     private final com.hanainplan.domain.banking.repository.TransactionRepository transactionRepository;
     private final FundPortfolioSyncService fundPortfolioSyncService;
+    private final com.hanainplan.domain.banking.service.IrpLimitService irpLimitService;
 
     @Transactional
     public FundPurchaseResponseDto purchaseFund(FundPurchaseRequestDto request) {
@@ -53,6 +54,18 @@ public class FundSubscriptionService {
             }
 
             log.info("사용자 정보 조회 완료 - userId: {}, 실제 CI: {}", request.getUserId(), realCustomerCi);
+
+            try {
+                irpLimitService.checkAnnualLimit(realCustomerCi, request.getPurchaseAmount());
+                log.info("IRP 연간 한도 체크 통과 - 금액: {}원", request.getPurchaseAmount());
+            } catch (com.hanainplan.domain.banking.exception.IrpLimitExceededException e) {
+                log.warn("펀드 매수 실패 - IRP 한도 초과: {}", e.getMessage());
+                return FundPurchaseResponseDto.builder()
+                        .success(false)
+                        .message("IRP 연간 납입 한도 초과")
+                        .errorMessage(e.getMessage())
+                        .build();
+            }
 
             Map<String, Object> bankRequest = new HashMap<>();
             bankRequest.put("customerCi", realCustomerCi);

@@ -26,6 +26,8 @@ import java.util.Map;
 public class IrpIntegrationController {
 
     private final IrpIntegrationService irpIntegrationService;
+    private final com.hanainplan.domain.banking.service.IrpLimitService irpLimitService;
+    private final com.hanainplan.domain.banking.service.IrpTaxBenefitService irpTaxBenefitService;
 
     @GetMapping("/accounts/customer/{customerId}")
     @Operation(summary = "고객 IRP 계좌 조회 (고객 ID)", description = "특정 고객의 IRP 계좌 정보를 고객 ID로 조회합니다")
@@ -249,6 +251,120 @@ public class IrpIntegrationController {
             case "KOOKMIN": return "국민은행";
             case "SHINHAN": return "신한은행";
             default: return bankCode;
+        }
+    }
+
+    @GetMapping("/limit/{customerId}")
+    @Operation(summary = "IRP 연간 한도 조회", description = "고객의 IRP 연간 납입 한도 및 사용 현황을 조회합니다")
+    public ResponseEntity<?> getIrpLimit(
+            @Parameter(description = "고객 ID") @PathVariable Long customerId) {
+        try {
+            log.info("IRP 연간 한도 조회 - 고객 ID: {}", customerId);
+
+            IrpAccountDto irpAccount = irpIntegrationService.getCustomerIrpAccountByCustomerId(customerId);
+            
+            if (irpAccount == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "IRP 계좌가 없습니다"
+                ));
+            }
+
+            com.hanainplan.domain.banking.dto.IrpLimitStatus limitStatus = 
+                    irpLimitService.getAnnualLimitStatus(irpAccount.getCustomerCi());
+
+            log.info("IRP 한도 조회 완료 - 납입: {}, 잔여: {}", 
+                    limitStatus.getTotalDeposited(), limitStatus.getRemaining());
+
+            return ResponseEntity.ok(limitStatus);
+
+        } catch (Exception e) {
+            log.error("IRP 한도 조회 실패 - 고객 ID: {}, 오류: {}", customerId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "IRP 한도 조회 실패: " + e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/tax-benefit/{customerId}")
+    @Operation(summary = "IRP 세액공제 조회", description = "IRP 납입액에 대한 세액공제 혜택을 계산합니다")
+    public ResponseEntity<?> getTaxBenefit(
+            @Parameter(description = "고객 ID") @PathVariable Long customerId,
+            @Parameter(description = "연봉(원)", example = "50000000") 
+            @RequestParam(required = false, defaultValue = "50000000") java.math.BigDecimal annualSalary) {
+        try {
+            log.info("IRP 세액공제 조회 - 고객 ID: {}, 연봉: {}", customerId, annualSalary);
+
+            IrpAccountDto irpAccount = irpIntegrationService.getCustomerIrpAccountByCustomerId(customerId);
+            
+            if (irpAccount == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "IRP 계좌가 없습니다"
+                ));
+            }
+
+            com.hanainplan.domain.banking.dto.IrpLimitStatus limitStatus = 
+                    irpLimitService.getAnnualLimitStatus(irpAccount.getCustomerCi());
+
+            com.hanainplan.domain.banking.dto.TaxBenefitResult taxBenefit = 
+                    irpTaxBenefitService.calculateTaxBenefit(
+                            limitStatus.getTotalDeposited(), 
+                            annualSalary
+                    );
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("annualDeposit", limitStatus.getTotalDeposited());
+            response.put("taxBenefit", taxBenefit);
+            response.put("limitStatus", limitStatus);
+
+            log.info("세액공제 조회 완료 - 납입: {}, 공제액: {}", 
+                    limitStatus.getTotalDeposited(), taxBenefit.getTaxDeduction());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("세액공제 조회 실패 - 고객 ID: {}, 오류: {}", customerId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "세액공제 조회 실패: " + e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/compare-accounts/{customerId}")
+    @Operation(summary = "일반계좌 vs IRP 비교", description = "일반 계좌와 IRP 계좌의 세금 혜택을 비교합니다")
+    public ResponseEntity<?> compareAccounts(
+            @Parameter(description = "고객 ID") @PathVariable Long customerId,
+            @Parameter(description = "투자금액(원)", example = "5000000") 
+            @RequestParam java.math.BigDecimal investmentAmount,
+            @Parameter(description = "예상수익(원)", example = "500000") 
+            @RequestParam java.math.BigDecimal expectedReturn,
+            @Parameter(description = "연봉(원)", example = "50000000") 
+            @RequestParam(required = false, defaultValue = "50000000") java.math.BigDecimal annualSalary) {
+        try {
+            log.info("계좌 비교 조회 - 고객 ID: {}, 투자금: {}, 수익: {}, 연봉: {}",
+                    customerId, investmentAmount, expectedReturn, annualSalary);
+
+            com.hanainplan.domain.banking.dto.AccountComparisonResult comparison = 
+                    irpTaxBenefitService.compareAccounts(
+                            investmentAmount, 
+                            expectedReturn, 
+                            annualSalary
+                    );
+
+            log.info("계좌 비교 완료 - IRP 우위: {}원", comparison.getAdvantageAmount());
+
+            return ResponseEntity.ok(comparison);
+
+        } catch (Exception e) {
+            log.error("계좌 비교 실패 - 고객 ID: {}, 오류: {}", customerId, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "message", "계좌 비교 실패: " + e.getMessage()
+            ));
         }
     }
 }

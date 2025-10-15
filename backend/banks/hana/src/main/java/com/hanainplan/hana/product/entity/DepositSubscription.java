@@ -67,6 +67,18 @@ public class DepositSubscription {
     @Builder.Default
     private BigDecimal unpaidInterest = BigDecimal.ZERO;
 
+    @Column(name = "gross_interest", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal grossInterest = BigDecimal.ZERO;
+
+    @Column(name = "tax_amount", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal taxAmount = BigDecimal.ZERO;
+
+    @Column(name = "net_interest", precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal netInterest = BigDecimal.ZERO;
+
     @Column(name = "last_interest_calculation_date")
     private LocalDate lastInterestCalculationDate;
 
@@ -92,6 +104,15 @@ public class DepositSubscription {
 
     public void processInterestPayment(BigDecimal interestAmount) {
         this.currentBalance = this.currentBalance.add(interestAmount);
+        this.unpaidInterest = BigDecimal.ZERO;
+        this.lastInterestCalculationDate = LocalDate.now();
+    }
+
+    public void processInterestPaymentWithTax(BigDecimal grossInterest, BigDecimal taxAmount, BigDecimal netInterest) {
+        this.grossInterest = grossInterest;
+        this.taxAmount = taxAmount;
+        this.netInterest = netInterest;
+        this.currentBalance = this.currentBalance.add(netInterest);
         this.unpaidInterest = BigDecimal.ZERO;
         this.lastInterestCalculationDate = LocalDate.now();
     }

@@ -5,6 +5,7 @@ import com.hanainplan.hana.product.repository.DepositSubscriptionRepository;
 import com.hanainplan.hana.product.util.InterestRateCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,11 @@ import java.util.List;
 public class DepositSchedulerService {
 
     private final DepositSubscriptionRepository depositSubscriptionRepository;
+    private final com.hanainplan.hana.account.repository.AccountRepository accountRepository;
+    private final com.hanainplan.hana.account.repository.TransactionRepository transactionRepository;
+    
+    @Autowired(required = false)
+    private com.hanainplan.domain.banking.service.TaxCalculationService taxCalculationService;
 
     @Scheduled(cron = "0 0 1 * * ?")
     @Transactional
@@ -116,7 +122,24 @@ public class DepositSchedulerService {
                 deposit.getProductType() == 2 ? "일" : "개월",
                 maturityInterest);
 
-        deposit.processInterestPayment(maturityInterest);
+        if (taxCalculationService != null) {
+            com.hanainplan.domain.banking.dto.TaxResult taxResult = 
+                    taxCalculationService.calculateInterestTax(maturityInterest);
+            
+            log.info("세금 계산 - 세전: {}, 세액: {}, 세후: {}", 
+                    taxResult.getGrossAmount(), taxResult.getTotalTax(), taxResult.getNetAmount());
+            
+            deposit.processInterestPaymentWithTax(
+                    taxResult.getGrossAmount(),
+                    taxResult.getTotalTax(),
+                    taxResult.getNetAmount()
+            );
+            
+            createMaturityTransactions(deposit, taxResult);
+        } else {
+            deposit.processInterestPayment(maturityInterest);
+            createSimpleInterestTransaction(deposit, maturityInterest);
+        }
 
         deposit.setStatus("MATURED");
 
@@ -185,5 +208,111 @@ public class DepositSchedulerService {
         }
 
         log.info("=== [테스트] 일일 이자 지급 완료 ===");
+    }
+
+    private void createMaturityTransactions(DepositSubscription deposit, 
+                                           com.hanainplan.domain.banking.dto.TaxResult taxResult) {
+        try {
+            com.hanainplan.hana.account.entity.Account account = accountRepository
+                    .findByAccountNumber(deposit.getAccountNumber())
+                    .orElse(null);
+            
+            if (account == null) {
+                log.warn("계좌를 찾을 수 없어 거래내역 생성 생략 - 계좌번호: {}", deposit.getAccountNumber());
+                return;
+            }
+
+            String baseTransactionId = "MATURITY-" + System.currentTimeMillis();
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+            com.hanainplan.hana.account.entity.Transaction interestDeposit = 
+                    com.hanainplan.hana.account.entity.Transaction.builder()
+                    .transactionId(baseTransactionId + "-INTEREST")
+                    .accountNumber(deposit.getAccountNumber())
+                    .transactionDatetime(now)
+                    .transactionType("입금")
+                    .transactionCategory("이자")
+                    .transactionStatus("COMPLETED")
+                    .transactionDirection("CREDIT")
+                    .amount(taxResult.getGrossAmount())
+                    .balanceAfter(account.getBalance().add(taxResult.getNetAmount()))
+                    .description("정기예금 만기 이자 (세전)")
+                    .branchName("하나은행 본점")
+                    .referenceNumber(baseTransactionId)
+                    .account(account)
+                    .build();
+
+            transactionRepository.save(interestDeposit);
+            log.info("이자 입금 거래내역 생성 완료 - 금액: {}원", taxResult.getGrossAmount());
+
+            com.hanainplan.hana.account.entity.Transaction taxWithdrawal = 
+                    com.hanainplan.hana.account.entity.Transaction.builder()
+                    .transactionId(baseTransactionId + "-TAX")
+                    .accountNumber(deposit.getAccountNumber())
+                    .transactionDatetime(now)
+                    .transactionType("출금")
+                    .transactionCategory("세금")
+                    .transactionStatus("COMPLETED")
+                    .transactionDirection("DEBIT")
+                    .amount(taxResult.getTotalTax())
+                    .balanceAfter(account.getBalance().add(taxResult.getNetAmount()))
+                    .description(String.format("이자소득세 원천징수 (소득세: %s원, 지방세: %s원)", 
+                            taxResult.getIncomeTax(), taxResult.getLocalTax()))
+                    .branchName("하나은행 본점")
+                    .referenceNumber(baseTransactionId)
+                    .account(account)
+                    .build();
+
+            transactionRepository.save(taxWithdrawal);
+            log.info("세금 출금 거래내역 생성 완료 - 금액: {}원 (소득세: {}, 지방세: {})", 
+                    taxResult.getTotalTax(), taxResult.getIncomeTax(), taxResult.getLocalTax());
+
+            account.setBalance(account.getBalance().add(taxResult.getNetAmount()));
+            accountRepository.save(account);
+
+        } catch (Exception e) {
+            log.error("만기 거래내역 생성 실패 - 계좌: {}", deposit.getAccountNumber(), e);
+        }
+    }
+
+    private void createSimpleInterestTransaction(DepositSubscription deposit, BigDecimal interestAmount) {
+        try {
+            com.hanainplan.hana.account.entity.Account account = accountRepository
+                    .findByAccountNumber(deposit.getAccountNumber())
+                    .orElse(null);
+            
+            if (account == null) {
+                log.warn("계좌를 찾을 수 없어 거래내역 생성 생략 - 계좌번호: {}", deposit.getAccountNumber());
+                return;
+            }
+
+            String transactionId = "MATURITY-" + System.currentTimeMillis() + "-INTEREST";
+
+            com.hanainplan.hana.account.entity.Transaction transaction = 
+                    com.hanainplan.hana.account.entity.Transaction.builder()
+                    .transactionId(transactionId)
+                    .accountNumber(deposit.getAccountNumber())
+                    .transactionDatetime(java.time.LocalDateTime.now())
+                    .transactionType("입금")
+                    .transactionCategory("이자")
+                    .transactionStatus("COMPLETED")
+                    .transactionDirection("CREDIT")
+                    .amount(interestAmount)
+                    .balanceAfter(account.getBalance().add(interestAmount))
+                    .description("정기예금 만기 이자")
+                    .branchName("하나은행 본점")
+                    .referenceNumber(transactionId)
+                    .account(account)
+                    .build();
+
+            transactionRepository.save(transaction);
+            log.info("이자 입금 거래내역 생성 완료 - 금액: {}원", interestAmount);
+
+            account.setBalance(account.getBalance().add(interestAmount));
+            accountRepository.save(account);
+
+        } catch (Exception e) {
+            log.error("거래내역 생성 실패 - 계좌: {}", deposit.getAccountNumber(), e);
+        }
     }
 }
