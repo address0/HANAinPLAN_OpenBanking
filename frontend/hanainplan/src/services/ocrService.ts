@@ -1,7 +1,3 @@
-/**
- * OCR 서비스
- * 상담사 회원가입 시 문서 OCR 및 정보 추출
- */
 
 const OCR_API_BASE_URL = 'http://localhost:8090/api/ocr';
 
@@ -29,7 +25,7 @@ export interface ExtractResponse {
   success: boolean;
   masked_text: string;
   masked_pdf_base64: string;
-  masked_images: string[];  // 마스킹된 이미지들 (base64)
+  masked_images: string[];
   extracted_info: ExtractedDocumentInfo[];
   pages: number;
   message?: string;
@@ -77,9 +73,6 @@ export interface RegisterResponse {
   message: string;
 }
 
-/**
- * 단일 문서 OCR 및 정보 추출
- */
 export const extractDocumentInfo = async (file: File): Promise<ExtractResponse> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -96,9 +89,6 @@ export const extractDocumentInfo = async (file: File): Promise<ExtractResponse> 
   return await response.json();
 };
 
-/**
- * 4개의 문서를 한번에 검증하고 정보 추출
- */
 export const verifyAllDocuments = async (documents: {
   employeeId: File;
   employmentContract: File;
@@ -109,7 +99,7 @@ export const verifyAllDocuments = async (documents: {
   formData.append('employee_id_doc', documents.employeeId);
   formData.append('employment_contract', documents.employmentContract);
   formData.append('identity_doc', documents.identityVerification);
-  
+
   if (documents.qualificationCert) {
     formData.append('qualification_cert', documents.qualificationCert);
   }
@@ -126,9 +116,6 @@ export const verifyAllDocuments = async (documents: {
   return await response.json();
 };
 
-/**
- * 상담사 정보를 MySQL에 등록
- */
 export const registerCounselor = async (
   data: CounselorRegistrationData
 ): Promise<RegisterResponse> => {
@@ -141,7 +128,7 @@ export const registerCounselor = async (
   });
 
   const result = await response.json();
-  
+
   if (!response.ok) {
     throw new Error(result.message || '상담사 등록 중 오류가 발생했습니다.');
   }
@@ -149,25 +136,21 @@ export const registerCounselor = async (
   return result;
 };
 
-/**
- * Base64 PDF를 다운로드 가능한 Blob으로 변환
- */
 export const downloadMaskedPDF = (base64PDF: string, filename: string = 'masked_document.pdf') => {
   const byteCharacters = atob(base64PDF);
   const byteNumbers = new Array(byteCharacters.length);
-  
+
   for (let i = 0; i < byteCharacters.length; i++) {
     byteNumbers[i] = byteCharacters.charCodeAt(i);
   }
-  
+
   const byteArray = new Uint8Array(byteNumbers);
   const blob = new Blob([byteArray], { type: 'application/pdf' });
-  
+
   const link = document.createElement('a');
   link.href = window.URL.createObjectURL(blob);
   link.download = filename;
   link.click();
-  
+
   window.URL.revokeObjectURL(link.href);
 };
-

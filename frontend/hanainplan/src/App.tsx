@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import './App.css'
 import Login from './pages/Login'
 import VideoCall from './pages/VideoCall'
 import Main from './pages/Main'
@@ -20,19 +19,17 @@ import FundList from './pages/FundList'
 import FundDetail from './pages/FundDetail'
 import FundMy from './pages/FundMy'
 
-// 상담사용자용 페이지들
 import ConsultantIrpProducts from './pages/consultant/IrpProducts'
 import ConsultantDepositProducts from './pages/consultant/DepositProducts'
 import ConsultantSchedule from './pages/consultant/Schedule'
 import ConsultationManagement from './pages/consultant/ConsultationManagement'
 
-// React Query Client 생성
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5분
+      staleTime: 5 * 60 * 1000,
     },
   },
 })
@@ -71,13 +68,13 @@ function Landing() {
           <div className="animate-fadeInUp-3 mt-4">
             <span className="text-5xl font-['Hana2.0_H']">HANAinPLAN</span>
           </div>
-          
+
           <div className="h-[60px] mt-4">
             {!isLoading && (
               <div className="animate-fadeInUp-button">
-                <button 
+                <button
                   onClick={handleLogin}
-                  className="w-full bg-white text-[#008485] py-3 rounded-lg text-xl 
+                  className="w-full bg-white text-[#008485] py-3 rounded-lg text-xl
                   hover:bg-opacity-95 transition-all group border-2 border-transparent
                   hover:border-[#006D6E] hover:shadow-[0_0_20px_rgba(0,109,110,0.4)]"
                 >
@@ -92,11 +89,11 @@ function Landing() {
             )}
           </div>
         </div>
-        
+
         <div className={`w-[350px] h-[500px] relative ${isAnimating ? 'animate-move-image' : ''}`}>
-          <img 
+          <img
             src="/character/title.png"
-            alt="HANAinPLAN" 
+            alt="HANAinPLAN"
             className="absolute w-[240px] h-[240px] left-[55px] top-[130px] drop-shadow-[4px_4px_10px_rgba(0,0,0,0.25)] animate-fadeInUp-image"
           />
         </div>
@@ -128,16 +125,16 @@ function App() {
           <Route path="/consultation/staff" element={<ConsultationStaff />} />
           <Route path="/consultation/request" element={<ConsultationRequest />} />
           <Route path="/consultation/my" element={<MyConsultations />} />
-          
-          {/* 펀드 라우트 */}
+
+          {}
           <Route path="/funds" element={<FundList />} />
           <Route path="/fund/:fundCode" element={<FundDetail />} />
           <Route path="/fund/my" element={<FundMy />} />
 
-          {/* 상담사용자용 라우트 */}
+          {}
           <Route path="/consultant/products/irp" element={<ConsultantIrpProducts />} />
           <Route path="/consultant/products/deposit" element={<ConsultantDepositProducts />} />
-          {/* 펀드는 일반 고객과 동일한 페이지 사용 (매수/매도 버튼만 조건부 표시) */}
+          {}
           <Route path="/consultant/products/fund" element={<FundList />} />
           <Route path="/consultant/schedule" element={<ConsultantSchedule />} />
           <Route path="/consultant/consultations" element={<ConsultationManagement />} />

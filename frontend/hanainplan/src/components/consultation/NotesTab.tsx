@@ -9,7 +9,7 @@ interface NotesTabProps {
   consultationId: string;
   currentUserId: number;
   currentUserRole: 'customer' | 'counselor';
-  targetUserId?: number; // 상담 상대방 ID (동기화용)
+  targetUserId?: number;
 }
 
 interface TabState {
@@ -30,60 +30,46 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
     isSaving: false
   });
 
-  // 메모 로드
   useEffect(() => {
     loadNotes();
   }, [consultationId, currentUserId]);
 
-  // WebSocket 이벤트 리스너 설정 (메모 동기화)
   useEffect(() => {
     if (currentUserRole === 'customer') {
-      // 고객은 상담사로부터 메모 동기화 메시지를 받음
       WebSocketService.onConsultationNoteSync(async (message) => {
-        console.log('📩 공유 메모 동기화 메시지 수신:', message);
         if (message.data && message.data.noteType === 'SHARED') {
-          console.log('🔄 공유 메모 갱신 중...');
-          
-          // 공유 메모만 다시 로드
+
           try {
             const sharedNote = await getSharedNote(consultationId);
             setTabState(prev => ({
               ...prev,
               sharedNote: sharedNote?.content || ''
             }));
-            console.log('✅ 공유 메모 갱신 완료');
           } catch (error) {
-            console.error('공유 메모 갱신 실패:', error);
           }
         }
       });
     }
 
     return () => {
-      // cleanup (필요시)
     };
   }, [currentUserRole, consultationId]);
 
   const loadNotes = async () => {
-    // consultationId가 없으면 로드하지 않음
     if (!consultationId || consultationId.trim() === '') {
       setTabState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
     setTabState(prev => ({ ...prev, isLoading: true }));
-    
+
     try {
-      // 개인 메모 로드
       const personalNote = await getUserNote(consultationId, currentUserId, 'PERSONAL');
-      
-      // 공유 메모 로드
+
       let sharedNote: ConsultationNote | null = null;
       if (currentUserRole === 'counselor') {
-        // 상담사는 자신이 작성한 공유 메모를 조회
         sharedNote = await getUserNote(consultationId, currentUserId, 'SHARED');
       } else {
-        // 고객은 상담사가 작성한 공유 메모를 조회
         sharedNote = await getSharedNote(consultationId);
       }
 
@@ -96,21 +82,17 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
         isLoading: false
       }));
     } catch (error) {
-      console.error('메모 로드 실패:', error);
       setTabState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
-  // 메모 저장
   const saveNote = async (noteType: 'PERSONAL' | 'SHARED', content: string) => {
-    // consultationId가 없으면 저장하지 않음
     if (!consultationId || consultationId.trim() === '') {
-      console.warn('consultationId가 없어 메모를 저장할 수 없습니다');
       return;
     }
 
     setTabState(prev => ({ ...prev, isSaving: true }));
-    
+
     try {
       await saveConsultationNote({
         consultId: consultationId,
@@ -118,36 +100,30 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
         noteType,
         content
       });
-      
-      console.log(`${noteType === 'PERSONAL' ? '개인' : '공유'} 메모 저장 완료`);
+
     } catch (error) {
-      console.error(`${noteType === 'PERSONAL' ? '개인' : '공유'} 메모 저장 실패:`, error);
     } finally {
       setTabState(prev => ({ ...prev, isSaving: false }));
     }
   };
 
-  // 개인 메모 변경 핸들러
   const handlePersonalNoteChange = (value: string | undefined) => {
     const content = value || '';
     setTabState(prev => ({ ...prev, personalNote: content }));
   };
 
-  // 공유 메모 변경 핸들러
   const handleSharedNoteChange = (value: string | undefined) => {
     const content = value || '';
     setTabState(prev => ({ ...prev, sharedNote: content }));
   };
 
-  // 수동 저장 핸들러
   const handleSavePersonal = () => {
     saveNote('PERSONAL', tabState.personalNote);
   };
 
   const handleSaveShared = async () => {
     await saveNote('SHARED', tabState.sharedNote);
-    
-    // 공유 메모 저장 후 WebSocket으로 동기화 (상담사만)
+
     if (currentUserRole === 'counselor' && targetUserId) {
       WebSocketService.sendConsultationNoteSync({
         type: 'CONSULTATION_NOTE_SYNC',
@@ -169,7 +145,7 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
 
   return (
     <div className="bg-white rounded-lg shadow-sm border">
-      {/* 탭 헤더 */}
+      {}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8 px-6">
           <button
@@ -195,7 +171,7 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
         </nav>
       </div>
 
-      {/* 탭 내용 */}
+      {}
       <div className="p-6">
         {activeTab === 'personal' && (
           <div>
@@ -205,7 +181,7 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
                 개인적으로 작성하는 메모입니다. 상담사와 공유되지 않습니다.
               </p>
             </div>
-            
+
             <div className="border rounded-lg overflow-hidden">
               <MDEditor
                 value={tabState.personalNote}
@@ -215,7 +191,7 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
                 data-color-mode="light"
               />
             </div>
-            
+
             <div className="flex justify-end mt-3">
               <button
                 onClick={handleSavePersonal}
@@ -233,13 +209,13 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900 mb-2">공유 메모장</h3>
               <p className="text-sm text-gray-600">
-                {currentUserRole === 'counselor' 
+                {currentUserRole === 'counselor'
                   ? '고객과 공유되는 메모입니다. 상담 내용이나 추천 사항을 작성해주세요.'
                   : '상담사가 작성한 공유 메모입니다. 상담 내용과 추천 사항을 확인할 수 있습니다.'
                 }
               </p>
             </div>
-            
+
             <div className="border rounded-lg overflow-hidden">
               {currentUserRole === 'counselor' ? (
                 <MDEditor
@@ -265,7 +241,7 @@ const NotesTab: React.FC<NotesTabProps> = ({ consultationId, currentUserId, curr
                 </div>
               )}
             </div>
-            
+
             {currentUserRole === 'counselor' && (
               <div className="flex justify-end mt-3">
                 <button

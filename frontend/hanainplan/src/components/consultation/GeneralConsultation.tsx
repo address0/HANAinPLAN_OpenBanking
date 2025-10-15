@@ -32,7 +32,7 @@ const GeneralConsultation: React.FC<GeneralConsultationProps> = ({
         </div>
       </div>
 
-      {/* 고객 요청 사항 */}
+      {}
       {consultationInfo.detail && (
         <div className="mb-6">
           <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
@@ -47,7 +47,7 @@ const GeneralConsultation: React.FC<GeneralConsultationProps> = ({
         </div>
       )}
 
-      {/* 상담 기록 */}
+      {}
       <div className="flex-1 flex flex-col">
         <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
           <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@ const GeneralConsultation: React.FC<GeneralConsultationProps> = ({
           </svg>
           상담 기록
         </h3>
-        
+
         <div className="flex-1">
           <NotesTab
             consultationId={consultationInfo.id || ''}
@@ -78,4 +78,3 @@ const GeneralConsultation: React.FC<GeneralConsultationProps> = ({
 };
 
 export default GeneralConsultation;
-

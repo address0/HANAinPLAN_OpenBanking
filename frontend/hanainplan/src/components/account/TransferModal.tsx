@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAccountStore } from '../../store/accountStore';
 import { getBankPatternByPattern } from '../../store/bankStore';
-import { 
-  withdrawal, 
-  internalTransfer, 
-  getAllAccounts, 
-  verifyExternalAccount, 
-  transferToIrp, 
-  externalTransfer 
+import {
+  withdrawal,
+  internalTransfer,
+  getAllAccounts,
+  verifyExternalAccount,
+  transferToIrp,
+  externalTransfer
 } from '../../api/bankingApi';
 import type { AccountVerificationResponse } from '../../api/bankingApi';
 import { useUserStore } from '../../store/userStore';
@@ -25,14 +25,14 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
-  const [transferType, setTransferType] = useState<'external' | 'internal'>('external'); // 외부/내부 송금 구분
-  const [selectedToAccountId, setSelectedToAccountId] = useState<number | null>(null); // 내부 계좌 선택
-  const [selectedToAccountNumber, setSelectedToAccountNumber] = useState<string | null>(null); // 내부 계좌번호 (IRP용)
-  const [selectedToAccountIsIrp, setSelectedToAccountIsIrp] = useState(false); // 선택된 계좌가 IRP인지
-  const [myAccounts, setMyAccounts] = useState<any[]>([]); // 내 계좌 목록 (IRP 포함)
-  const [verifiedAccount, setVerifiedAccount] = useState<AccountVerificationResponse | null>(null); // 계좌 검증 결과
-  const [isVerifying, setIsVerifying] = useState(false); // 계좌 검증 중
-  
+  const [transferType, setTransferType] = useState<'external' | 'internal'>('external');
+  const [selectedToAccountId, setSelectedToAccountId] = useState<number | null>(null);
+  const [selectedToAccountNumber, setSelectedToAccountNumber] = useState<string | null>(null);
+  const [selectedToAccountIsIrp, setSelectedToAccountIsIrp] = useState(false);
+  const [myAccounts, setMyAccounts] = useState<any[]>([]);
+  const [verifiedAccount, setVerifiedAccount] = useState<AccountVerificationResponse | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const { accounts, selectedAccountId } = useAccountStore();
   const { user } = useUserStore();
 
@@ -40,34 +40,31 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
-    // Prevent body scroll when modal is open
+
     document.body.style.overflow = 'hidden';
-    
-    // 내 계좌 목록 로드 (IRP 포함)
+
     if (user && transferType === 'internal') {
       loadMyAccounts();
     }
-    
+
     return () => {
       window.removeEventListener('resize', checkMobile);
       document.body.style.overflow = 'unset';
     };
   }, [transferType, user]);
-  
+
   const loadMyAccounts = async () => {
     if (!user) return;
     try {
       const response = await getAllAccounts(user.userId);
       const allAccounts: any[] = [...response.bankingAccounts];
-      
-      // IRP 계좌도 목록에 추가 (내 계좌니까!)
+
       if (response.irpAccount) {
         allAccounts.push({
-          accountId: null, // IRP는 accountId 없음
+          accountId: null,
           accountNumber: response.irpAccount.accountNumber,
           accountName: response.irpAccount.accountName || 'IRP 계좌',
           accountType: 6,
@@ -76,12 +73,11 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
           isIrp: true
         } as any);
       }
-      
-      setMyAccounts(allAccounts.filter(acc => 
+
+      setMyAccounts(allAccounts.filter(acc =>
         acc.isIrp ? true : acc.accountId !== selectedAccountId
       ));
     } catch (error) {
-      console.error('계좌 목록 조회 실패:', error);
     }
   };
 
@@ -98,20 +94,17 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
   const handleAccountNumberChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d]/g, '');
     setRecipientAccountNumber(value);
-    setVerifiedAccount(null); // 계좌번호 변경 시 검증 결과 초기화
-    
-    // 계좌번호가 충분히 입력되면 검증
+    setVerifiedAccount(null);
+
     if (value.length >= 10) {
       try {
         setIsVerifying(true);
         const result = await verifyExternalAccount(value);
         setVerifiedAccount(result);
-        
+
         if (result.exists) {
-          console.log('계좌 검증 성공:', result);
         }
       } catch (error) {
-        console.error('계좌 검증 실패:', error);
         setVerifiedAccount(null);
       } finally {
         setIsVerifying(false);
@@ -119,7 +112,6 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
     }
   };
 
-  // 계좌번호 패턴으로 은행 정보 찾기
   const getBankInfo = (accountNumber: string) => {
     if (accountNumber.length >= 3) {
       const pattern = accountNumber.substring(0, 3);
@@ -136,7 +128,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedAccountId) {
       alert('계좌를 선택해주세요.');
       return;
@@ -147,7 +139,6 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
       return;
     }
 
-    // 내부 송금인 경우
     if (transferType === 'internal') {
       if (!selectedToAccountId && !selectedToAccountIsIrp) {
         alert('입금할 계좌를 선택해주세요.');
@@ -156,8 +147,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
       try {
         setIsSubmitting(true);
-        
-        // IRP 계좌로 송금하는 경우
+
         if (selectedToAccountIsIrp && selectedToAccountNumber) {
           await transferToIrp({
             fromAccountId: selectedAccountId,
@@ -165,33 +155,29 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
             amount: transferAmount,
             description: description || 'IRP 계좌로 송금'
           });
-          
-          // 계좌 정보 새로고침
+
           if (onTransferComplete) {
             await onTransferComplete();
           }
-          
+
           alert('IRP 계좌 송금이 완료되었습니다!');
         } else {
-          // 일반 계좌 간 송금
           await internalTransfer({
             fromAccountId: selectedAccountId,
             toAccountId: selectedToAccountId!,
             amount: transferAmount,
             description: description || '계좌 간 송금'
           });
-          
-          // 계좌 정보 새로고침
+
           if (onTransferComplete) {
             await onTransferComplete();
           }
-          
+
           alert('송금이 완료되었습니다!');
         }
-        
+
         onClose();
       } catch (error: any) {
-        console.error('내부 송금 실패:', error);
         alert(error.response?.data?.message || '송금 처리 중 오류가 발생했습니다.');
       } finally {
         setIsSubmitting(false);
@@ -199,7 +185,6 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
       return;
     }
 
-    // 외부 송금인 경우 (새로운 로직)
     if (!verifiedAccount?.exists) {
       alert('계좌번호를 정확히 입력해주세요.');
       return;
@@ -212,42 +197,37 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
     try {
       setIsSubmitting(true);
-      
+
       if (verifiedAccount.accountType === 'IRP') {
-        // IRP 계좌로 송금
         await transferToIrp({
           fromAccountId: selectedAccountId,
           toIrpAccountNumber: recipientAccountNumber,
           amount: transferAmount,
           description: description || `${recipientName}님께 IRP 송금`
         });
-        
-        // 계좌 정보 새로고침
+
         if (onTransferComplete) {
           await onTransferComplete();
         }
-        
+
         alert('IRP 계좌 송금이 완료되었습니다!');
       } else {
-        // 일반 계좌로 송금
         await externalTransfer({
           fromAccountId: selectedAccountId,
           toAccountNumber: recipientAccountNumber,
           amount: transferAmount,
           description: description || `${recipientName}님께 송금`
         });
-        
-        // 계좌 정보 새로고침
+
         if (onTransferComplete) {
           await onTransferComplete();
         }
-        
+
         alert('송금이 완료되었습니다!');
       }
-      
+
       onClose();
     } catch (error: any) {
-      console.error('송금 오류:', error);
       alert(error.response?.data?.message || '송금 처리 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
@@ -264,17 +244,17 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
   if (isMobile) {
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end"
         onClick={handleOverlayClick}
       >
-        <div 
+        <div
           className="w-full bg-white rounded-t-3xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-hana-bold text-gray-800">계좌 송금</h2>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-500 text-2xl hover:text-gray-700"
             >
@@ -284,7 +264,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-6">
 
-            {/* 송금 타입 선택 */}
+            {}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -310,7 +290,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </button>
             </div>
 
-            {/* 내부 송금 - 계좌 선택 */}
+            {}
             {transferType === 'internal' && (
               <div>
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
@@ -318,10 +298,10 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                 </label>
                 <div className="space-y-2">
                   {myAccounts.map((account) => {
-                    const isSelected = account.isIrp 
+                    const isSelected = account.isIrp
                       ? selectedToAccountNumber === account.accountNumber
                       : selectedToAccountId === account.accountId;
-                    
+
                     return (
                       <button
                         key={account.isIrp ? account.accountNumber : account.accountId}
@@ -367,7 +347,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </div>
             )}
 
-            {/* 외부 송금 - 받는 분 정보 */}
+            {}
             {transferType === 'external' && (
               <div className="space-y-4">
                 <div>
@@ -383,7 +363,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                     required
                   />
                 </div>
-              
+
               <div>
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                   받는 계좌번호
@@ -399,8 +379,8 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                   />
                   {bankInfo && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                      <img 
-                        src={`/bank/${bankInfo.code}.png`} 
+                      <img
+                        src={`/bank/${bankInfo.code}.png`}
                         alt={bankInfo.name}
                         className="w-6 h-6 object-contain"
                       />
@@ -408,7 +388,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                     </div>
                   )}
                 </div>
-                {/* 계좌 검증 상태 표시 */}
+                {}
                 {isVerifying && (
                   <div className="mt-2 text-sm text-gray-600 flex items-center">
                     <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -438,7 +418,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
             </div>
             )}
 
-            {/* Amount Input */}
+            {}
             <div>
               <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                 송금할 금액
@@ -461,7 +441,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               )}
             </div>
 
-            {/* Quick Amount Buttons */}
+            {}
             <div className="grid grid-cols-3 gap-2">
               {quickAmounts.map((quickAmount) => (
                 <button
@@ -482,7 +462,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </button>
             </div>
 
-            {/* Description */}
+            {}
             <div>
               <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                 거래 내용 (선택)
@@ -496,19 +476,19 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               />
             </div>
 
-            {/* Submit Button */}
+            {}
             <button
               type="submit"
               disabled={
-                isSubmitting || 
-                isInsufficientBalance || 
+                isSubmitting ||
+                isInsufficientBalance ||
                 !amount ||
                 (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
                 (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
               }
               className={`w-full py-4 rounded-lg font-hana-bold text-white transition-colors ${
-                isSubmitting || 
-                isInsufficientBalance || 
+                isSubmitting ||
+                isInsufficientBalance ||
                 !amount ||
                 (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
                 (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
@@ -524,9 +504,8 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
     );
   }
 
-  // Desktop Modal
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
       onClick={handleOverlayClick}
     >
@@ -534,7 +513,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-hana-bold text-gray-800">계좌 송금</h2>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-500 text-2xl hover:text-gray-700 transition-colors"
             >
@@ -544,7 +523,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-6">
 
-            {/* 송금 타입 선택 */}
+            {}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -570,7 +549,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </button>
             </div>
 
-            {/* 내부 송금 - 계좌 선택 */}
+            {}
             {transferType === 'internal' && (
               <div>
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
@@ -578,10 +557,10 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                 </label>
                 <div className="space-y-2">
                   {myAccounts.map((account) => {
-                    const isSelected = account.isIrp 
+                    const isSelected = account.isIrp
                       ? selectedToAccountNumber === account.accountNumber
                       : selectedToAccountId === account.accountId;
-                    
+
                     return (
                       <button
                         key={account.isIrp ? account.accountNumber : account.accountId}
@@ -627,7 +606,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </div>
             )}
 
-            {/* 외부 송금 - 받는 분 정보 */}
+            {}
             {transferType === 'external' && (
               <div className="space-y-4">
                 <div>
@@ -643,7 +622,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                     required
                   />
                 </div>
-              
+
               <div>
                 <label className="block font-hana-medium text-gray-700 mb-2">
                   받는 계좌번호
@@ -659,8 +638,8 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                   />
                   {bankInfo && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                      <img 
-                        src={`/bank/${bankInfo.code}.png`} 
+                      <img
+                        src={`/bank/${bankInfo.code}.png`}
                         alt={bankInfo.name}
                         className="w-6 h-6 object-contain"
                       />
@@ -668,7 +647,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
                     </div>
                   )}
                 </div>
-                {/* 계좌 검증 상태 표시 */}
+                {}
                 {isVerifying && (
                   <div className="mt-2 text-sm text-gray-600 flex items-center">
                     <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -698,7 +677,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
             </div>
             )}
 
-            {/* Amount Input */}
+            {}
             <div>
               <label className="block font-hana-medium text-gray-700 mb-2">
                 송금할 금액
@@ -721,7 +700,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               )}
             </div>
 
-            {/* Quick Amount Buttons */}
+            {}
             <div className="grid grid-cols-3 gap-2">
               {quickAmounts.map((quickAmount) => (
                 <button
@@ -742,7 +721,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               </button>
             </div>
 
-            {/* Description */}
+            {}
             <div>
               <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                 거래 내용 (선택)
@@ -756,7 +735,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               />
             </div>
 
-            {/* Action Buttons */}
+            {}
             <div className="flex gap-3">
               <button
                 type="button"
@@ -768,15 +747,15 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
               <button
                 type="submit"
                 disabled={
-                  isSubmitting || 
-                  isInsufficientBalance || 
+                  isSubmitting ||
+                  isInsufficientBalance ||
                   !amount ||
                   (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
                   (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
                 }
                 className={`flex-1 py-3 rounded-lg font-hana-bold text-white transition-colors ${
-                  isSubmitting || 
-                  isInsufficientBalance || 
+                  isSubmitting ||
+                  isInsufficientBalance ||
                   !amount ||
                   (transferType === 'external' && (!recipientName.trim() || !recipientAccountNumber.trim())) ||
                   (transferType === 'internal' && !selectedToAccountId && !selectedToAccountIsIrp)
@@ -791,7 +770,7 @@ function TransferModal({ onClose, onTransferComplete }: TransferModalProps) {
         </div>
       </div>
 
-      {/* 잔액 부족 경고 모달 */}
+      {}
       {showInsufficientBalanceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">

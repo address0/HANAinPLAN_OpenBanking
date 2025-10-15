@@ -18,38 +18,34 @@ interface NotificationDropdownProps {
   onCloseModal: () => void;
 }
 
-function NotificationDropdown({ 
-  isOpen, 
-  onClose, 
+function NotificationDropdown({
+  isOpen,
+  onClose,
   onNotificationSelect,
   selectedNotification,
   onCloseModal
 }: NotificationDropdownProps) {
   const queryClient = useQueryClient();
 
-  // 현재 로그인한 사용자 정보 가져오기
   const getCurrentUserId = (): number | undefined => {
     try {
       const userStorage = localStorage.getItem('user-storage');
       return userStorage ? JSON.parse(userStorage)?.state?.user?.userId : undefined;
     } catch (error) {
-      console.error('사용자 정보 파싱 실패:', error);
       return undefined;
     }
   };
 
-  // 알림 개수 요약 조회
   const { data: summary } = useQuery({
     queryKey: ['notificationSummary'],
     queryFn: () => {
       const userId = getCurrentUserId();
       return fetchNotificationSummary(userId);
     },
-    refetchInterval: 30000, // 30초마다 새로고침
-    enabled: !!getCurrentUserId(), // 사용자 ID가 있을 때만 조회
+    refetchInterval: 30000,
+    enabled: !!getCurrentUserId(),
   });
 
-  // 읽지 않은 알림 목록 조회
   const { data: unreadNotifications, isLoading, error: unreadError } = useQuery({
     queryKey: ['unreadNotifications'],
     queryFn: async () => {
@@ -58,48 +54,35 @@ function NotificationDropdown({
         throw new Error('로그인이 필요합니다.');
       }
 
-      console.log('읽지 않은 알림 목록 API 호출 시작 - 사용자 ID:', userId);
       const result = await fetchUnreadNotifications(0, 10, userId);
-      console.log('읽지 않은 알림 목록 API 응답:', result);
       return result;
     },
     refetchInterval: 30000,
-    enabled: isOpen && !!getCurrentUserId(), // 드롭다운이 열려있고 사용자 ID가 있을 때만 조회
+    enabled: isOpen && !!getCurrentUserId(),
   });
 
-  // 에러 처리
   if (unreadError) {
-    console.error('읽지 않은 알림 목록 조회 실패:', unreadError);
   }
 
-  // 알림 읽음 처리 mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      console.log('읽음 처리 API 호출 시작:', notificationId);
       const userId = getCurrentUserId();
       if (!userId) {
         throw new Error('로그인이 필요합니다.');
       }
       const result = await markNotificationAsRead(notificationId);
-      console.log('읽음 처리 API 응답:', result);
       return result;
     },
     onSuccess: (data, variables) => {
-      console.log('읽음 처리 성공:', variables, data);
-      // 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: ['notificationSummary'] });
       queryClient.invalidateQueries({ queryKey: ['unreadNotifications'] });
-      console.log('읽음 처리 성공, 쿼리 무효화 완료');
-      // 모달 닫기
       onCloseModal();
     },
     onError: (error, variables) => {
-      console.error('읽음 처리 실패:', variables, error);
       alert('읽음 처리 중 오류가 발생했습니다.');
     },
   });
 
-  // 모든 알림 읽음 처리 mutation
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
       const userId = getCurrentUserId();
@@ -114,7 +97,6 @@ function NotificationDropdown({
     },
   });
 
-  // 알림 삭제 mutation
   const deleteMutation = useMutation({
     mutationFn: async (notificationId: number) => {
       const userId = getCurrentUserId();
@@ -129,34 +111,24 @@ function NotificationDropdown({
     },
   });
 
-  // 알림 클릭 핸들러
   const handleNotificationClick = (notification: Notification, e: React.MouseEvent) => {
-    e.stopPropagation(); // 클릭 이벤트 전파 방지
+    e.stopPropagation();
 
-    console.log('=== 알림 클릭 시작 ===');
-    console.log('클릭한 알림:', notification.id, notification.isRead);
-
-    // 부모 컴포넌트에 알림 선택 전달
     onNotificationSelect(notification);
 
-    console.log('알림 선택 완료');
-    console.log('=== 알림 클릭 완료 ===');
   };
 
-  // 모든 알림 읽음 처리 핸들러
   const handleMarkAllAsRead = () => {
     markAllAsReadMutation.mutate();
   };
 
-  // 알림 삭제 핸들러
   const handleDeleteNotification = (notificationId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // 클릭 이벤트 전파 방지
+    e.stopPropagation();
     if (confirm('알림을 삭제하시겠습니까?')) {
       deleteMutation.mutate(notificationId);
     }
   };
 
-  // 알림 타입별 색상
   const getNotificationTypeColor = (type: NotificationType) => {
     switch (type) {
       case 'CONSULTATION':
@@ -174,7 +146,6 @@ function NotificationDropdown({
     }
   };
 
-  // 알림 타입 한글 변환
   const getNotificationTypeLabel = (type: NotificationType) => {
     switch (type) {
       case 'CONSULTATION':
@@ -192,7 +163,6 @@ function NotificationDropdown({
     }
   };
 
-  // 시간 표시 포맷팅
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -212,13 +182,13 @@ function NotificationDropdown({
 
   return (
     <>
-      {/* 알림 드랍다운 */}
+      {}
       {isOpen && (
         <div
           className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-[60] max-h-96 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-      {/* 헤더 */}
+      {}
       <div className="flex items-center justify-between p-4 border-b border-gray-100">
         <h3 className="font-hana-bold text-lg text-gray-900">알림</h3>
         <div className="flex items-center gap-2">
@@ -241,7 +211,7 @@ function NotificationDropdown({
         </div>
       </div>
 
-      {/* 알림 개수 요약 */}
+      {}
       {summary && summary.unreadCount > 0 && (
         <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
           <div className="flex items-center justify-center text-sm">
@@ -252,7 +222,7 @@ function NotificationDropdown({
         </div>
       )}
 
-      {/* 알림 목록 */}
+      {}
       <div className="max-h-64 overflow-y-auto">
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
@@ -290,7 +260,7 @@ function NotificationDropdown({
                   </div>
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // 클릭 이벤트 전파 방지
+                      e.stopPropagation();
                       handleDeleteNotification(notification.id, e);
                     }}
                     className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
@@ -313,7 +283,7 @@ function NotificationDropdown({
         )}
       </div>
 
-      {/* 푸터 */}
+      {}
       <div className="p-3 border-t border-gray-100 bg-gray-50">
         <button
           onClick={onClose}
@@ -325,13 +295,13 @@ function NotificationDropdown({
         </div>
       )}
 
-      {/* 알림 상세 모달 - Portal을 사용하여 최상위에 렌더링 */}
+      {}
       {selectedNotification && createPortal(
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]"
           onClick={onCloseModal}
         >
-          <div 
+          <div
             className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -381,16 +351,11 @@ function NotificationDropdown({
               {!selectedNotification.isRead && (
                 <button
                   onClick={() => {
-                    console.log('=== 읽음 처리 버튼 클릭 ===');
-                    console.log('모달 내 알림:', selectedNotification.id, selectedNotification.isRead);
 
-                    // 읽지 않은 알림만 읽음 처리
                     const userId = getCurrentUserId();
                     if (userId && selectedNotification) {
-                      console.log('읽음 처리 mutation 호출:', selectedNotification.id);
                       markAsReadMutation.mutate(selectedNotification.id);
                     } else {
-                      console.error('사용자 ID 또는 알림 정보를 찾을 수 없습니다');
                     }
                   }}
                   className="flex-1 px-4 py-2 bg-hana-green text-white rounded-lg hover:bg-green-600 transition-colors font-hana-medium"

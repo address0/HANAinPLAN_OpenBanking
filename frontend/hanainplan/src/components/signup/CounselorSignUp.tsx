@@ -47,7 +47,7 @@ interface SignUpData {
 }
 
 function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: CounselorSignUpProps) {
-  const [currentStep, setCurrentStep] = useState<SignUpStep>(2) // 유형 선택 후부터 시작
+  const [currentStep, setCurrentStep] = useState<SignUpStep>(2)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [alertModal, setAlertModal] = useState({
     isOpen: false,
@@ -84,7 +84,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
     }
   })
 
-  // 데이터 변경 핸들러
   const handleBasicInfoChange = (data: Partial<SignUpData>) => {
     setSignUpData(prev => ({ ...prev, ...data }))
   }
@@ -105,7 +104,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
     setSignUpData(prev => ({ ...prev, ...data }))
   }
 
-  // 유효성 검사
   const isStep2Valid = () => {
     const isNameValid = signUpData.name.trim().length >= 2
     const isSocialNumberValid = signUpData.socialNumber.replace(/[^\d]/g, '').length === 13
@@ -116,27 +114,27 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
 
   const isStep3Valid = () => {
     const { professionalInfo } = signUpData
-    return professionalInfo.specialty.trim() !== '' && 
-           professionalInfo.position.trim() !== '' && 
+    return professionalInfo.specialty.trim() !== '' &&
+           professionalInfo.position.trim() !== '' &&
            professionalInfo.workPhoneNumber.trim() !== ''
   }
 
   const isStep4Valid = () => {
     const { branchInfo } = signUpData
-    return branchInfo.branchCode.trim() !== '' && 
-           branchInfo.branchName.trim() !== '' && 
+    return branchInfo.branchCode.trim() !== '' &&
+           branchInfo.branchName.trim() !== '' &&
            branchInfo.address.trim() !== ''
   }
 
   const isStep5Valid = () => {
     const { verificationInfo } = signUpData
-    return verificationInfo.employeeId.trim() !== '' && 
+    return verificationInfo.employeeId.trim() !== '' &&
            verificationInfo.verificationDocuments.length > 0
   }
 
   const isStep6Valid = () => {
     const { password, confirmPassword } = signUpData
-    const isPasswordValid = password.length >= 8 && 
+    const isPasswordValid = password.length >= 8 &&
                            password.length <= 20 &&
                            /\d/.test(password) &&
                            /[a-zA-Z]/.test(password) &&
@@ -145,7 +143,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
     return isPasswordValid && isConfirmPasswordValid
   }
 
-  // 실제 회원가입 처리
   const handleSignUp = async () => {
     if (!isStep6Valid()) return
 
@@ -178,7 +175,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
       const response = await signUp(request)
 
       if (response.userId) {
-        // 성공 시 완료 단계로 이동
         setCurrentStep(7)
         setAlertModal({
           isOpen: true,
@@ -187,7 +183,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
           type: 'success'
         })
       } else {
-        // 실패
         setAlertModal({
           isOpen: true,
           title: '회원가입 실패',
@@ -196,7 +191,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
         })
       }
     } catch (error: any) {
-      console.error('회원가입 오류:', error)
       setAlertModal({
         isOpen: true,
         title: '회원가입 실패',
@@ -208,7 +202,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
     }
   }
 
-  // 화살표 형태 진행 상태 표시기
   const renderArrowProgressBar = () => {
     const steps = [
       { number: 1, name: '가입 유형 선택' },
@@ -229,26 +222,26 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
         {steps.map((step, index) => {
           const isActive = index === getCurrentStepIndex()
           const isCompleted = index < getCurrentStepIndex()
-          
+
           return (
             <div key={step.number} className="flex items-center flex-1">
-              {/* 화살표 단계 컴포넌트 */}
+              {}
               <div className={`relative flex items-center justify-center h-12 flex-1 transition-all duration-300 ${
-                isActive 
-                  ? 'bg-[#008485] text-white' 
-                  : isCompleted 
+                isActive
+                  ? 'bg-[#008485] text-white'
+                  : isCompleted
                     ? 'bg-gray-400 text-white'
                     : 'bg-gray-200 text-gray-600'
               } ${
-                index === 0 
-                  ? 'rounded-l-lg' 
-                  : index === steps.length - 1 
+                index === 0
+                  ? 'rounded-l-lg'
+                  : index === steps.length - 1
                     ? 'rounded-r-lg'
                     : ''
               }`}>
-                {/* 화살표 모양 생성 */}
+                {}
                 {index < steps.length - 1 && (
-                  <div 
+                  <div
                     className={`absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 z-10`}
                     style={{
                       width: 0,
@@ -256,17 +249,17 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
                       borderTop: '24px solid transparent',
                       borderBottom: '24px solid transparent',
                       borderLeft: `24px solid ${
-                        isActive 
-                          ? '#008485' 
-                          : isCompleted 
+                        isActive
+                          ? '#008485'
+                          : isCompleted
                             ? '#9CA3AF'
                             : '#E5E7EB'
                       }`
                     }}
                   />
                 )}
-                
-                {/* 단계 번호와 이름 */}
+
+                {}
                 <div className="flex items-center gap-2 px-4 py-2 relative z-20">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                     isActive || isCompleted ? 'bg-white text-[#008485]' : 'bg-gray-300 text-gray-600'
@@ -285,7 +278,6 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
     )
   }
 
-  // 현재 단계 유효성 검사
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 2: return isStep2Valid()
@@ -300,9 +292,9 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
 
   return (
     <div className="w-[600px] h-full backdrop-blur-sm p-[10px] flex flex-col items-center justify-center gap-4 rounded-r-[20px] shadow-[4px_0px_20px_rgba(0,0,0,0.25)] animate-slide-in border-y-2 border-r-2 border-white overflow-hidden">
-      {/* 공통 헤더 */}
+      {}
       <div className="h-[38px] relative flex items-center">
-        <img 
+        <img
           src="/images/img-hana-symbol.png"
           alt="하나 심볼"
           className="h-[38px] left-0 right-[82.76%] top-0"
@@ -312,10 +304,10 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
         </span>
       </div>
 
-      {/* 화살표 단계 표시기 */}
+      {}
       {renderArrowProgressBar()}
 
-      {/* 단계별 컴포넌트 */}
+      {}
       <div className="w-full h-[400px] overflow-y-auto">
         {currentStep === 2 && (
           <Step2BasicInfo
@@ -359,18 +351,18 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
         )}
       </div>
 
-      {/* 네비게이션 버튼들 */}
+      {}
       {currentStep < 7 && (
         <div className="flex gap-4 mt-2">
-          {/* 2단계일 때는 유형 선택으로, 그 이후엔 이전 단계로 */}
-          <button 
+          {}
+          <button
             onClick={currentStep === 2 ? onBackToUserTypeSelection : () => setCurrentStep((prev) => (prev - 1) as SignUpStep)}
             disabled={isSubmitting}
             className="px-6 py-3 bg-gray-500 text-white rounded-[10px] font-['Hana2.0_M'] text-[16px] hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             이전 단계
           </button>
-          <button 
+          <button
             onClick={currentStep === 6 ? handleSignUp : () => setCurrentStep((prev) => (prev + 1) as SignUpStep)}
             disabled={!isCurrentStepValid() || isSubmitting}
             className={`px-6 py-3 rounded-[10px] font-['Hana2.0_M'] text-[16px] transition-all duration-200 ${
@@ -384,7 +376,7 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
         </div>
       )}
 
-      {/* AlertModal */}
+      {}
       <AlertModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
@@ -395,7 +387,7 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
         autoCloseDelay={2000}
       />
 
-      {/* 로그인 링크 */}
+      {}
       <div className="font-['Hana2.0_M'] text-[16px] leading-[20px] mt-2">
         이미 계정이 있으신가요? <span className="text-[#008485] cursor-pointer hover:text-[#006666] transition-colors duration-200" onClick={onBackToLogin}>로그인하기 →</span>
       </div>
@@ -403,4 +395,4 @@ function CounselorSignUp({ onBackToLogin, onBackToUserTypeSelection }: Counselor
   )
 }
 
-export default CounselorSignUp 
+export default CounselorSignUp

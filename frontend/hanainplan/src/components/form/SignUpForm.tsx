@@ -12,23 +12,20 @@ type UserType = 'general' | 'counselor' | null
 function SignUpForm({ onBackToLogin }: SignUpFormProps) {
   const [selectedUserType, setSelectedUserType] = useState<UserType>(null)
 
-  // 가입 유형 선택 핸들러
   const handleUserTypeSelect = (userType: UserType) => {
     setSelectedUserType(userType)
   }
 
-  // 뒤로가기 (유형 선택으로 돌아가기)
   const handleBackToUserTypeSelection = () => {
     setSelectedUserType(null)
   }
 
-  // 유형이 선택되지 않았으면 유형 선택 화면
   if (!selectedUserType) {
     return (
       <div className="w-[550px] h-full backdrop-blur-sm p-[10px] flex flex-col items-center justify-center gap-4 rounded-r-[20px] animate-slide-in border-y-2 border-r-2 border-white">
-        {/* 공통 헤더 */}
+        {}
         <div className="h-[38px] relative flex items-center">
-          <img 
+          <img
             src="/images/img-hana-symbol.png"
             alt="하나 심볼"
             className="h-[38px] left-0 right-[82.76%] top-0"
@@ -38,13 +35,13 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
           </span>
         </div>
 
-        {/* 화살표 형태 단계 표시기 */}
+        {}
         <div className="flex items-center justify-center w-full max-w-[600px] mb-6">
           <div className="flex items-center flex-1">
-            {/* 01. 회원 가입 유형 선택 - 활성 단계 */}
+            {}
             <div className="relative flex items-center justify-center h-12 flex-1 transition-all duration-300 bg-[#008485] text-white rounded-l-lg">
-              {/* 화살표 모양 생성 */}
-              <div 
+              {}
+              <div
                 className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 z-10"
                 style={{
                   width: 0,
@@ -54,8 +51,8 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
                   borderLeft: '24px solid #008485'
                 }}
               />
-              
-              {/* 단계 번호와 이름 */}
+
+              {}
               <div className="flex items-center gap-2 px-3 py-2 relative z-20">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-white text-[#008485]">
                   01
@@ -66,10 +63,10 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
               </div>
             </div>
 
-            {/* 02. 기본 정보 입력 - 대기 단계 */}
+            {}
             <div className="relative flex items-center justify-center h-12 flex-1 transition-all duration-300 bg-gray-200 text-gray-600">
-              {/* 화살표 모양 생성 */}
-              <div 
+              {}
+              <div
                 className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 z-10"
                 style={{
                   width: 0,
@@ -79,8 +76,8 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
                   borderLeft: '24px solid #E5E7EB'
                 }}
               />
-              
-              {/* 단계 번호와 이름 */}
+
+              {}
               <div className="flex items-center gap-2 px-3 py-2 relative z-20">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-gray-300 text-gray-600">
                   02
@@ -91,10 +88,10 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
               </div>
             </div>
 
-            {/* 03. 추가 정보 입력 - 대기 단계 */}
+            {}
             <div className="relative flex items-center justify-center h-12 flex-1 transition-all duration-300 bg-gray-200 text-gray-600">
-              {/* 화살표 모양 생성 */}
-              <div 
+              {}
+              <div
                 className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 z-10"
                 style={{
                   width: 0,
@@ -104,8 +101,8 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
                   borderLeft: '24px solid #E5E7EB'
                 }}
               />
-              
-              {/* 단계 번호와 이름 */}
+
+              {}
               <div className="flex items-center gap-2 px-3 py-2 relative z-20">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-gray-300 text-gray-600">
                   03
@@ -116,9 +113,9 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
               </div>
             </div>
 
-            {/* 04. 회원 가입 완료 - 대기 단계 */}
+            {}
             <div className="relative flex items-center justify-center h-12 flex-1 transition-all duration-300 bg-gray-200 text-gray-600 rounded-r-lg">
-              {/* 단계 번호와 이름 */}
+              {}
               <div className="flex items-center gap-2 px-3 py-2 relative z-20">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-gray-300 text-gray-600">
                   04
@@ -131,13 +128,13 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
           </div>
         </div>
 
-        {/* 유형 선택 컴포넌트 */}
+        {}
         <Step1UserTypeSelection
           selectedUserType={selectedUserType}
           onUserTypeSelect={handleUserTypeSelect}
         />
 
-        {/* 로그인 링크 */}
+        {}
         <div className="font-['Hana2.0_M'] text-[16px] leading-[20px] mt-2">
           이미 계정이 있으신가요? <span className="text-[#008485] cursor-pointer hover:text-[#006666] transition-colors duration-200" onClick={onBackToLogin}>로그인하기 →</span>
         </div>
@@ -145,7 +142,6 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
     )
   }
 
-  // 유형이 선택되었으면 해당 유형의 회원가입 컴포넌트
   if (selectedUserType === 'general') {
     return <GeneralSignUp onBackToLogin={onBackToLogin} onBackToUserTypeSelection={handleBackToUserTypeSelection} />
   }
@@ -157,4 +153,4 @@ function SignUpForm({ onBackToLogin }: SignUpFormProps) {
   return null
 }
 
-export default SignUpForm 
+export default SignUpForm

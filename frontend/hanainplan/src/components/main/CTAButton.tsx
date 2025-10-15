@@ -26,4 +26,3 @@ function CTAButton({ label, href, onClick, className = '' }: CTAButtonProps) {
 }
 
 export default CTAButton
-

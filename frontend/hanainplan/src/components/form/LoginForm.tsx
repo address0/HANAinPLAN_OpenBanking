@@ -19,8 +19,7 @@ function LoginForm({ onSignUp }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const { setUser } = useUserStore()
-  
-  // AlertModal 상태
+
   const [alertModal, setAlertModal] = useState({
     isOpen: false,
     title: '',
@@ -28,7 +27,6 @@ function LoginForm({ onSignUp }: LoginFormProps) {
     type: 'info' as 'success' | 'error' | 'info' | 'warning'
   })
 
-  // 컴포넌트가 마운트될 때 상태 초기화
   useEffect(() => {
     setPhoneNumber('')
     setPassword('')
@@ -36,15 +34,12 @@ function LoginForm({ onSignUp }: LoginFormProps) {
   }, [])
 
   const formatPhoneNumber = (value: string) => {
-    // 숫자만 추출
     const numbers = value.replace(/[^\d]/g, '')
-    
-    // 11자리 초과 시 자르기
+
     if (numbers.length > 11) {
-      return phoneNumber // 기존 값 유지
+      return phoneNumber
     }
-    
-    // 포맷팅 적용
+
     if (numbers.length <= 3) {
       return numbers
     } else if (numbers.length <= 7) {
@@ -66,7 +61,6 @@ function LoginForm({ onSignUp }: LoginFormProps) {
   const handleLogin = async () => {
     if (isSubmitting) return;
 
-    // 입력 검증
     if (!phoneNumber.trim()) {
       setAlertModal({
         isOpen: true,
@@ -117,7 +111,6 @@ function LoginForm({ onSignUp }: LoginFormProps) {
           type: 'success'
         });
 
-        // 로그인 성공 시 사용자 정보를 zustand store에 저장
         setUser({
           id: response.userId || 0,
           userId: response.userId || 0,
@@ -129,7 +122,6 @@ function LoginForm({ onSignUp }: LoginFormProps) {
           updatedAt: new Date().toISOString()
         });
 
-        // 2초 후 메인 페이지로 이동
         setTimeout(() => {
           navigate('/main');
         }, 2000);
@@ -142,7 +134,6 @@ function LoginForm({ onSignUp }: LoginFormProps) {
         });
       }
     } catch (error) {
-      console.error('로그인 오류:', error);
       setAlertModal({
         isOpen: true,
         title: '로그인 오류',
@@ -176,9 +167,9 @@ function LoginForm({ onSignUp }: LoginFormProps) {
       }}
       className="w-[450px] h-full backdrop-blur-sm p-[10px] flex flex-col items-center justify-center gap-4 rounded-r-[20px] animate-slide-in border-y-2 border-r-2 border-white overflow-hidden"
     >
-      {/* 로고 헤더 */}
+      {}
       <div className="h-[38px] relative flex items-center">
-        <img 
+        <img
           src="/images/img-hana-symbol.png"
           alt="하나 심볼"
           className="h-[38px] left-0 right-[82.76%] top-0"
@@ -188,13 +179,13 @@ function LoginForm({ onSignUp }: LoginFormProps) {
         </span>
       </div>
 
-      {/* 구분선 */}
+      {}
       <div className="w-[400px] h-0 border-t-2 border-[#C2C2C2]" />
 
-      {/* 전화번호 입력 필드 */}
+      {}
       <div className={`w-[360px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
-        isPhoneFocused 
-          ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+        isPhoneFocused
+          ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]'
           : 'border-[#E0E0E0] hover:border-[#008485]/50'
       }`}>
         <input
@@ -208,10 +199,10 @@ function LoginForm({ onSignUp }: LoginFormProps) {
         />
       </div>
 
-      {/* 비밀번호 입력 필드 */}
+      {}
       <div className={`w-[360px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
-        isPasswordFocused 
-          ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+        isPasswordFocused
+          ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]'
           : 'border-[#E0E0E0] hover:border-[#008485]/50'
       }`}>
         <input
@@ -241,8 +232,8 @@ function LoginForm({ onSignUp }: LoginFormProps) {
         </button>
       </div>
 
-      {/* 로그인 버튼 */}
-      <button 
+      {}
+      <button
         onClick={handleLogin}
         disabled={!isFormValid() || isSubmitting}
         className={`w-[360px] px-4 py-3 relative rounded-lg transition-all duration-200 shadow-sm font-['Hana2.0_M'] text-[18px] leading-[20px] ${
@@ -254,12 +245,12 @@ function LoginForm({ onSignUp }: LoginFormProps) {
         {isSubmitting ? '로그인 중...' : '로그인'}
       </button>
 
-      {/* 카카오 로그인 버튼 */}
+      {}
       <KakaoLogin
         onError={handleKakaoLoginError}
       />
 
-      {/* 회원가입 링크 */}
+      {}
       <div className="font-['Hana2.0_M'] text-[16px] leading-[20px]">
         하나인플랜이 처음이신가요? <span className="text-[#008485] cursor-pointer hover:text-[#006666] transition-colors duration-200" onClick={onSignUp}>가입하기 →</span>
       </div>
@@ -277,4 +268,4 @@ function LoginForm({ onSignUp }: LoginFormProps) {
   )
 }
 
-export default LoginForm 
+export default LoginForm

@@ -1,4 +1,3 @@
-// 아이콘 없이 recharts만 사용
 
 interface SavingsInsuranceProps {
   savings: {
@@ -23,13 +22,13 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* 예적금 섹션 */}
+      {}
       <div className="bg-white rounded-2xl shadow-lg p-8">
         <div className="mb-6">
           <h2 className="text-2xl font-hana-bold text-gray-900">예적금 & IRP</h2>
         </div>
 
-        {/* 일반 예적금 */}
+        {}
         <div className="mb-6">
           <div className="bg-gradient-to-r from-hana-green/10 to-hana-green/20 rounded-xl p-6 border border-hana-green/30">
             <div className="flex items-center justify-between mb-4">
@@ -48,8 +47,8 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
                 <span className="text-hana-green font-hana-bold">+₩1,120,000</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-hana-green h-2 rounded-full" 
+                <div
+                  className="bg-hana-green h-2 rounded-full"
                   style={{ width: '75%' }}
                 ></div>
               </div>
@@ -58,7 +57,7 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
           </div>
         </div>
 
-        {/* IRP */}
+        {}
         <div>
           <div className="bg-gradient-to-r from-hana-green/15 to-hana-green/25 rounded-xl p-6 border border-hana-green/40">
             <div className="flex items-center justify-between mb-4">
@@ -82,8 +81,8 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
                   <span className="text-hana-green font-hana-bold">+₩480,000</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-hana-green h-2 rounded-full" 
+                  <div
+                    className="bg-hana-green h-2 rounded-full"
                     style={{ width: '60%' }}
                   ></div>
                 </div>
@@ -92,7 +91,7 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
             ) : (
               <div className="text-center py-4">
                 <p className="text-gray-500 font-hana-medium mb-3">개설된 IRP 계좌가 없습니다</p>
-                <button 
+                <button
                   onClick={() => window.location.href = '/products/irp'}
                   className="bg-hana-green text-white px-4 py-2 rounded-lg font-hana-medium hover:bg-hana-green/90 transition-colors"
                 >
@@ -103,7 +102,7 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
           </div>
         </div>
 
-        {/* 추천 상품 */}
+        {}
         <div className="mt-6 p-4 bg-hana-green/5 rounded-xl border border-hana-green/20">
           <h4 className="font-hana-bold text-gray-900 mb-2">추천 상품</h4>
           <div className="space-y-2">
@@ -119,13 +118,13 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
         </div>
       </div>
 
-      {/* 보험 섹션 */}
+      {}
       <div className="bg-white rounded-2xl shadow-lg p-8">
         <div className="mb-6">
           <h2 className="text-2xl font-hana-bold text-gray-900">보험 현황</h2>
         </div>
 
-        {/* 보험 총액 */}
+        {}
         <div className="mb-6">
           <div className="bg-gradient-to-r from-hana-green/10 to-hana-green/20 rounded-xl p-6 border border-hana-green/30">
             <div className="flex items-center justify-between mb-4">
@@ -155,12 +154,12 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
           </div>
         </div>
 
-        {/* 가입 보험 상품 목록 */}
+        {}
         <div className="space-y-4">
           <h3 className="text-lg font-hana-bold text-gray-900">가입 보험 상품</h3>
-          
+
           <div className="space-y-3">
-            {/* 생명보험 */}
+            {}
             <div className="bg-hana-green/10 rounded-xl p-4 border border-hana-green/30">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -181,7 +180,7 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
               </div>
             </div>
 
-            {/* 건강보험 */}
+            {}
             <div className="bg-hana-green/10 rounded-xl p-4 border border-hana-green/30">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -202,7 +201,7 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
               </div>
             </div>
 
-            {/* 연금보험 */}
+            {}
             <div className="bg-hana-green/10 rounded-xl p-4 border border-hana-green/30">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -225,7 +224,7 @@ function SavingsInsurance({ savings, insurance }: SavingsInsuranceProps) {
           </div>
         </div>
 
-        {/* 보험 혜택 요약 */}
+        {}
         <div className="mt-6 p-4 bg-gray-50 rounded-xl">
           <h4 className="font-hana-bold text-gray-900 mb-2">보험 혜택 요약</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">

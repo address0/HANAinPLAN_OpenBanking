@@ -16,11 +16,10 @@ function MyAccount() {
   const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const { user } = useUserStore();
   const { accounts, setAllAccountsData, setLoading, clearAccounts } = useAccountStore();
 
-  // 사용자 계좌 조회
   useEffect(() => {
     const loadAccounts = async () => {
       if (!user) {
@@ -33,7 +32,6 @@ function MyAccount() {
         const allAccountsResponse = await getAllAccounts(user.userId);
         setAllAccountsData(allAccountsResponse);
       } catch (error) {
-        console.error('계좌 조회 오류:', error);
         setAllAccountsData({
           bankingAccounts: [],
           totalBankingBalance: 0,
@@ -50,7 +48,6 @@ function MyAccount() {
   }, [user, setAllAccountsData, setLoading]);
 
   useEffect(() => {
-    // 컴포넌트 언마운트 시 계좌 정보 초기화
     return () => {
       clearAccounts();
     };
@@ -58,20 +55,18 @@ function MyAccount() {
 
   const handleAccountCreated = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const allAccountsResponse = await getAllAccounts(user.userId);
       setAllAccountsData(allAccountsResponse);
       setRefreshTrigger(prev => prev + 1);
     } catch (error) {
-      console.error('계좌 조회 오류:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 로딩 중일 때의 UI
   if (isLoading) {
     return (
       <Layout>
@@ -87,7 +82,6 @@ function MyAccount() {
     );
   }
 
-  // 계좌가 없을 때의 UI
   if (user && accounts.length === 0) {
     return (
       <>
@@ -95,9 +89,9 @@ function MyAccount() {
           <div className="p-4 lg:p-8 w-full flex justify-center">
             <div className="max-w-4xl bg-white w-full h-[600px] rounded-lg flex flex-col items-center justify-center p-8 shadow-lg">
                 <div className="mb-8">
-                  <img 
-                    src="/images/noAccount.png" 
-                    alt="계좌 없음" 
+                  <img
+                    src="/images/noAccount.png"
+                    alt="계좌 없음"
                     className="w-56 h-56 object-contain"
                   />
                 </div>
@@ -109,7 +103,7 @@ function MyAccount() {
                     하나인플랜의 계좌를 만들어 볼까요?
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsCreateAccountModalOpen(true)}
                   className="bg-hana-green text-white px-10 py-4 rounded-lg font-hana-medium hover:bg-hana-green/80 transition-colors text-xl"
                 >
@@ -117,10 +111,10 @@ function MyAccount() {
                 </button>
             </div>
           </div>
-          
+
         </Layout>
 
-        {/* Create Account Modal */}
+        {}
         {isCreateAccountModalOpen && user && (
           <CreateAccountModal
             isOpen={isCreateAccountModalOpen}
@@ -137,12 +131,12 @@ function MyAccount() {
     <Layout>
       <div className="p-4 lg:p-8">
         <div className="max-w-6xl mx-auto">
-          {/* PC Layout */}
+          {}
           <div className="hidden lg:grid lg:grid-cols-5 lg:gap-4">
-            {/* Left Column */}
+            {}
             <div className="space-y-4 col-span-2">
               {user ? (
-                <AccountInfo 
+                <AccountInfo
                   onTransferClick={() => setIsTransferModalOpen(true)}
                   key={refreshTrigger}
                 />
@@ -153,8 +147,8 @@ function MyAccount() {
               )}
               <TransactionHistory refreshTrigger={refreshTrigger} />
             </div>
-            
-            {/* Right Column */}
+
+            {}
             {accounts.length > 0 && (
               <div className="space-y-4 col-span-3">
                 <NextMonthWithdrawal />
@@ -163,10 +157,10 @@ function MyAccount() {
             )}
           </div>
 
-          {/* Mobile Layout */}
+          {}
           <div className="lg:hidden space-y-6">
             {user ? (
-              <AccountInfo 
+              <AccountInfo
                 onTransferClick={() => setIsTransferModalOpen(true)}
                 key={refreshTrigger}
               />
@@ -177,21 +171,21 @@ function MyAccount() {
             )}
             {accounts.length > 0 && (
               <>
-                <NextMonthWithdrawal 
+                <NextMonthWithdrawal
                   onProductClick={() => setIsProductModalOpen(true)}
                   isMobile={true}
                 />
                 <TransactionHistory refreshTrigger={refreshTrigger} />
               </>
             )}
-            
-            {/* Mobile Product Modal */}
+
+            {}
             {isProductModalOpen && (
               <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
                 <div className="w-full bg-white rounded-t-3xl p-6 animate-slide-up">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-hana-bold">가입상품별 거래금액</h3>
-                    <button 
+                    <button
                       onClick={() => setIsProductModalOpen(false)}
                       className="text-gray-500 text-xl"
                     >
@@ -206,15 +200,15 @@ function MyAccount() {
         </div>
       </div>
 
-      {/* Transfer Modal */}
+      {}
       {isTransferModalOpen && (
-        <TransferModal 
+        <TransferModal
           onClose={() => setIsTransferModalOpen(false)}
           onTransferComplete={handleAccountCreated}
         />
       )}
 
-      {/* Create Account Modal */}
+      {}
       {isCreateAccountModalOpen && user && (
         <CreateAccountModal
           isOpen={isCreateAccountModalOpen}

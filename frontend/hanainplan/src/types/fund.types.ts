@@ -1,8 +1,4 @@
-/**
- * 펀드 관련 타입 정의
- */
 
-// 펀드 클래스 상세 정보
 export interface FundClassDetail {
   childFundCd: string;
   classCode: string;
@@ -14,7 +10,6 @@ export interface FundClassDetail {
   latestNav: number | null;
   latestNavDate: string | null;
 
-  // 수익률 정보 (펀드 상품 조회 시 포함)
   return1month?: number;
   return3month?: number;
   return6month?: number;
@@ -22,7 +17,6 @@ export interface FundClassDetail {
   return3year?: number;
 }
 
-// 모펀드 정보
 export interface FundMaster {
   fundCd: string;
   fundName: string;
@@ -35,7 +29,6 @@ export interface FundMaster {
   trustCompany?: string;
 }
 
-// 펀드 규칙
 export interface FundRules {
   cutoffTime: string | null;
   navPublishTime: string | null;
@@ -51,7 +44,6 @@ export interface FundRules {
   redemptionFeeDays: number | null;
 }
 
-// 펀드 수수료
 export interface FundFees {
   salesFeeBps: number | null;
   mgmtFeeBps: number | null;
@@ -61,21 +53,18 @@ export interface FundFees {
   frontLoadPct: number | null;
 }
 
-// 펀드 기준가
 export interface FundNav {
   childFundCd: string;
   navDate: string;
   nav: number;
 }
 
-// 펀드 매수 요청
 export interface FundPurchaseRequest {
   userId: number;
   childFundCd: string;
   purchaseAmount: number;
 }
 
-// 펀드 매수 응답
 export interface FundPurchaseResponse {
   success: boolean;
   message: string;
@@ -94,7 +83,6 @@ export interface FundPurchaseResponse {
   irpBalanceAfter?: number;
 }
 
-// 펀드 매도 요청
 export interface FundRedemptionRequest {
   userId: number;
   subscriptionId: number;
@@ -102,7 +90,6 @@ export interface FundRedemptionRequest {
   sellAll?: boolean;
 }
 
-// 펀드 매도 응답
 export interface FundRedemptionResponse {
   success: boolean;
   message: string;
@@ -126,13 +113,12 @@ export interface FundRedemptionResponse {
   irpBalanceAfter?: number;
 }
 
-// 펀드 가입 정보
 export interface FundSubscription {
   subscriptionId: number;
   customerCi: string;
   irpAccountNumber: string;
   fundCode: string;
-  childFundCd: string;  // 클래스 펀드 코드 (실제 매수 코드)
+  childFundCd: string;
   fundName: string;
   classCode: string;
   fundType: string;
@@ -155,7 +141,6 @@ export interface FundSubscription {
   updatedAt: string;
 }
 
-// 펀드 거래 내역
 export interface FundTransaction {
   transactionId: number;
   customerCi: string;
@@ -181,7 +166,6 @@ export interface FundTransaction {
   note: string;
 }
 
-// 펀드 거래 통계
 export interface FundTransactionStats {
   customerCi: string;
   totalPurchaseCount: number;
@@ -195,4 +179,3 @@ export interface FundTransactionStats {
   totalTransactionCount: number;
   netCashFlow: number;
 }
-

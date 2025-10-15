@@ -35,14 +35,13 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
   const fetchPortfolioData = async () => {
     try {
       setLoading(true);
-      const endpoint = showAll 
+      const endpoint = showAll
         ? `/api/banking/portfolio/irp/${irpAccountNumber}`
         : `/api/banking/portfolio/irp/${irpAccountNumber}/active`;
-      
+
       const response = await axios.get(endpoint);
       setPortfolios(response.data.portfolios || []);
     } catch (error) {
-      console.error('IRP 포트폴리오 조회 실패:', error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,6 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
     return logoMap[bankCode] || '/bank/081.png';
   };
 
-  // 총 투자 원금 및 예상 수익 계산
   const totalPrincipal = portfolios.reduce((sum, p) => sum + p.principalAmount, 0);
   const totalExpectedInterest = portfolios.reduce((sum, p) => sum + p.expectedInterest, 0);
   const totalMaturityAmount = portfolios.reduce((sum, p) => sum + p.maturityAmount, 0);
@@ -134,7 +132,7 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
         </div>
       ) : (
         <>
-          {/* 포트폴리오 요약 */}
+          {}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gradient-to-r from-hana-green/5 to-blue-50 rounded-xl">
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-1">총 투자 원금</p>
@@ -150,14 +148,14 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
             </div>
           </div>
 
-          {/* 상품 목록 */}
+          {}
           <div className="space-y-4">
             {portfolios.map((portfolio) => (
               <div
                 key={portfolio.portfolioId}
                 className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
               >
-                {/* 헤더 */}
+                {}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <img
@@ -173,7 +171,7 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
                   {getStatusBadge(portfolio.status)}
                 </div>
 
-                {/* 상품 정보 그리드 */}
+                {}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">투자 원금</p>
@@ -193,7 +191,7 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
                   </div>
                 </div>
 
-                {/* 날짜 정보 */}
+                {}
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-4 pb-4 border-b border-gray-200">
                   <div className="flex items-center space-x-4">
                     <span>가입일: <span className="font-hana-medium text-gray-900">{formatDate(portfolio.subscriptionDate)}</span></span>
@@ -202,7 +200,7 @@ function IrpProductsPortfolio({ irpAccountNumber }: IrpProductsPortfolioProps) {
                   </div>
                 </div>
 
-                {/* 진행률 (운용중인 경우만) */}
+                {}
                 {portfolio.status === 'ACTIVE' && (
                   <div>
                     <div className="flex items-center justify-between mb-2">

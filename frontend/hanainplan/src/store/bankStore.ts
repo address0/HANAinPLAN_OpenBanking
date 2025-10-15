@@ -71,33 +71,24 @@ export const getBankPatternByPattern = (pattern: string) => {
   return useBankStore.getState().bankPatterns.find((bank) => bank.patterns.includes(pattern));
 };
 
-/**
- * 계좌번호에서 은행을 찾는 함수
- * @param accountNumber 계좌번호 (예: "081-01-123456" 또는 "08101123456")
- * @returns 은행 정보 또는 null
- */
 export const getBankByAccountNumber = (accountNumber: string) => {
   if (!accountNumber) return null;
-  
-  // 하이픈 제거하고 숫자만 추출
+
   const cleanAccountNumber = accountNumber.replace(/-/g, '');
-  
-  // 앞자리 3자리 추출
+
   const prefix = cleanAccountNumber.substring(0, 3);
-  
+
   const bankPatterns = useBankStore.getState().bankPatterns;
-  
-  // 1. 먼저 은행 코드로 찾기 (예: 081, 004, 088)
+
   const bankByCode = bankPatterns.find((bank) => bank.code === prefix);
   if (bankByCode) {
     return bankByCode;
   }
-  
-  // 2. 패턴으로 찾기 (예: 110, 123, 456)
+
   const bankByPattern = bankPatterns.find((bank) => bank.patterns.includes(prefix));
   if (bankByPattern) {
     return bankByPattern;
   }
-  
+
   return null;
 };

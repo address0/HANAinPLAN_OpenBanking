@@ -13,24 +13,20 @@ const FundMy = () => {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useUserStore();
   const [activeTab, setActiveTab] = useState<TabType>('portfolio');
-  
-  // 포트폴리오 상태
+
   const [subscriptions, setSubscriptions] = useState<FundSubscription[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [portfolioError, setPortfolioError] = useState<string | null>(null);
-  
-  // 거래내역 상태
+
   const [transactions, setTransactions] = useState<FundTransaction[]>([]);
   const [stats, setStats] = useState<FundTransactionStats | null>(null);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [transactionsError, setTransactionsError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('ALL');
-  
-  // 매도 모달 상태
+
   const [showSellModal, setShowSellModal] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<FundSubscription | null>(null);
 
-  // 로그인 체크
   useEffect(() => {
     if (!isLoggedIn || !user) {
       alert('로그인이 필요합니다.');
@@ -53,7 +49,6 @@ const FundMy = () => {
       setPortfolioError(null);
     } catch (err) {
       setPortfolioError('펀드 포트폴리오를 불러오는데 실패했습니다.');
-      console.error(err);
     } finally {
       setPortfolioLoading(false);
     }
@@ -75,7 +70,6 @@ const FundMy = () => {
       setTransactionsError(null);
     } catch (err) {
       setTransactionsError('거래 내역을 불러오는데 실패했습니다.');
-      console.error(err);
     } finally {
       setTransactionsLoading(false);
     }
@@ -86,13 +80,11 @@ const FundMy = () => {
     setShowSellModal(true);
   };
 
-  // 포트폴리오 통계 계산
   const totalInvestment = subscriptions.reduce((sum, sub) => sum + sub.purchaseAmount, 0);
   const totalValue = subscriptions.reduce((sum, sub) => sum + sub.currentValue, 0);
   const totalReturn = totalValue - totalInvestment;
   const totalReturnRate = totalInvestment > 0 ? (totalReturn / totalInvestment) * 100 : 0;
 
-  // 필터링된 거래내역
   const filteredTransactions = transactions.filter((tx) => {
     if (filter === 'ALL') return true;
     return tx.transactionType === filter;
@@ -101,13 +93,13 @@ const FundMy = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* 헤더 */}
+        {}
         <div className="mb-8">
           <h1 className="text-3xl font-hana-bold text-gray-900 mb-2">나의 펀드</h1>
           <p className="text-gray-600 font-hana-regular">보유 펀드와 거래 내역을 확인하세요</p>
         </div>
 
-        {/* 탭 */}
+        {}
         <div className="bg-white rounded-lg shadow-md mb-6">
           <div className="flex border-b border-gray-200">
             <button
@@ -132,7 +124,7 @@ const FundMy = () => {
             </button>
           </div>
 
-          {/* 포트폴리오 탭 */}
+          {}
           {activeTab === 'portfolio' && (
             <div className="p-6">
               {portfolioLoading ? (
@@ -154,7 +146,7 @@ const FundMy = () => {
                 </div>
               ) : (
                 <>
-                  {/* 포트폴리오 요약 */}
+                  {}
                   <div className={`rounded-lg p-6 mb-6 ${getReturnBgColor(totalReturnRate)}`}>
                     <h2 className="text-lg font-hana-bold mb-4 text-gray-900">전체 요약</h2>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -185,7 +177,7 @@ const FundMy = () => {
                     </div>
                   </div>
 
-                  {/* 보유 펀드 목록 */}
+                  {}
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-hana-bold">보유 펀드 ({subscriptions.length}개)</h2>
                     <button
@@ -307,7 +299,7 @@ const FundMy = () => {
             </div>
           )}
 
-          {/* 거래 내역 탭 */}
+          {}
           {activeTab === 'transactions' && (
             <div className="p-6">
               {transactionsLoading ? (
@@ -329,10 +321,10 @@ const FundMy = () => {
                 </div>
               ) : (
                 <>
-                  {/* 통계 */}
+                  {}
                   {stats && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      {/* 매수 통계 */}
+                      {}
                       <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
                         <h3 className="text-lg font-hana-bold text-blue-900 mb-4">매수</h3>
                         <div className="space-y-2">
@@ -357,7 +349,7 @@ const FundMy = () => {
                         </div>
                       </div>
 
-                      {/* 매도 통계 */}
+                      {}
                       <div className="bg-red-50 rounded-lg p-6 border border-red-200">
                         <h3 className="text-lg font-hana-bold text-red-900 mb-4">매도</h3>
                         <div className="space-y-2">
@@ -382,7 +374,7 @@ const FundMy = () => {
                         </div>
                       </div>
 
-                      {/* 손익 통계 */}
+                      {}
                       <div className="bg-green-50 rounded-lg p-6 border border-green-200">
                         <h3 className="text-lg font-hana-bold text-green-900 mb-4">손익</h3>
                         <div className="space-y-2">
@@ -409,7 +401,7 @@ const FundMy = () => {
                     </div>
                   )}
 
-                  {/* 필터 */}
+                  {}
                   <div className="flex gap-2 mb-6">
                     <button
                       onClick={() => setFilter('ALL')}
@@ -443,7 +435,7 @@ const FundMy = () => {
                     </button>
                   </div>
 
-                  {/* 거래 내역 목록 */}
+                  {}
                   <div className="space-y-4">
                     {filteredTransactions.length === 0 ? (
                       <div className="text-center py-12">
@@ -535,7 +527,7 @@ const FundMy = () => {
         </div>
       </div>
 
-      {/* 매도 모달 */}
+      {}
       {showSellModal && selectedSubscription && (
         <FundSellModal
           isOpen={showSellModal}
@@ -555,4 +547,3 @@ const FundMy = () => {
 };
 
 export default FundMy;
-

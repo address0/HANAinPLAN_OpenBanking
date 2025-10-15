@@ -17,7 +17,6 @@ function Nav() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [leaveTimer, setLeaveTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // 일반 고객용 메뉴 데이터
   const generalMenuItems: MenuItem[] = [
     {
       label: '홈',
@@ -55,7 +54,6 @@ function Nav() {
     }
   ];
 
-  // 상담사용 메뉴 데이터
   const consultantMenuItems: MenuItem[] = [
     {
       label: '홈',
@@ -81,11 +79,9 @@ function Nav() {
     }
   ];
 
-  // 사용자 타입에 따라 메뉴 선택
   const menuItems: MenuItem[] = user?.userType === 'COUNSELOR' ? consultantMenuItems : generalMenuItems;
 
   const handleMouseEnter = (label: string) => {
-    // 기존 타이머가 있으면 취소
     if (leaveTimer) {
       clearTimeout(leaveTimer);
       setLeaveTimer(null);
@@ -94,7 +90,6 @@ function Nav() {
   };
 
   const handleMouseLeave = () => {
-    // 300ms 지연 후 닫기
     const timer = setTimeout(() => {
       setActiveDropdown(null);
       setIsUserMenuOpen(false);
@@ -102,9 +97,7 @@ function Nav() {
     setLeaveTimer(timer);
   };
 
-
   const handleSubmenuClick = (path: string) => {
-    // 타이머 취소
     if (leaveTimer) {
       clearTimeout(leaveTimer);
       setLeaveTimer(null);
@@ -115,11 +108,10 @@ function Nav() {
 
   const handleUserMenuToggle = () => {
     setIsUserMenuOpen(!isUserMenuOpen);
-    setActiveDropdown(null); // 다른 드롭다운이 열려있으면 닫기
+    setActiveDropdown(null);
   };
 
   const handleNotificationClick = (e: React.MouseEvent) => {
-    // 알림 클릭 시 다른 드롭다운이 열려있으면 닫기
     e.stopPropagation();
     setActiveDropdown(null);
     setIsUserMenuOpen(false);
@@ -130,25 +122,18 @@ function Nav() {
     setIsUserMenuOpen(false);
   };
 
-
   const handleLogout = () => {
-    // 로컬 스토리지에서 사용자 데이터 제거
     localStorage.removeItem('user-storage');
 
-    // 사용자 스토어 비우기
     clearUser();
 
-    // 사용자 메뉴 닫기
     setIsUserMenuOpen(false);
 
-    // 메인 페이지로 이동
     navigate('/main');
   };
 
-  // 클릭 아웃사이드 처리 - 네비게이션 바 외부 클릭 시 모든 드롭다운 닫기
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // 네비게이션 바 영역 확인
       const navElement = document.querySelector('nav');
       if (navElement && !navElement.contains(event.target as Node)) {
         setActiveDropdown(null);
@@ -159,7 +144,6 @@ function Nav() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      // 컴포넌트 언마운트 시 타이머 정리
       if (leaveTimer) {
         clearTimeout(leaveTimer);
       }
@@ -173,7 +157,7 @@ function Nav() {
     >
       <nav className="w-full bg-white shadow-lg">
         <div className="flex justify-between items-center px-2 sm:px-4 lg:px-6 gap-2 sm:gap-4 lg:gap-6 h-16 sm:h-20 lg:h-24">
-        {/* Main Logo Section */}
+        {}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 w-32 sm:w-40 lg:w-48" onClick={() => navigate('/main')}>
           <img
             src="/images/img-hana-symbol.png"
@@ -186,7 +170,7 @@ function Nav() {
           </span>
         </div>
 
-        {/* Navigation Menu */}
+        {}
         <div
           className="flex justify-center items-center gap-2 sm:gap-4 lg:gap-8 flex-1 max-w-md sm:max-w-2xl lg:max-w-4xl px-2 sm:px-4"
         >
@@ -209,10 +193,10 @@ function Nav() {
           ))}
         </div>
 
-        {/* User Profile Section */}
+        {}
         {user ? (
           <div className="relative flex justify-center items-center flex-shrink-0 w-32 sm:w-40 lg:w-48 h-12 sm:h-16 lg:h-20">
-            {/* 알림 아이콘 */}
+            {}
             <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
               <NotificationIcon />
             </div>
@@ -233,7 +217,7 @@ function Nav() {
               </div>
             </div>
 
-            {/* 사용자 드롭다운 메뉴 */}
+            {}
             {isUserMenuOpen && (
               <div className="absolute top-full right-0 mt-2 w-32 sm:w-40 lg:w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 sm:py-2 z-50">
                 <button
@@ -265,7 +249,7 @@ function Nav() {
         </div>
       </nav>
 
-      {/* 통합 드롭다운 메뉴 */}
+      {}
       <div
         className={`w-full bg-white border-t border-gray-100 shadow-lg transition-all duration-300 ease-out overflow-hidden ${
           activeDropdown
@@ -274,12 +258,12 @@ function Nav() {
         }`}
       >
           <div className="px-2 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
-            {/* 상단 메뉴와 동일한 구조로 통일 */}
+            {}
             <div className="flex justify-between items-start gap-2 sm:gap-4 lg:gap-8">
-              {/* 좌측 빈 공간 (모바일에서는 숨김) */}
+              {}
               <div className="hidden sm:block sm:w-32 lg:w-48 sm:flex-shrink-0"></div>
 
-              {/* 중앙 메뉴 영역 */}
+              {}
               <div className="max-w-md sm:max-w-2xl lg:max-w-4xl flex-1 px-2 sm:px-4">
                 <div className="flex justify-center items-start gap-2 sm:gap-4 lg:gap-8">
                   {menuItems.map((item, index) => (
@@ -304,7 +288,7 @@ function Nav() {
                 </div>
               </div>
 
-              {/* 우측 빈 공간 (사용자 영역과 동일한 크기) */}
+              {}
               <div className="sm:block sm:w-32 lg:w-48 sm:flex-shrink-0"></div>
             </div>
           </div>

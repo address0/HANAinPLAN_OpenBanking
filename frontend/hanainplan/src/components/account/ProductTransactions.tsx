@@ -21,7 +21,7 @@ function ProductTransactions() {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [selectedDate, setSelectedDate] = useState<Value>(new Date());
   const { categories } = productStore();
-  
+
   const productData: ProductTransaction[] = [
     {
       productName: '하나생명 종신보험',
@@ -57,7 +57,6 @@ function ProductTransactions() {
     }
   ];
 
-  // 달력용 거래 데이터
   const calendarTransactions = [
     { date: '2025-09-05', productName: '하나생명 종신보험', productType: '종신', amount: -150000, type: 'withdrawal' },
     { date: '2025-09-10', productName: '하나 정기적금', productType: '정기', amount: -500000, type: 'withdrawal' },
@@ -117,7 +116,7 @@ function ProductTransactions() {
         <h2 className="text-xl font-hana-bold text-gray-800">가입상품 별 거래금액</h2>
         <div className="flex gap-2">
         {viewMode === 'list' && (
-            <select 
+            <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg font-hana-medium text-sm focus:outline-none focus:ring-2 focus:ring-hana-green"
@@ -129,8 +128,8 @@ function ProductTransactions() {
           <button
             onClick={() => setViewMode('list')}
             className={`px-4 py-2 rounded-lg font-hana-medium transition-colors ${
-              viewMode === 'list' 
-                ? 'bg-hana-green text-white' 
+              viewMode === 'list'
+                ? 'bg-hana-green text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -139,8 +138,8 @@ function ProductTransactions() {
           <button
             onClick={() => setViewMode('calendar')}
             className={`px-4 py-2 rounded-lg font-hana-medium transition-colors ${
-              viewMode === 'calendar' 
-                ? 'bg-hana-green text-white' 
+              viewMode === 'calendar'
+                ? 'bg-hana-green text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -183,7 +182,7 @@ function ProductTransactions() {
               </div>
             </div>
 
-            {/* Progress Bar */}
+            {}
             <div className="mt-3">
               <div className="flex justify-between text-xs text-gray-500 mb-1">
                 <span>진행률</span>
@@ -207,7 +206,7 @@ function ProductTransactions() {
       </div>
       ) : (
         <div className="calendar-container">
-          
+
           <Calendar
             onChange={setSelectedDate}
             value={selectedDate}
@@ -215,7 +214,7 @@ function ProductTransactions() {
             formatDay={(locale, date) => date.toLocaleString("en", {day: "numeric"})}
             calendarType="gregory"
           />
-          
+
           {selectedDate instanceof Date && (
             <div className="mt-6">
               <h3 className="font-hana-bold text-gray-800 mb-3">

@@ -34,7 +34,6 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({ onProductSelect, on
       setProducts(productData);
     } catch (err) {
       setError('보험 상품을 불러오는데 실패했습니다.');
-      console.error('Error loading products:', err);
     } finally {
       setIsLoading(false);
     }
@@ -55,13 +54,13 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({ onProductSelect, on
 
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
+      {}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">보험 상품 선택</h1>
         <p className="text-gray-600">고객님께 맞는 최적의 보험 상품을 선택해주세요</p>
       </div>
 
-      {/* 카테고리 필터 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">보험 카테고리</h2>
         <div className="flex flex-wrap gap-2">
@@ -81,10 +80,10 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({ onProductSelect, on
         </div>
       </div>
 
-      {/* 상품 목록 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">보험 상품 목록</h2>
-        
+
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -165,4 +164,3 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({ onProductSelect, on
 };
 
 export default ProductSelection;
-

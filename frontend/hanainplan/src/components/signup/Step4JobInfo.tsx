@@ -13,7 +13,6 @@ interface Step4Props {
   onJobInfoChange: (jobInfo: JobInfo) => void
 }
 
-
 type JobSubStep = 1 | 2
 
 function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
@@ -24,15 +23,12 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [isInputFocused, setIsInputFocused] = useState(false)
 
-  // API에서 직종 데이터 로드
   useEffect(() => {
     const loadIndustries = async () => {
       try {
         const data = await getIndustries()
         setIndustryList(data)
       } catch (error) {
-        console.error('직종 데이터 로드 중 오류:', error)
-        // 오류 시 빈 배열로 설정
         setIndustryList([])
       }
     }
@@ -40,10 +36,8 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
     loadIndustries()
   }, [])
 
-  // 키워드 검색 API 호출
   useEffect(() => {
     if (searchKeyword.trim() === '') {
-      // 검색어가 없고 input이 포커스된 상태라면 전체 목록 표시
       if (isInputFocused) {
         setFilteredIndustries(industryList)
         setShowDropdown(true)
@@ -60,21 +54,18 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
         setFilteredIndustries(data)
         setShowDropdown(true)
       } catch (error) {
-        console.error('직종 검색 중 오류:', error)
         setFilteredIndustries([])
         setShowDropdown(false)
       }
     }
 
-    // 디바운싱: 500ms 후에 검색 실행
     const timeoutId = setTimeout(searchIndustriesHandler, 500)
     return () => clearTimeout(timeoutId)
   }, [searchKeyword, isInputFocused, industryList])
 
-  // 각 서브스텝별 유효성 검사
   const isSubStep1Valid = () => {
-    return jobInfo.industryCode.trim() !== '' && 
-           jobInfo.industryName.trim() !== '' && 
+    return jobInfo.industryCode.trim() !== '' &&
+           jobInfo.industryName.trim() !== '' &&
            jobInfo.careerYears !== null
   }
 
@@ -103,7 +94,6 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
 
   const handleInputFocus = () => {
     setIsInputFocused(true)
-    // 검색어가 없다면 전체 목록 표시
     if (searchKeyword.trim() === '') {
       setFilteredIndustries(industryList)
       setShowDropdown(true)
@@ -111,7 +101,6 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
   }
 
   const handleInputBlur = () => {
-    // 약간의 지연을 두어 드롭다운 클릭이 가능하도록 함
     setTimeout(() => {
       setIsInputFocused(false)
       if (searchKeyword.trim() === '') {
@@ -155,7 +144,7 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
 
   const renderSubStep1 = () => (
     <div className="w-[480px] space-y-6 px-2 max-h-[260px] overflow-y-auto">
-      {/* 직종 선택 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-lg text-gray-800 mb-3">
           종사 직종 선택
@@ -170,8 +159,8 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
             onBlur={handleInputBlur}
             className="w-full p-3 border border-gray-300 rounded-[8px] font-['Hana2.0_M'] text-[14px] focus:outline-none focus:border-[#008485]"
           />
-          
-          {/* 검색 결과 드롭다운 */}
+
+          {}
           {showDropdown && filteredIndustries.length > 0 && (
             <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-[8px] mt-1 max-h-[200px] overflow-y-auto z-10 shadow-lg">
               {filteredIndustries.map((industry) => (
@@ -197,8 +186,8 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
             </div>
           )}
         </div>
-        
-        {/* 선택된 직종 표시 */}
+
+        {}
         {jobInfo?.industryName && (
           <div className="mt-3 p-3 bg-[#008485]/10 rounded-[8px]">
             <span className="font-['Hana2.0_M'] text-[14px] text-[#008485]">
@@ -208,7 +197,7 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
         )}
       </div>
 
-      {/* 재직 기간 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-lg text-gray-800 mb-3">
           재직 기간
@@ -242,7 +231,7 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
 
   const renderSubStep2 = () => (
     <div className="w-[480px] space-y-6 px-2 max-h-[260px] overflow-y-auto">
-      {/* 자산 수준 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-lg text-gray-800 mb-3">
           현재 자산 수준
@@ -277,23 +266,23 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
   return (
     <div className="w-full flex flex-col items-center gap-2">
 
-      {/* 현재 서브스텝에 따른 내용 렌더링 */}
+      {}
       {currentSubStep === 1 && renderSubStep1()}
       {currentSubStep === 2 && renderSubStep2()}
 
-      {/* 서브스텝 네비게이션 - 문항 이동용 (건강정보와 동일한 디자인) */}
+      {}
       <div className="flex gap-3 mt-4">
         {currentSubStep > 1 && (
-          <button 
+          <button
             onClick={() => setCurrentSubStep((prev) => (prev - 1) as JobSubStep)}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-[6px] font-['Hana2.0_M'] text-[14px] hover:bg-gray-200 transition-colors duration-200 border border-gray-300"
           >
             ← 이전 문항
           </button>
         )}
-        
+
         {currentSubStep < 2 && (
-          <button 
+          <button
             onClick={() => setCurrentSubStep((prev) => (prev + 1) as JobSubStep)}
             disabled={!isCurrentSubStepValid()}
             className={`px-4 py-2 rounded-[6px] font-['Hana2.0_M'] text-[14px] transition-all duration-200 border ${
@@ -310,4 +299,4 @@ function Step4JobInfo({ jobInfo, onJobInfoChange }: Step4Props) {
   )
 }
 
-export default Step4JobInfo 
+export default Step4JobInfo

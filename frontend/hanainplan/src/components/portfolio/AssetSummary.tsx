@@ -1,4 +1,3 @@
-// 아이콘 없이 recharts만 사용
 
 interface AssetSummaryProps {
   totalAssets: number;
@@ -17,12 +16,10 @@ function AssetSummary({ totalAssets, totalLiabilities, netWorth }: AssetSummaryP
   };
 
   const getChangePercentage = () => {
-    // 임시 데이터 - 실제로는 이전 달 대비 변화율을 계산
     return 3.2;
   };
 
   const getChangeAmount = () => {
-    // 임시 데이터 - 실제로는 이전 달 대비 변화 금액을 계산
     return netWorth * 0.032;
   };
 
@@ -39,7 +36,7 @@ function AssetSummary({ totalAssets, totalLiabilities, netWorth }: AssetSummaryP
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 총 자산 */}
+        {}
         <div className="bg-gradient-to-br from-hana-green/10 to-hana-green/20 rounded-xl p-6 border border-hana-green/30">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-hana-bold text-gray-900">총 자산</h3>
@@ -52,7 +49,7 @@ function AssetSummary({ totalAssets, totalLiabilities, netWorth }: AssetSummaryP
           </div>
         </div>
 
-        {/* 총 부채 */}
+        {}
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-hana-bold text-gray-900">총 부채</h3>
@@ -65,7 +62,7 @@ function AssetSummary({ totalAssets, totalLiabilities, netWorth }: AssetSummaryP
           </div>
         </div>
 
-        {/* 순자산 */}
+        {}
         <div className="bg-gradient-to-br from-hana-green/10 to-hana-green/20 rounded-xl p-6 border border-hana-green/30">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-hana-bold text-gray-900">순자산</h3>
@@ -81,7 +78,7 @@ function AssetSummary({ totalAssets, totalLiabilities, netWorth }: AssetSummaryP
         </div>
       </div>
 
-      {/* 자산 구성 비율 간단 표시 */}
+      {}
       <div className="mt-8">
         <h3 className="text-lg font-hana-bold text-gray-900 mb-4">자산 구성</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -30,22 +30,20 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_KAKAO_API_KEY;
-    
+
     if (!apiKey) {
       setError('카카오 API 키가 설정되지 않았습니다.');
       setIsLoading(false);
       return;
     }
 
-    // DOM이 준비될 때까지 대기
     const initMapWithDelay = () => {
       setTimeout(() => {
         if (!mapRef.current) {
-          setTimeout(initMapWithDelay, 100); // 100ms 후 다시 시도
+          setTimeout(initMapWithDelay, 100);
           return;
         }
-        
-        // 이미 로드된 스크립트가 있는지 확인
+
         if (window.kakao && window.kakao.maps) {
           initMap();
           setIsLoading(false);
@@ -55,9 +53,8 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services&autoload=false`;
     script.async = true;
-        
+
         script.onload = () => {
-          // 카카오 지도 API 초기화 대기
           window.kakao.maps.load(() => {
             if (window.kakao && window.kakao.maps) {
               initMap();
@@ -73,9 +70,9 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
           setError('카카오 지도 SDK 로드 중 오류가 발생했습니다.');
           setIsLoading(false);
         };
-        
+
         document.head.appendChild(script);
-      }, 50); // 50ms 지연
+      }, 50);
     };
 
     initMapWithDelay();
@@ -92,18 +89,15 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
     const map = new window.kakao.maps.Map(mapRef.current, mapOption);
     mapInstanceRef.current = map;
 
-    // 마커들 추가
     updateMarkers();
   };
 
   const updateMarkers = () => {
     if (!window.kakao?.maps || !mapInstanceRef.current) return;
 
-    // 기존 마커들 제거
     markerInstancesRef.current.forEach(marker => marker.setMap(null));
     markerInstancesRef.current = [];
 
-    // 새로운 마커들 추가
     markers.forEach((markerData) => {
       const markerPosition = new window.kakao.maps.LatLng(
         markerData.latitude,
@@ -115,7 +109,6 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
         map: mapInstanceRef.current
       });
 
-      // 인포윈도우 생성
       const infowindow = new window.kakao.maps.InfoWindow({
         content: `
           <div style="padding: 10px; min-width: 150px;">
@@ -125,7 +118,6 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
         `
       });
 
-      // 마커 클릭 이벤트
       window.kakao.maps.event.addListener(marker, 'click', () => {
         infowindow.open(mapInstanceRef.current, marker);
         onMarkerClick(markerData);
@@ -135,7 +127,6 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
     });
   };
 
-  // center나 markers가 변경될 때마다 지도 업데이트
   useEffect(() => {
     if (mapInstanceRef.current && window.kakao?.maps) {
       const newCenter = new window.kakao.maps.LatLng(center.latitude, center.longitude);
@@ -144,17 +135,16 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
     }
   }, [center, markers, onMarkerClick]);
 
-
   return (
     <div className="w-full rounded-lg overflow-hidden" style={{ height }}>
-      {/* 항상 DOM에 mapRef div를 유지 */}
-      <div 
+      {}
+      <div
         ref={mapRef}
         className="w-full h-full"
         style={{ height }}
       />
-      
-      {/* 로딩 오버레이 */}
+
+      {}
       {isLoading && (
         <div className="absolute inset-0 bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
           <div className="text-center">
@@ -168,8 +158,8 @@ const KakaoMap: React.FC<KakaoMapProps> = ({ center, markers, onMarkerClick, hei
           </div>
         </div>
       )}
-      
-      {/* 에러 오버레이 */}
+
+      {}
       {error && (
         <div className="absolute inset-0 bg-red-50 flex items-center justify-center border-2 border-dashed border-red-200">
           <div className="text-center">

@@ -18,37 +18,32 @@ function ConsultationManagement() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmedConsultation, setConfirmedConsultation] = useState<ConsultationResponse | null>(null);
   const queryClient = useQueryClient();
-  
+
   const { user } = useUserStore();
   const consultantId = user?.userId;
 
-  // 오늘의 상담 조회
   const { data: todayConsultations = [], isLoading: todayLoading } = useQuery({
     queryKey: ['todayConsultations', consultantId],
     queryFn: () => consultantId ? getTodayConsultations(consultantId) : Promise.resolve([]),
     enabled: !!consultantId
   });
 
-  // 요청 내역 조회
   const { data: consultationRequests = [], isLoading: requestsLoading } = useQuery({
     queryKey: ['consultationRequests', consultantId],
     queryFn: () => consultantId ? getConsultationRequests(consultantId) : Promise.resolve([]),
     enabled: !!consultantId
   });
 
-  // 전체 상담 조회
   const { data: allConsultationsData = [], isLoading: allLoading } = useQuery({
     queryKey: ['consultations', consultantId],
     queryFn: () => consultantId ? getConsultantConsultations(consultantId) : Promise.resolve([]),
     enabled: !!consultantId
   });
 
-  // 필터링된 상담 목록
-  const allConsultations = statusFilter === 'ALL' 
+  const allConsultations = statusFilter === 'ALL'
     ? allConsultationsData
     : allConsultationsData.filter(c => c.consultStatus === statusFilter);
 
-  // 통계 계산
   const stats = {
     todayConsultations: todayConsultations.length,
     pendingRequests: consultationRequests.filter(r => r.consultStatus === '예약신청').length,
@@ -56,16 +51,14 @@ function ConsultationManagement() {
     completedConsultations: allConsultationsData.filter(c => c.consultStatus === '상담완료').length
   };
 
-  // 상담 상태 변경 mutation
   const statusMutation = useMutation({
-    mutationFn: ({ consultId, status }: { consultId: string; status: string }) => 
+    mutationFn: ({ consultId, status }: { consultId: string; status: string }) =>
       updateConsultationStatus(consultId, status),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['todayConsultations'] });
       queryClient.invalidateQueries({ queryKey: ['consultationRequests'] });
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
-      
-      // 상담 확정 시 모달 표시
+
       if (variables.status === '예약확정') {
         setConfirmedConsultation(data);
         setShowConfirmModal(true);
@@ -78,24 +71,20 @@ function ConsultationManagement() {
     }
   });
 
-  // 상담 상태 변경 핸들러
   const handleStatusChange = (consultationId: string, newStatus: string) => {
     statusMutation.mutate({ consultId: consultationId, status: newStatus });
   };
 
-  // 요청 수락 핸들러
   const handleAcceptRequest = (requestId: string) => {
     handleStatusChange(requestId, '예약확정');
   };
 
-  // 요청 거절 핸들러
   const handleRejectRequest = (requestId: string) => {
     if (confirm('정말 거절하시겠습니까?')) {
       handleStatusChange(requestId, '취소');
     }
   };
 
-  // 날짜/시간 포맷팅 함수
   const formatDateTime = (datetimeString: string) => {
     const date = new Date(datetimeString);
     return date.toLocaleString('ko-KR', {
@@ -108,7 +97,6 @@ function ConsultationManagement() {
     });
   };
 
-  // 상태 색상 반환 함수
   const getStatusColor = (status: string) => {
     switch (status) {
       case '예약확정': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -120,7 +108,6 @@ function ConsultationManagement() {
     }
   };
 
-  // 상담 유형 한글 변환 함수
   const getConsultationTypeText = (type: string) => {
     switch (type) {
       case 'general': return '일반';
@@ -134,14 +121,14 @@ function ConsultationManagement() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* 헤더 */}
+          {}
           <div className="mb-8">
             <h1 className="text-3xl font-hana-bold text-gray-900 mb-3">상담 관리</h1>
             <p className="text-gray-600 font-hana-regular">
               고객 상담 일정을 관리하고 요청을 처리할 수 있습니다.
             </p>
 
-            {/* 통계 카드 */}
+            {}
             {stats && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -164,7 +151,7 @@ function ConsultationManagement() {
             )}
           </div>
 
-          {/* 탭 메뉴 */}
+          {}
           <div className="bg-white rounded-lg shadow-md mb-6">
             <div className="flex border-b border-gray-200">
               <button
@@ -199,7 +186,7 @@ function ConsultationManagement() {
               </button>
             </div>
 
-            {/* 오늘의 상담 탭 */}
+            {}
             {activeTab === 'today' && (
               <div className="p-6">
                 {todayLoading ? (
@@ -259,7 +246,7 @@ function ConsultationManagement() {
               </div>
             )}
 
-            {/* 요청 내역 탭 */}
+            {}
             {activeTab === 'requests' && (
               <div className="p-6">
                 {requestsLoading ? (
@@ -329,10 +316,10 @@ function ConsultationManagement() {
               </div>
             )}
 
-            {/* 전체 목록 탭 */}
+            {}
             {activeTab === 'all' && (
               <div className="p-6">
-                {/* 필터 */}
+                {}
                 <div className="mb-6">
                   <select
                     value={statusFilter}
@@ -440,11 +427,11 @@ function ConsultationManagement() {
         </div>
       </div>
 
-      {/* 상담 확정 모달 */}
+      {}
       {showConfirmModal && confirmedConsultation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
-            {/* 성공 아이콘 */}
+            {}
             <div className="text-center mb-6">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -455,7 +442,7 @@ function ConsultationManagement() {
               <p className="text-gray-600 font-hana-regular">고객에게 예약 확정 알림이 전송되었습니다.</p>
             </div>
 
-            {/* 상담 정보 */}
+            {}
             <div className="bg-gray-50 rounded-xl p-6 mb-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -496,7 +483,7 @@ function ConsultationManagement() {
               </div>
             </div>
 
-            {/* 안내 메시지 */}
+            {}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -511,7 +498,7 @@ function ConsultationManagement() {
               </div>
             </div>
 
-            {/* 버튼 */}
+            {}
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -531,4 +518,3 @@ function ConsultationManagement() {
 }
 
 export default ConsultationManagement;
-

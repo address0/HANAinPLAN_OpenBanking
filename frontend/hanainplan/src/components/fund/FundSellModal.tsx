@@ -38,15 +38,12 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
     const percentage = (units / subscription.currentUnits) * 100;
     setSellPercentage(percentage);
 
-    // 예상 매도 금액
     const amount = units * subscription.currentNav;
     setEstimatedAmount(amount);
 
-    // 환매수수료 계산 (임시로 0.1% 적용, 실제로는 보유기간에 따라 다름)
     const fee = amount * 0.001;
     setEstimatedFee(fee);
 
-    // 예상 손익
     const avgPurchasePrice = subscription.purchaseAmount / subscription.currentUnits;
     const profit = (subscription.currentNav - avgPurchasePrice) * units - fee;
     setEstimatedProfit(profit);
@@ -65,7 +62,6 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
 
     const units = Number(sellUnits);
 
-    // 유효성 검사
     if (units <= 0 || units > subscription.currentUnits) {
       alert(`매도 가능한 좌수는 0 ~ ${subscription.currentUnits.toFixed(6)}좌입니다.`);
       return;
@@ -97,7 +93,6 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
         alert(`펀드 매도 실패: ${response.errorMessage}`);
       }
     } catch (err: any) {
-      console.error('매도 오류:', err);
       alert(`펀드 매도 중 오류가 발생했습니다: ${err.message}`);
     } finally {
       setSelling(false);
@@ -116,7 +111,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-slide-up">
-        {/* 헤더 */}
+        {}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center rounded-t-xl">
           <h2 className="text-2xl font-hana-bold text-gray-900">펀드 매도</h2>
           <button
@@ -130,7 +125,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
         </div>
 
         <div className="p-6 space-y-6">
-          {/* 펀드 정보 */}
+          {}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-lg font-hana-bold text-gray-900 mb-2">
               {subscription.fundName}
@@ -162,7 +157,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
             </div>
           </div>
 
-          {/* 매도 좌수 입력 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               매도 좌수
@@ -181,7 +176,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
             </p>
           </div>
 
-          {/* 빠른 비율 선택 */}
+          {}
           <div className="grid grid-cols-4 gap-2">
             {quickPercentages.map((percentage) => (
               <button
@@ -194,7 +189,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
             ))}
           </div>
 
-          {/* 예상 정보 */}
+          {}
           {sellUnits && Number(sellUnits) > 0 && (
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <h3 className="text-lg font-hana-bold text-blue-900 mb-3">예상 정보</h3>
@@ -239,7 +234,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
             </div>
           )}
 
-          {/* 동의사항 */}
+          {}
           <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
             <h3 className="text-base font-hana-bold text-yellow-800 mb-2">환매 유의사항</h3>
             <ul className="space-y-1 text-sm text-yellow-700 mb-3 font-hana-regular">
@@ -261,7 +256,7 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
           </div>
         </div>
 
-        {/* 버튼 */}
+        {}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex gap-3 rounded-b-xl">
           <button
             onClick={onClose}
@@ -283,4 +278,3 @@ const FundSellModal = ({ isOpen, onClose, subscription, onSuccess }: FundSellMod
 };
 
 export default FundSellModal;
-

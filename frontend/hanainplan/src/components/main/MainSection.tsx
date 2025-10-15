@@ -5,11 +5,11 @@ import ProductCard from './ProductCard'
 
 function MainSection() {
   const navigate = useNavigate()
-  const [isVisible, setIsVisible] = useState<{ intro: boolean; category: boolean; pension: boolean; cards: boolean[] }>({ 
-    intro: false, 
-    category: false, 
-    pension: false, 
-    cards: new Array(6).fill(false) 
+  const [isVisible, setIsVisible] = useState<{ intro: boolean; category: boolean; pension: boolean; cards: boolean[] }>({
+    intro: false,
+    category: false,
+    pension: false,
+    cards: new Array(6).fill(false)
   })
   const introRef = useRef<HTMLElement>(null)
   const categoryRef = useRef<HTMLElement>(null)
@@ -21,7 +21,7 @@ function MainSection() {
       (entries) => {
         entries.forEach((entry) => {
           const target = entry.target
-          
+
           if (entry.isIntersecting) {
             if (target === introRef.current) {
               setIsVisible(prev => ({ ...prev, intro: true }))
@@ -30,8 +30,7 @@ function MainSection() {
             } else if (target === pensionRef.current) {
               setIsVisible(prev => ({ ...prev, pension: true }))
             }
-            
-            // 카드 애니메이션 처리
+
             const cardIndex = cardRefs.current.findIndex(ref => ref === target)
             if (cardIndex !== -1) {
               setIsVisible(prev => {
@@ -41,7 +40,6 @@ function MainSection() {
               })
             }
           } else {
-            // 스크롤을 위로 올릴 때 요소가 뷰포트에서 벗어나면 다시 숨김
             if (target === introRef.current) {
               setIsVisible(prev => ({ ...prev, intro: false }))
             } else if (target === categoryRef.current) {
@@ -49,8 +47,7 @@ function MainSection() {
             } else if (target === pensionRef.current) {
               setIsVisible(prev => ({ ...prev, pension: false }))
             }
-            
-            // 카드 숨김 처리
+
             const cardIndex = cardRefs.current.findIndex(ref => ref === target)
             if (cardIndex !== -1) {
               setIsVisible(prev => {
@@ -65,7 +62,6 @@ function MainSection() {
       { threshold: 0.3 }
     )
 
-    // 타이머를 사용해 DOM이 렌더링된 후 observer 등록
     const timer = setTimeout(() => {
       const allRefs = [introRef.current, categoryRef.current, pensionRef.current, ...cardRefs.current]
       allRefs.forEach(ref => ref && observer.observe(ref))
@@ -80,20 +76,20 @@ function MainSection() {
   return (
     <>
 
-    {/* 건강·생활·노후 섹션 */}
-    <section 
+    {}
+    <section
         ref={categoryRef}
         className="container mx-auto px-4 py-20 overflow-hidden"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Left: Character image */}
+          {}
           <div className={`flex justify-center transition-all duration-1000 ease-out ${
             isVisible.category ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
           }`}>
             <img src="/character/irp.png" alt="IRP 캐릭터" className="w-[360px] h-[360px] max-w-full object-contain" />
           </div>
 
-          {/* Right: Headline + Text */}
+          {}
           <div className={`flex flex-col items-start transition-all duration-1000 ease-out ${
             isVisible.category ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'
           }`}>
@@ -112,7 +108,7 @@ function MainSection() {
           </div>
         </div>
 
-        {/* Cards */}
+        {}
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 place-items-center">
           {[
             {
@@ -156,8 +152,8 @@ function MainSection() {
               key={index}
               ref={(el) => { cardRefs.current[index] = el }}
               className={`transition-all duration-700 ease-out ${
-                isVisible.cards[index] 
-                  ? 'translate-y-0 opacity-100' 
+                isVisible.cards[index]
+                  ? 'translate-y-0 opacity-100'
                   : 'translate-y-10 opacity-0'
               }`}
               style={{ transitionDelay: `${(index % 3) * 150}ms` }}
@@ -173,13 +169,12 @@ function MainSection() {
         </div>
       </section>
 
-
-      {/* 상담 섹션 */}
-      <section 
+      {}
+      <section
         ref={introRef}
         className="container mx-auto px-4 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center overflow-hidden"
       >
-        {/* Left: Texts */}
+        {}
         <div className={`transition-all duration-1000 ease-out ${
           isVisible.intro ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
         }`}>
@@ -195,7 +190,7 @@ function MainSection() {
           </div>
         </div>
 
-        {/* Right: Image */}
+        {}
         <div className={`flex justify-center transition-all duration-1000 ease-out ${
           isVisible.intro ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'
         }`}>
@@ -207,14 +202,12 @@ function MainSection() {
         </div>
       </section>
 
-      
-
-      {/* 연금 계산 섹션 */}
-      <section 
+      {}
+      <section
         ref={pensionRef}
         className="container mx-auto px-4 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center overflow-hidden"
       >
-        {/* Left: Texts */}
+        {}
         <div className={`transition-all duration-1000 ease-out ${
           isVisible.pension ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'
         }`}>
@@ -227,15 +220,15 @@ function MainSection() {
             <p>간단한 입력만으로 은퇴 후 자산 여정을 미리 확인하세요.</p>
           </div>
           <div className="mt-6">
-            <CTAButton 
-              label="내 연금 계산하러 가기 →" 
+            <CTAButton
+              label="내 연금 계산하러 가기 →"
               onClick={() => navigate('/pension-calculator')}
-              className="w-full sm:w-[360px] h-[56px]" 
+              className="w-full sm:w-[360px] h-[56px]"
             />
           </div>
         </div>
 
-        {/* Right: Image */}
+        {}
         <div className={`flex justify-center transition-all duration-1000 ease-out ${
           isVisible.pension ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'
         }`}>

@@ -9,11 +9,11 @@ type SelectFieldProps = {
   className?: string
 }
 
-function SelectField({ 
-  label, 
-  value, 
-  onChange, 
-  options, 
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
   required = false,
   className = ''
 }: SelectFieldProps) {

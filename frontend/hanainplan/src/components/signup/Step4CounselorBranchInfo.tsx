@@ -16,14 +16,13 @@ interface Step4CounselorBranchInfoProps {
   onBranchInfoChange: (branchInfo: BranchInfo) => void;
 }
 
-// 카카오맵 장소 검색 결과 타입
 interface PlaceSearchResult {
   id: string;
   place_name: string;
   address_name: string;
   road_address_name: string;
-  x: string; // longitude
-  y: string; // latitude
+  x: string;
+  y: string;
   category_name: string;
 }
 
@@ -40,34 +39,29 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
   }>>([])
   const [isSearching, setIsSearching] = useState(false)
 
-  // 카카오맵 장소 검색 함수 (하나은행 지점만 검색)
   const searchPlaces = async (query: string) => {
     if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
-      console.error('카카오맵 API 또는 서비스가 로드되지 않았습니다.')
       return
     }
 
     setIsSearching(true)
-    
+
     try {
       const ps = new window.kakao.maps.services.Places()
-      
-      // 하나은행 지점 검색을 위해 "하나은행 + 사용자 입력"으로 검색
+
       const searchKeyword = `하나은행 ${query}`
-      
+
       ps.keywordSearch(searchKeyword, (data: PlaceSearchResult[], status: any) => {
         setIsSearching(false)
-        
+
         if (status === window.kakao.maps.services.Status.OK) {
-          // 하나은행 지점만 필터링
-          const hanaResults = data.filter(place => 
-            place.place_name.includes('하나은행') || 
+          const hanaResults = data.filter(place =>
+            place.place_name.includes('하나은행') ||
             place.category_name.includes('은행')
           )
-          
+
           setSearchResults(hanaResults)
-          
-          // 검색 결과를 지도 마커로 표시
+
           setMapMarkers(hanaResults.map(place => ({
             latitude: parseFloat(place.y),
             longitude: parseFloat(place.x),
@@ -75,24 +69,20 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
             address: place.road_address_name || place.address_name
           })))
         } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
-          console.log('검색 결과가 없습니다.')
           setSearchResults([])
           setMapMarkers([])
         } else {
-          console.error('장소 검색 실패:', status)
           setSearchResults([])
           setMapMarkers([])
         }
       })
     } catch (error) {
-      console.error('장소 검색 오류:', error)
       setIsSearching(false)
       setSearchResults([])
       setMapMarkers([])
     }
   }
 
-  // 카카오맵 API 로드 확인 함수
   const waitForKakaoAPI = (): Promise<void> => {
     return new Promise((resolve) => {
       const checkAPI = () => {
@@ -106,7 +96,6 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
     })
   }
 
-  // 검색어 변경 시 장소 검색
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
@@ -116,23 +105,21 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
         setSearchResults([])
         setMapMarkers([])
       }
-    }, 500) // 500ms 디바운스
+    }, 500)
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery])
 
-  // 검색 실행 함수
   const executeSearch = async () => {
     if (!searchQuery.trim()) return
-    
+
     await waitForKakaoAPI()
     searchPlaces(searchQuery.trim())
   }
 
-  // 지도 마커 클릭 핸들러
   const handleMarkerClick = (markerData: any) => {
-    const place = searchResults.find(p => 
-      p.place_name === markerData.title && 
+    const place = searchResults.find(p =>
+      p.place_name === markerData.title &&
       (p.road_address_name === markerData.address || p.address_name === markerData.address)
     )
     if (place) {
@@ -151,19 +138,18 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
       }
     })
     setSearchQuery(place.place_name)
-    setShowMap(true) // 지점 선택 시 지도 표시
-    setSearchResults([]) // 검색 결과 목록 숨기기
+    setShowMap(true)
+    setSearchResults([])
   }
 
   const handleInputChange = (field: keyof BranchInfo, value: string | number) => {
-    if (field === 'coordinates') return // 좌표는 직접 수정 불가
-    
+    if (field === 'coordinates') return
+
     onBranchInfoChange({
       ...branchInfo,
       [field]: value
     })
-    
-    // 에러 메시지 초기화
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
     }
@@ -171,7 +157,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
 
   const validateField = (field: keyof BranchInfo, value: any) => {
     let error = ''
-    
+
     switch (field) {
       case 'branchCode':
         if (!value || !value.trim()) error = '지점코드를 선택해주세요.'
@@ -183,7 +169,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
         if (!value || !value.trim()) error = '주소를 선택해주세요.'
         break
     }
-    
+
     setErrors(prev => ({ ...prev, [field]: error }))
     return !error
   }
@@ -192,12 +178,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
     validateField(field, branchInfo[field])
   }
 
-  // 카카오 지도 API 로드 (실제 구현 시)
   useEffect(() => {
-    // TODO: 카카오 지도 API 로드
-    // const script = document.createElement('script')
-    // script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&autoload=false`
-    // document.head.appendChild(script)
   }, [])
 
   return (
@@ -209,7 +190,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
       </div>
 
       <div className="space-y-6">
-        {/* 지점 검색 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             지점 검색 <span className="text-red-500">*</span>
@@ -252,7 +233,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
             </button>
           </div>
 
-          {/* 장소 검색 결과 - input 아래에 표시 */}
+          {}
           {searchQuery && searchResults.length > 0 && (
             <div className="mt-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
               <div className="divide-y divide-gray-200">
@@ -263,8 +244,8 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
                       key={place.id}
                       onClick={() => handlePlaceSelect(place)}
                       className={`w-full text-left p-4 transition-colors ${
-                        isSelected 
-                          ? 'bg-[#008485] text-white' 
+                        isSelected
+                          ? 'bg-[#008485] text-white'
                           : 'hover:bg-gray-50'
                       }`}
                     >
@@ -324,7 +305,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
           )}
         </div>
 
-        {/* 지도 영역 */}
+        {}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <label className="block text-sm font-['Hana2.0_M'] text-gray-700">
@@ -366,7 +347,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
               </div>
             )}
 
-            {/* 선택된 지점 정보 - 지도 위에 표시 */}
+            {}
             {branchInfo.branchCode && (
               <div className="absolute top-4 left-4 right-4 bg-white rounded-lg shadow-xl border-2 border-[#008485] p-4 z-10">
                 <div className="flex items-start justify-between gap-3">
@@ -418,7 +399,7 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
         </div>
       </div>
 
-      {/* 안내 메시지 */}
+      {}
       <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
@@ -442,4 +423,3 @@ function Step4CounselorBranchInfo({ branchInfo, onBranchInfoChange }: Step4Couns
 }
 
 export default Step4CounselorBranchInfo
-

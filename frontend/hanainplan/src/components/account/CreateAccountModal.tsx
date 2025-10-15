@@ -14,34 +14,33 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
     accountType: 'CHECKING' as 'CHECKING' | 'SAVINGS' | 'TIME_DEPOSIT' | 'FIXED_DEPOSIT' | 'LOAN' | 'CREDIT',
     accountName: '',
     description: '',
-    // 계좌 생성에 필요한 정보
-    purpose: '', // 계좌 용도
-    monthlyDepositAmount: 0, // 월 적립 금액 (적금의 경우)
-    depositPeriod: 12, // 적립 기간 (적금의 경우)
-    interestPaymentMethod: 'AUTO' as 'AUTO' | 'MANUAL', // 이자 지급 방법
-    accountPassword: '', // 계좌 비밀번호
-    confirmPassword: '' // 비밀번호 확인
+    purpose: '',
+    monthlyDepositAmount: 0,
+    depositPeriod: 12,
+    interestPaymentMethod: 'AUTO' as 'AUTO' | 'MANUAL',
+    accountPassword: '',
+    confirmPassword: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { addAccount } = useAccountStore();
 
   const accountTypes = [
-    { 
-      value: 'CHECKING', 
+    {
+      value: 'CHECKING',
       label: '입출금통장',
       description: '자유롭게 입출금 가능한 기본 계좌',
       features: ['자유입출금', '이자지급', '카드연결가능']
     },
-    { 
-      value: 'TIME_DEPOSIT', 
+    {
+      value: 'TIME_DEPOSIT',
       label: '정기예금',
       description: '일정 기간 예치하여 높은 이자 수익',
       features: ['고정기간예치', '높은이자율', '자동갱신가능']
     },
-    { 
-      value: 'FIXED_DEPOSIT', 
+    {
+      value: 'FIXED_DEPOSIT',
       label: '정기적금',
       description: '매월 정해진 금액을 적립하는 저축 상품',
       features: ['월정기적립', '복리이자', '목표금액설정']
@@ -55,11 +54,9 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
     { value: 'RETIREMENT', label: '노후준비용' }
   ];
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 기본 검증
+
     if (!formData.accountName.trim()) {
       setError('계좌명을 입력해주세요.');
       return;
@@ -69,7 +66,6 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
       setError('계좌 용도를 선택해주세요.');
       return;
     }
-
 
     if (!formData.accountPassword.trim()) {
       setError('계좌 비밀번호를 입력해주세요.');
@@ -86,7 +82,6 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
       return;
     }
 
-    // 적금의 경우 추가 검증
     if (formData.accountType === 'FIXED_DEPOSIT') {
       if (formData.monthlyDepositAmount <= 0) {
         setError('월 적립 금액을 입력해주세요.');
@@ -98,7 +93,6 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
       }
     }
 
-    // 정기예금의 경우 추가 검증
     if (formData.accountType === 'TIME_DEPOSIT') {
       if (formData.depositPeriod < 1 || formData.depositPeriod > 60) {
         setError('예치 기간은 1개월 이상 60개월 이하여야 합니다.');
@@ -114,7 +108,7 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
         userId,
         accountType: formData.accountType,
         accountName: formData.accountName.trim(),
-        initialBalance: 0, // 항상 0원으로 시작
+        initialBalance: 0,
         description: formData.description.trim() || undefined,
         purpose: formData.purpose || undefined,
         monthlyDepositAmount: formData.monthlyDepositAmount || undefined,
@@ -124,11 +118,9 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
       };
 
       const newAccount = await createBankingAccount(request);
-      
-      // 새 계좌를 store에 추가
+
       addAccount(newAccount);
-      
-      // 폼 초기화
+
       setFormData({
         accountType: 'CHECKING',
         accountName: '',
@@ -140,11 +132,10 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
         accountPassword: '',
         confirmPassword: ''
       });
-      
+
       onAccountCreated();
       onClose();
     } catch (err) {
-      console.error('계좌 생성 오류:', err);
       setError('계좌 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsSubmitting(false);
@@ -172,11 +163,11 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       onClick={handleClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -194,7 +185,7 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 계좌 유형 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-3">
               계좌 유형 *
@@ -236,7 +227,7 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
             </div>
           </div>
 
-          {/* 계좌명 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               계좌명 *
@@ -251,8 +242,7 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
             />
           </div>
 
-
-          {/* 계좌 용도 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               계좌 용도 *
@@ -272,16 +262,15 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
             </select>
           </div>
 
-
-          {/* 적금/정기예금 전용 필드들 */}
+          {}
           {(formData.accountType === 'FIXED_DEPOSIT' || formData.accountType === 'TIME_DEPOSIT') && (
             <>
               <div className="border-t pt-4">
                 <h3 className="text-lg font-hana-bold text-gray-800 mb-4">
                   {formData.accountType === 'FIXED_DEPOSIT' ? '적금 설정' : '예금 설정'}
                 </h3>
-                
-                {/* 월 적립 금액 (적금만) */}
+
+                {}
                 {formData.accountType === 'FIXED_DEPOSIT' && (
                   <div className="mb-4">
                     <label className="block text-sm font-hana-medium text-gray-700 mb-2">
@@ -301,7 +290,7 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
                   </div>
                 )}
 
-                {/* 기간 설정 */}
+                {}
                 <div className="mb-4">
                   <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                     {formData.accountType === 'FIXED_DEPOSIT' ? '적립 기간' : '예치 기간'} *
@@ -319,14 +308,14 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
                     <span className="text-gray-600 font-hana-medium">개월</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {formData.accountType === 'FIXED_DEPOSIT' 
-                      ? '6개월 이상 60개월 이하' 
+                    {formData.accountType === 'FIXED_DEPOSIT'
+                      ? '6개월 이상 60개월 이하'
                       : '1개월 이상 60개월 이하'
                     }
                   </p>
                 </div>
 
-                {/* 이자 지급 방법 */}
+                {}
                 <div className="mb-4">
                   <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                     이자 지급 방법
@@ -358,10 +347,10 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
             </>
           )}
 
-          {/* 계좌 비밀번호 */}
+          {}
           <div className="border-t pt-4">
             <h3 className="text-lg font-hana-bold text-gray-800 mb-4">보안 설정</h3>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                 계좌 비밀번호 *
@@ -391,7 +380,7 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
             </div>
           </div>
 
-          {/* 계좌 설명 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               계좌 설명
@@ -405,14 +394,14 @@ function CreateAccountModal({ isOpen, onClose, userId, onAccountCreated }: Creat
             />
           </div>
 
-          {/* 오류 메시지 */}
+          {}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-red-600 font-hana-medium text-sm">{error}</p>
             </div>
           )}
 
-          {/* 버튼 */}
+          {}
           <div className="flex gap-3 pt-4">
             <button
               type="button"

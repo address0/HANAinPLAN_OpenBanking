@@ -7,7 +7,6 @@ interface AccountStore {
   selectedAccountType: 'BANKING' | 'IRP' | null;
   isLoading: boolean;
   error: string | null;
-  // 모든 계좌 관련 상태
   allAccountsData: AllAccountsResponse | null;
   hasIrpAccount: boolean;
 
@@ -20,7 +19,6 @@ interface AccountStore {
   setError: (error: string | null) => void;
   clearAccounts: () => void;
 
-  // 모든 계좌 관련 함수들
   setAllAccountsData: (data: AllAccountsResponse) => void;
   setHasIrpAccount: (hasIrp: boolean) => void;
   clearAllAccountsData: () => void;
@@ -61,7 +59,6 @@ export const useAccountStore = create<AccountStore>((set) => ({
   setError: (error: string | null) => set({ error }),
   clearAccounts: () => set({ accounts: [], selectedAccountId: null, selectedAccountType: null, error: null }),
 
-  // 모든 계좌 관련 함수들
   setAllAccountsData: (data: AllAccountsResponse) => set({
     allAccountsData: data,
     accounts: data.bankingAccounts,

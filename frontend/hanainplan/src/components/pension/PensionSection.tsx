@@ -43,47 +43,42 @@ function PensionSection() {
   const calculatePension = () => {
     const currentAge = parseInt(formData.currentAge)
     const retirementAge = parseInt(formData.retirementAge)
-    const currentSalary = parseInt(formData.currentSalary) * 10000 // 만원 -> 원
-    const currentAssets = parseInt(formData.currentAssets) * 10000 // 만원 -> 원
-    const monthlyContribution = parseInt(formData.monthlyContribution) * 10000 // 만원 -> 원
+    const currentSalary = parseInt(formData.currentSalary) * 10000
+    const currentAssets = parseInt(formData.currentAssets) * 10000
+    const monthlyContribution = parseInt(formData.monthlyContribution) * 10000
     const expectedReturn = parseFloat(formData.expectedReturn) / 100
     const inflationRate = parseFloat(formData.inflationRate) / 100
 
     const results: PensionData[] = []
-    
-    // 은퇴까지의 자산 증가 계산
+
     let totalAssets = currentAssets
     const workingYears = retirementAge - currentAge
-    
+
     for (let i = 0; i <= workingYears; i++) {
       const age = currentAge + i
-      
+
       if (i > 0) {
-        // 매년 자산 증가 (기존 자산 수익률 + 월납입 * 12)
         totalAssets = totalAssets * (1 + expectedReturn) + (monthlyContribution * 12)
       }
-      
-      // 연금 계산 (4% 인출 규칙 적용)
+
       const yearlyPension = totalAssets * 0.04
       const monthlyPension = yearlyPension / 12
-      
+
       results.push({
         age,
-        yearlyPension: Math.round(yearlyPension / 10000), // 만원 단위
-        monthlyPension: Math.round(monthlyPension / 10000), // 만원 단위
+        yearlyPension: Math.round(yearlyPension / 10000),
+        monthlyPension: Math.round(monthlyPension / 10000),
         totalAssets: Math.round(totalAssets)
       })
     }
 
-    // 은퇴 후 10년간 추가 계산
     for (let i = 1; i <= 10; i++) {
       const age = retirementAge + i
-      // 연금 수령으로 자산 감소, 나머지는 수익률 적용
       const yearlyPension = totalAssets * 0.04
       totalAssets = (totalAssets - yearlyPension) * (1 + expectedReturn - inflationRate)
-      
+
       const monthlyPension = yearlyPension / 12
-      
+
       results.push({
         age,
         yearlyPension: Math.round(yearlyPension / 10000),
@@ -97,19 +92,19 @@ function PensionSection() {
   }
 
   const isFormValid = () => {
-    return formData.currentAge && formData.retirementAge && 
-           formData.currentSalary && formData.currentAssets && 
-           formData.monthlyContribution && formData.expectedReturn && 
+    return formData.currentAge && formData.retirementAge &&
+           formData.currentSalary && formData.currentAssets &&
+           formData.monthlyContribution && formData.expectedReturn &&
            formData.inflationRate
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-20">
       <div className="container mx-auto px-4">
-        {/* 캐릭터 */}
+        {}
         <FloatingCharacter />
-        
-        {/* 제목 */}
+
+        {}
         <div className="text-center mb-12">
           <h1 className="text-3xl lg:text-4xl font-hana-bold text-gray-900 mb-4">
             연금 계산기
@@ -120,10 +115,10 @@ function PensionSection() {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* 입력 폼 */}
+          {}
           <div className="bg-white rounded-xl shadow-lg p-8">
             <h2 className="text-xl font-hana-bold text-gray-900 mb-6">기본 정보 입력</h2>
-            
+
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField
@@ -211,10 +206,10 @@ function PensionSection() {
             </div>
           </div>
 
-          {/* 결과 영역 */}
+          {}
           {isCalculated ? (
-            <PensionChart 
-              data={calculationResult} 
+            <PensionChart
+              data={calculationResult}
               currentAge={parseInt(formData.currentAge)}
             />
           ) : (

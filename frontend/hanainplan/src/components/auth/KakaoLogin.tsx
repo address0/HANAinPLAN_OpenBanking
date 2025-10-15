@@ -9,9 +9,8 @@ function KakaoLogin({ onError }: KakaoLoginProps) {
 
   const handleKakaoLogin = async () => {
     setIsLoading(true)
-    
+
     try {
-      // 백엔드 OAuth URL로 리다이렉트
       const response = await fetch('/api/auth/kakao/url', {
         method: 'GET',
         headers: {
@@ -24,15 +23,13 @@ function KakaoLogin({ onError }: KakaoLoginProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success && data.url) {
-        // 카카오 OAuth 페이지로 리다이렉트
         window.location.href = data.url
       } else {
         onError(data.message || '카카오 로그인을 시작할 수 없습니다.')
       }
     } catch (error) {
-      console.error('카카오 로그인 오류:', error)
       onError('카카오 로그인 처리 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)

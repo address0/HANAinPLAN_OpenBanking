@@ -29,13 +29,11 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   const [isVerified, setIsVerified] = useState(false)
   const [isCiVerified, setIsCiVerified] = useState(false)
   const [isCiVerificationLoading, setIsCiVerificationLoading] = useState(false)
-  
-  // 주민번호 분리된 입력 필드들
-  const [socialFront, setSocialFront] = useState('') // 앞자리 6자리
-  const [socialBackFirst, setSocialBackFirst] = useState('') // 뒷자리 첫번째
-  const [socialBackRest, setSocialBackRest] = useState('') // 뒷자리 나머지 6자리
-  
-  // AlertModal 상태
+
+  const [socialFront, setSocialFront] = useState('')
+  const [socialBackFirst, setSocialBackFirst] = useState('')
+  const [socialBackRest, setSocialBackRest] = useState('')
+
   const [alertModal, setAlertModal] = useState({
     isOpen: false,
     title: '',
@@ -43,7 +41,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     type: 'info' as 'success' | 'error' | 'info' | 'warning'
   })
 
-  // 전화번호 포맷팅 함수
   const formatPhoneNumber = (value: string) => {
     const numbers = value.replace(/[^\d]/g, '')
     if (numbers.length > 11) {
@@ -58,26 +55,21 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-
-  // 입력 핸들러들
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onDataChange({ name: e.target.value })
 
-    // 이름이 변경되면 실명인증 상태 초기화
     if (isCiVerified) {
       setIsCiVerified(false)
       onDataChange({ ci: undefined })
     }
   }
 
-  // 주민번호 앞자리 입력 핸들러
   const handleSocialFrontChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d]/g, '')
     if (value.length <= 6) {
       setSocialFront(value)
       updateSocialNumber(value, socialBackFirst, socialBackRest)
-      
-      // 6자리가 채워지면 다음 필드로 포커스 이동
+
       if (value.length === 6) {
         const nextInput = e.target.parentElement?.querySelector('input:nth-of-type(2)') as HTMLInputElement
         nextInput?.focus()
@@ -85,14 +77,12 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 주민번호 뒷자리 첫번째 입력 핸들러
   const handleSocialBackFirstChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d]/g, '')
     if (value.length <= 1) {
       setSocialBackFirst(value)
       updateSocialNumber(socialFront, value, socialBackRest)
-      
-      // 1자리가 채워지면 다음 필드로 포커스 이동
+
       if (value.length === 1) {
         const nextInput = e.target.parentElement?.querySelector('input:nth-of-type(3)') as HTMLInputElement
         nextInput?.focus()
@@ -100,7 +90,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 주민번호 뒷자리 나머지 입력 핸들러
   const handleSocialBackRestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d]/g, '')
     if (value.length <= 6) {
@@ -109,12 +98,10 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 전체 주민번호 업데이트
   const updateSocialNumber = (front: string, backFirst: string, backRest: string) => {
     const fullNumber = front + backFirst + backRest
     onDataChange({ socialNumber: fullNumber })
 
-    // 주민번호가 변경되면 실명인증 상태 초기화
     if (isCiVerified) {
       setIsCiVerified(false)
       onDataChange({ ci: undefined })
@@ -135,19 +122,18 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     onDataChange({ email: e.target.value })
   }
 
-  // 인증번호 전송
   const handleSendCode = async () => {
     const numbers = signUpData.phoneNumber.replace(/[^\d]/g, '')
     if (numbers.length === 11) {
       try {
         const response = await sendVerificationCode(signUpData.phoneNumber)
-        
+
         if (response.success) {
           setIsCodeSent(true)
-          setTimeLeft(180) // 3분
+          setTimeLeft(180)
           onDataChange({ verificationCode: '', isPhoneVerified: false })
           setIsVerified(false)
-          
+
           setAlertModal({
             isOpen: true,
             title: '인증번호 전송',
@@ -163,7 +149,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
           })
         }
       } catch (error) {
-        console.error('인증번호 전송 오류:', error)
         setAlertModal({
           isOpen: true,
           title: '전송 실패',
@@ -174,7 +159,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 인증번호 확인
   const handleVerifyCode = async () => {
     if (signUpData.verificationCode.trim()) {
       try {
@@ -182,8 +166,8 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
 
         if (response.success) {
           setIsVerified(true)
-          setTimeLeft(0) // 타이머 중지
-          onDataChange({ isPhoneVerified: true }) // 부모 컴포넌트에 인증 완료 알림
+          setTimeLeft(0)
+          onDataChange({ isPhoneVerified: true })
 
           setAlertModal({
             isOpen: true,
@@ -200,7 +184,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
           })
         }
       } catch (error) {
-        console.error('인증번호 확인 오류:', error)
         setAlertModal({
           isOpen: true,
           title: '인증 실패',
@@ -211,7 +194,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 실명인증 (CI 검증)
   const handleCiVerification = async () => {
     if (!signUpData.name.trim() || !isSocialNumberValid()) {
       setAlertModal({
@@ -250,7 +232,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         })
       }
     } catch (error) {
-      console.error('실명인증 오류:', error)
       setAlertModal({
         isOpen: true,
         title: '실명인증 실패',
@@ -262,7 +243,6 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     }
   }
 
-  // 유효성 검사 함수들
   const isPhoneNumberValid = () => {
     const numbers = signUpData.phoneNumber.replace(/[^\d]/g, '')
     return numbers.length === 11
@@ -281,11 +261,9 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
     return emailRegex.test(signUpData.email)
   }
 
-
-  // 타이머 useEffect
   useEffect(() => {
     let interval: number | null = null
-    
+
     if (isCodeSent && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((time) => {
@@ -312,14 +290,14 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   return (
     <div className="w-full flex flex-col items-center gap-3">
 
-      {/* 이름 입력 필드 */}
+      {}
       <div className="w-[400px] flex items-center gap-4">
         <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
           이름 <span className="text-red-500">*</span>
         </label>
         <div className={`w-[280px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
-          isNameFocused 
-            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+          isNameFocused
+            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]'
             : 'border-[#E0E0E0] hover:border-[#008485]/50'
         }`}>
           <input
@@ -341,13 +319,13 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* 주민번호 입력 필드 (분리된 형태) */}
+      {}
       <div className="w-[400px] flex items-center gap-4">
         <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
           주민번호 <span className="text-red-500">*</span>
         </label>
         <div className="flex items-center gap-2 w-[280px]">
-          {/* 앞자리 6자리 */}
+          {}
           <input
             type="text"
             value={socialFront}
@@ -358,11 +336,11 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
             maxLength={6}
             className="w-[100px] h-[60px] bg-white rounded-[15px] border-2 border-[#E0E0E0] px-3 font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700 focus:border-[#008485] focus:shadow-[0_0_0_3px_rgba(0,132,133,0.1)] transition-all duration-200"
           />
-          
-          {/* 하이픈 */}
+
+          {}
           <span className="font-['Hana2.0_M'] text-[16px] text-gray-700">-</span>
-          
-          {/* 뒷자리 첫번째 */}
+
+          {}
           <input
             type="text"
             value={socialBackFirst}
@@ -373,8 +351,8 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
             maxLength={1}
             className="w-[40px] h-[60px] bg-white rounded-[15px] border-2 border-[#E0E0E0] px-2 font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700 focus:border-[#008485] focus:shadow-[0_0_0_3px_rgba(0,132,133,0.1)] transition-all duration-200"
           />
-          
-          {/* 뒷자리 나머지 6자리 (비밀번호 형식) */}
+
+          {}
           <input
             type="password"
             value={socialBackRest}
@@ -385,8 +363,8 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
             maxLength={6}
             className="w-[100px] h-[60px] bg-white rounded-[15px] border-2 border-[#E0E0E0] px-3 font-['Hana2.0_M'] text-[16px] leading-[20px] placeholder-gray-400 outline-none text-gray-700 focus:border-[#008485] focus:shadow-[0_0_0_3px_rgba(0,132,133,0.1)] transition-all duration-200"
           />
-          
-          {/* 유효성 검사 아이콘 */}
+
+          {}
           {isSocialNumberValid() && (
             <div className="text-green-600 text-sm ml-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -397,7 +375,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* 실명인증 버튼 */}
+      {}
       <div className="w-[400px] flex items-center gap-4">
         <div className="w-[100px] flex-shrink-0"></div>
         <div className="w-[280px] flex items-center gap-3">
@@ -429,14 +407,14 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* 전화번호 입력 필드 */}
+      {}
       <div className="w-[400px] flex items-center gap-4">
         <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
           휴대폰 <span className="text-red-500">*</span>
         </label>
         <div className={`w-[280px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
-          isPhoneFocused 
-            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+          isPhoneFocused
+            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]'
             : 'border-[#E0E0E0] hover:border-[#008485]/50'
         }`}>
           <input
@@ -469,7 +447,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* 인증 안내 메시지 */}
+      {}
       {isCodeSent && timeLeft > 0 && (
         <div className="w-[400px] text-center">
           <p className="font-['Hana2.0_M'] text-[14px] text-[#008485] mb-1">
@@ -481,16 +459,16 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       )}
 
-      {/* 인증번호 입력 필드 */}
+      {}
       <div className="w-[400px] flex items-center gap-4">
         <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
           인증번호 <span className="text-red-500">*</span>
         </label>
         <div className={`w-[280px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
           !isCodeSent || timeLeft === 0
-            ? 'border-[#E0E0E0] opacity-60' 
-            : isCodeFocused 
-              ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+            ? 'border-[#E0E0E0] opacity-60'
+            : isCodeFocused
+              ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]'
               : 'border-[#E0E0E0] hover:border-[#008485]/50'
         }`}>
           <input
@@ -500,10 +478,10 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
             onFocus={() => setIsCodeFocused(true)}
             onBlur={() => setIsCodeFocused(false)}
             placeholder={
-              timeLeft === 0 && !isCodeSent 
-                ? "인증시간이 만료되었습니다" 
+              timeLeft === 0 && !isCodeSent
+                ? "인증시간이 만료되었습니다"
                 : isCodeSent && timeLeft > 0
-                  ? "인증번호를 입력하세요" 
+                  ? "인증번호를 입력하세요"
                   : "먼저 전화번호 인증을 진행하세요"
             }
             disabled={!isCodeSent || timeLeft === 0}
@@ -530,7 +508,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* 재전송 버튼 */}
+      {}
       {timeLeft === 0 && isCodeSent && (
         <button
           onClick={handleSendCode}
@@ -540,14 +518,14 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </button>
       )}
 
-      {/* 이메일 입력 필드 */}
+      {}
       <div className="w-[400px] flex items-center gap-4 mt-4">
         <label className="font-['Hana2.0_M'] text-[14px] text-gray-700 w-[100px] text-left flex-shrink-0">
           이메일
         </label>
         <div className={`w-[280px] h-[60px] bg-white relative rounded-[15px] flex items-center px-4 transition-all duration-200 border-2 shadow-sm ${
-          isEmailFocused 
-            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]' 
+          isEmailFocused
+            ? 'border-[#008485] shadow-[0_0_0_3px_rgba(0,132,133,0.1)]'
             : 'border-[#E0E0E0] hover:border-[#008485]/50'
         }`}>
           <input
@@ -569,7 +547,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
         </div>
       </div>
 
-      {/* AlertModal */}
+      {}
       <AlertModal
         isOpen={alertModal.isOpen}
         onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
@@ -583,4 +561,4 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   )
 }
 
-export default Step2BasicInfo 
+export default Step2BasicInfo

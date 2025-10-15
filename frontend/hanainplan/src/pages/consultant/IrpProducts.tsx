@@ -10,13 +10,13 @@ function IrpProducts() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* 헤더 */}
+          {}
           <div className="mb-8">
             <h1 className="text-3xl font-hana-bold text-gray-900 mb-2">IRP 상품</h1>
             <p className="text-gray-600 font-hana-regular">하나은행 IRP 상품 정보 및 관련 규정</p>
           </div>
 
-          {/* 탭 네비게이션 */}
+          {}
           <div className="bg-white rounded-xl shadow-lg mb-8">
             <div className="flex border-b">
               <button
@@ -42,13 +42,13 @@ function IrpProducts() {
             </div>
           </div>
 
-          {/* 상품 개요 탭 */}
+          {}
           {activeTab === 'overview' && (
             <div className="bg-white rounded-xl shadow-lg p-8">
               <h2 className="text-2xl font-hana-bold text-gray-900 mb-6">하나은행 IRP (개인퇴직연금)</h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 상품 정보 */}
+                {}
                 <div>
                   <h3 className="text-lg font-hana-bold text-gray-900 mb-4">상품 정보</h3>
                   <div className="space-y-4">
@@ -74,7 +74,7 @@ function IrpProducts() {
                   </div>
                 </div>
 
-                {/* 가입 조건 및 절차 */}
+                {}
                 <div>
                   <h3 className="text-lg font-hana-bold text-gray-900 mb-4">가입 조건 및 절차</h3>
                   <div className="space-y-4">
@@ -100,7 +100,7 @@ function IrpProducts() {
                 </div>
               </div>
 
-              {/* 금리 정보 */}
+              {}
               <div className="mt-8">
                 <h3 className="text-lg font-hana-bold text-gray-900 mb-4">현재 금리 정보</h3>
                 <div className="bg-gray-50 p-6 rounded-lg">
@@ -130,13 +130,13 @@ function IrpProducts() {
             </div>
           )}
 
-          {/* 관련 규정 탭 */}
+          {}
           {activeTab === 'regulations' && (
             <div className="bg-white rounded-xl shadow-lg p-8">
               <h2 className="text-2xl font-hana-bold text-gray-900 mb-6">IRP 관련 규정 및 정책</h2>
 
               <div className="space-y-8">
-                {/* 세제 혜택 */}
+                {}
                 <div>
                   <h3 className="text-lg font-hana-bold text-gray-900 mb-4">세제 혜택</h3>
                   <div className="bg-green-50 p-6 rounded-lg border border-green-200">
@@ -156,7 +156,7 @@ function IrpProducts() {
                   </div>
                 </div>
 
-                {/* 납입 한도 및 제한 */}
+                {}
                 <div>
                   <h3 className="text-lg font-hana-bold text-gray-900 mb-4">납입 한도 및 제한사항</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -181,7 +181,7 @@ function IrpProducts() {
                   </div>
                 </div>
 
-                {/* 연금 수령 규정 */}
+                {}
                 <div>
                   <h3 className="text-lg font-hana-bold text-gray-900 mb-4">연금 수령 규정</h3>
                   <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
@@ -207,7 +207,7 @@ function IrpProducts() {
                   </div>
                 </div>
 
-                {/* 투자 규제 */}
+                {}
                 <div>
                   <h3 className="text-lg font-hana-bold text-gray-900 mb-4">투자 규제 및 제한</h3>
                   <div className="bg-gray-50 p-6 rounded-lg">

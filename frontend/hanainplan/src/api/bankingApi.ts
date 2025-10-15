@@ -1,6 +1,5 @@
 import { httpGet, httpPost, httpPut } from '../lib/http';
 
-// 계좌 관련 타입 정의
 export interface BankingAccount {
   accountId: number;
   userId: number;
@@ -12,7 +11,7 @@ export interface BankingAccount {
   accountStatusDescription: string;
   balance: number;
   currencyCode: string;
-  openedDate: string; // LocalDate는 문자열로 전송됨
+  openedDate: string;
   expiryDate?: string;
   interestRate?: number;
   minimumBalance?: number;
@@ -99,8 +98,8 @@ export interface TransactionResponse {
 }
 
 export interface TransactionHistoryRequest {
-  accountNumber?: string; // 계좌번호 기반 조회용 (주요 사용)
-  accountId?: number; // 기존 호환성을 위해 유지
+  accountNumber?: string;
+  accountId?: number;
   transactionType?: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'AUTO_TRANSFER' | 'INTEREST' | 'FEE' | 'REFUND' | 'REVERSAL';
   transactionCategory?: 'SALARY' | 'PENSION' | 'SAVINGS' | 'INVESTMENT' | 'LOAN' | 'INSURANCE' | 'UTILITY' | 'SHOPPING' | 'FOOD' | 'TRANSPORT' | 'MEDICAL' | 'EDUCATION' | 'ENTERTAINMENT' | 'OTHER';
   startDate?: string;
@@ -121,7 +120,6 @@ export interface TransactionHistoryResponse {
   last: boolean;
 }
 
-// 계좌 API 함수들
 export const getBankingAccounts = async (userId: number): Promise<BankingAccount[]> => {
   const response = await httpGet<BankingAccount[]>(`/banking/user/${userId}`);
   return response;
@@ -132,7 +130,6 @@ export const getActiveBankingAccounts = async (userId: number): Promise<BankingA
   return response;
 };
 
-// 통합 계좌 조회 (일반 계좌 + IRP 계좌)
 export interface IrpAccountInfo {
   accountNumber: string;
   currentBalance: number;
@@ -158,34 +155,27 @@ export interface AllAccountsResponse {
 
 export const getAllAccounts = async (userId: number): Promise<AllAccountsResponse> => {
   try {
-    // 일반 은행 계좌 조회
     const allBankingAccounts = await getActiveBankingAccounts(userId);
-    
-    // IRP 계좌 조회 시도
+
     let irpAccount: IrpAccountInfo | undefined;
     let totalIrpBalance = 0;
 
     try {
-      // IRP 관련 import가 필요함
       const { getIrpAccount } = await import('./productApi');
       const irpResponse = await getIrpAccount(userId);
       irpAccount = irpResponse;
       totalIrpBalance = irpResponse.currentBalance || 0;
     } catch (error) {
-      // IRP 계좌가 없는 경우는 정상 상황이므로 무시
-      console.log('IRP 계좌 없음 또는 조회 실패:', error);
     }
 
-    // IRP 계좌를 일반 계좌에서 제외 (중복 방지)
     const bankingAccounts = allBankingAccounts.filter(account => {
-      // IRP 계좌는 accountType이 SECURITIES이고 accountName에 "IRP"가 포함된 경우
-      const isIrpAccount = account.accountType === 6 && // SECURITIES
-                          (account.accountName?.includes('IRP') || 
+      const isIrpAccount = account.accountType === 6 &&
+                          (account.accountName?.includes('IRP') ||
                            account.description?.includes('IRP') ||
                            (irpAccount && account.accountNumber === irpAccount.accountNumber));
       return !isIrpAccount;
     });
-    
+
     const totalBankingBalance = bankingAccounts.reduce((total, account) => total + (account.balance || 0), 0);
 
     return {
@@ -196,7 +186,6 @@ export const getAllAccounts = async (userId: number): Promise<AllAccountsRespons
       totalBalance: totalBankingBalance + totalIrpBalance
     };
   } catch (error) {
-    console.error('통합 계좌 조회 실패:', error);
     throw error;
   }
 };
@@ -235,7 +224,6 @@ export const getBankingAccountBalance = async (accountId: number): Promise<numbe
   return response;
 };
 
-// 거래 API 함수들
 export const deposit = async (request: DepositRequest): Promise<TransactionResponse> => {
   const response = await httpPost<TransactionResponse>('/banking/transactions/deposit', request);
   return response;
@@ -251,7 +239,6 @@ export const transfer = async (request: TransferRequest): Promise<TransactionRes
   return response;
 };
 
-// 계좌 간 송금 (은행 서버 연동 포함)
 export interface InternalTransferRequest {
   fromAccountId: number;
   toAccountId: number;
@@ -280,7 +267,6 @@ export const getTransactionByNumber = async (transactionNumber: string): Promise
   return response;
 };
 
-// 외부 계좌 검증
 export interface AccountVerificationResponse {
   exists: boolean;
   accountType?: 'IRP' | 'GENERAL';
@@ -297,7 +283,6 @@ export const verifyExternalAccount = async (accountNumber: string): Promise<Acco
   return response;
 };
 
-// IRP 계좌로 송금
 export interface TransferToIrpRequest {
   fromAccountId: number;
   toIrpAccountNumber: string;
@@ -310,7 +295,6 @@ export const transferToIrp = async (request: TransferToIrpRequest): Promise<Tran
   return response;
 };
 
-// 일반 외부 계좌로 송금
 export interface ExternalTransferRequest {
   fromAccountId: number;
   toAccountNumber: string;
@@ -322,4 +306,3 @@ export const externalTransfer = async (request: ExternalTransferRequest): Promis
   const response = await httpPost<TransactionResponse>('/banking/transactions/external-transfer', request);
   return response;
 };
-

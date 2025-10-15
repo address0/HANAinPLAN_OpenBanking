@@ -20,7 +20,6 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
   const [, setLocalSelectedAccount] = useState<BankingAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 계좌번호에서 은행 정보 가져오기
   const getBankInfo = (accountNumber: string) => {
     if (accountNumber.length >= 3) {
       const pattern = accountNumber.substring(0, 3);
@@ -29,19 +28,16 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
     return null;
   };
 
-  // 은행별 색상 매핑 (하나, 국민, 신한만)
   const getBankColor = (bankCode: string) => {
     const colorMap: { [key: string]: string } = {
-      '081': 'bg-[#008485]',      // 하나은행 - 청록색
-      '004': 'bg-[#ffbc00]',      // 국민은행 - 노란색
-      '088': 'bg-[#0046ff]',      // 신한은행 - 파란색
+      '081': 'bg-[#008485]',
+      '004': 'bg-[#ffbc00]',
+      '088': 'bg-[#0046ff]',
     };
     return colorMap[bankCode] || 'bg-gray-500';
   };
 
   useEffect(() => {
-    // 이미 MyAccount에서 getAllAccounts를 호출하므로 별도 호출 불필요
-    // allAccountsData가 있으면 로딩 완료
     if (allAccountsData) {
       setIsLoading(false);
     }
@@ -49,23 +45,19 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
 
   useEffect(() => {
     if (accounts.length > 0) {
-      // IRP 계좌가 선택된 경우는 무시 (별도 처리)
       if (selectedAccountType === 'IRP') {
         return;
       }
 
-      // 선택된 계좌가 유효한지 확인
       if (selectedAccountId) {
         const validAccount = accounts.find(acc => acc.accountId === selectedAccountId);
         if (validAccount) {
           setLocalSelectedAccount(validAccount);
         } else {
-          // 선택된 계좌가 유효하지 않으면 첫 번째 계좌로 설정
           setLocalSelectedAccount(accounts[0]);
           setSelectedAccount(accounts[0].accountId, 'BANKING');
         }
       } else {
-        // 선택된 계좌가 없으면 첫 번째 계좌 선택
         setLocalSelectedAccount(accounts[0]);
         setSelectedAccount(accounts[0].accountId, 'BANKING');
       }
@@ -102,7 +94,6 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
     );
   }
 
-  // 총 계좌 수 계산 (일반 계좌 + IRP 계좌)
   const totalAccountCount = accounts.length + (allAccountsData?.irpAccount ? 1 : 0);
 
   if (totalAccountCount === 0) {
@@ -121,15 +112,15 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
 
   return (
     <div className="space-y-4">
-      {/* 계좌 목록 헤더 */}
+      {}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-hana-bold text-gray-900">내 계좌</h3>
         <span className="text-sm text-gray-500 font-hana-medium">{totalAccountCount}개 계좌</span>
       </div>
 
-      {/* 계좌 목록 */}
+      {}
       <div className="space-y-3">
-        {/* 일반 은행 계좌들 */}
+        {}
         {accounts.map((account) => {
           const bankInfo = getBankInfo(account.accountNumber);
           const bankColor = bankInfo ? getBankColor(bankInfo.code) : 'bg-gray-500';
@@ -142,7 +133,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
               }`}
               onClick={() => setSelectedAccount(account.accountId, 'BANKING')}
             >
-              {/* 상단: 은행 정보 */}
+              {}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -169,7 +160,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
                 </button>
               </div>
 
-              {/* 하단: 계좌 잔액 */}
+              {}
               <div className="text-right">
                 <p className="text-3xl font-hana-bold">{formatAmount(account.balance)}원</p>
                 <p className="text-sm opacity-80">{account.accountName}</p>
@@ -178,7 +169,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
           );
         })}
 
-        {/* IRP 계좌 */}
+        {}
         {allAccountsData?.irpAccount && (
           <div
             className={`bg-gradient-to-r from-green-500 to-emerald-600 w-full h-[140px] rounded-xl relative cursor-pointer flex flex-col justify-between p-6 text-white hover:opacity-90 transition-opacity shadow-lg ${
@@ -186,7 +177,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
             }`}
             onClick={() => setSelectedAccount(null, 'IRP')}
           >
-            {/* 상단: IRP 정보 */}
+            {}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -205,7 +196,6 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
                 className="bg-white/20 px-4 py-2 rounded-lg text-sm font-hana-medium hover:bg-white/30 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // IRP 계좌 선택 (포트폴리오 페이지로 이동)
                   window.location.href = '/portfolio';
                 }}
               >
@@ -213,7 +203,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
               </button>
             </div>
 
-            {/* 하단: IRP 잔액 */}
+            {}
             <div className="text-right">
               <p className="text-3xl font-hana-bold">{formatAmount(allAccountsData.irpAccount.currentBalance)}원</p>
               <p className="text-sm opacity-80">IRP 계좌</p>
@@ -222,7 +212,7 @@ function AccountInfo({ onTransferClick }: AccountInfoProps) {
         )}
       </div>
 
-      {/* 계좌 추가 버튼 */}
+      {}
       <div className="flex justify-center pt-4">
         <button className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-hana-green hover:text-hana-green transition-colors font-hana-medium">
           + 계좌 추가하기

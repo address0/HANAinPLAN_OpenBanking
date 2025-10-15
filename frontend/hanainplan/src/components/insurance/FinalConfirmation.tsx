@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { submitInsuranceApplication } from '../../api/insuranceApi';
-import type { 
-  InsuranceProduct, 
-  InsuranceApplication, 
-  PersonalInfo, 
-  InsuranceDetails, 
+import type {
+  InsuranceProduct,
+  InsuranceApplication,
+  PersonalInfo,
+  InsuranceDetails,
   PremiumCalculationResponse,
-  PaymentInfo 
+  PaymentInfo
 } from '../../types/insurance';
 
 interface FinalConfirmationProps {
@@ -17,12 +17,12 @@ interface FinalConfirmationProps {
   onPrevious: () => void;
 }
 
-const FinalConfirmation: React.FC<FinalConfirmationProps> = ({ 
-  selectedProduct, 
-  application, 
-  premiumCalculation, 
-  onNext, 
-  onPrevious 
+const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
+  selectedProduct,
+  application,
+  premiumCalculation,
+  onNext,
+  onPrevious
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalAgreement, setFinalAgreement] = useState(false);
@@ -54,7 +54,6 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
     setError(null);
 
     try {
-      // 기본 결제 정보 생성 (실제로는 사용자가 입력해야 함)
       const paymentInfo: PaymentInfo = {
         paymentMethod: 'BANK_TRANSFER',
         bankAccount: {
@@ -66,11 +65,10 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
         transferDate: 15
       };
 
-      // 최종 가입 신청서 생성
       const finalApplication: InsuranceApplication = {
         productId: selectedProduct.id,
         applicantInfo: application.applicantInfo!,
-        beneficiaryInfo: application.applicantInfo!, // 수익자는 본인으로 설정
+        beneficiaryInfo: application.applicantInfo!,
         insuranceDetails: application.insuranceDetails!,
         paymentInfo: paymentInfo,
         agreementInfo: {
@@ -82,14 +80,13 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
       };
 
       const result = await submitInsuranceApplication(finalApplication);
-      
+
       if (result.success) {
         onNext(result.applicationId, result.policyNumber);
       } else {
         setError('보험 가입 신청에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Application submission error:', error);
       setError('보험 가입 신청 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
@@ -106,13 +103,13 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* 헤더 */}
+      {}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">최종 확인</h1>
         <p className="text-gray-600">입력하신 정보를 최종 확인해주세요</p>
       </div>
 
-      {/* 에러 메시지 */}
+      {}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-red-600 text-sm">{error}</p>
@@ -120,10 +117,10 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
       )}
 
       <div className="space-y-4">
-        {/* 선택된 보험 상품 */}
+        {}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">선택된 보험 상품</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-bold text-gray-800 mb-1">{selectedProduct.name}</h3>
@@ -146,10 +143,10 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
           </div>
         </div>
 
-        {/* 보험료 정보 */}
+        {}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">보험료 정보</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-semibold text-gray-800 mb-2 text-sm">가입 조건</h3>
@@ -176,7 +173,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div>
               <h3 className="font-semibold text-gray-800 mb-2 text-sm">보험료 내역</h3>
               <div className="space-y-1 text-xs">
@@ -207,10 +204,10 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
           </div>
         </div>
 
-        {/* 개인정보 */}
+        {}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">개인정보</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-semibold text-gray-800 mb-2 text-sm">기본 정보</h3>
@@ -237,7 +234,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div>
               <h3 className="font-semibold text-gray-800 mb-2 text-sm">추가 정보</h3>
               <div className="space-y-1 text-xs">
@@ -257,7 +254,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
                   <span className="text-gray-600">주소:</span>
                   <span className="font-medium text-right">
                     {application.applicantInfo!.address.address1}<br/>
-                    {application.applicantInfo!.address.address2 && 
+                    {application.applicantInfo!.address.address2 &&
                       `${application.applicantInfo!.address.address2}`}
                   </span>
                 </div>
@@ -266,10 +263,10 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
           </div>
         </div>
 
-        {/* 동의사항 */}
+        {}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">동의사항</h2>
-          
+
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <div className={`w-4 h-4 rounded flex items-center justify-center ${
@@ -283,7 +280,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
               </div>
               <span className="text-sm">보험약관에 동의</span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <div className={`w-4 h-4 rounded flex items-center justify-center ${
                 application.agreementInfo!.privacyAgreed ? 'bg-green-500' : 'bg-gray-300'
@@ -296,7 +293,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
               </div>
               <span className="text-sm">개인정보 처리방침에 동의</span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <div className={`w-4 h-4 rounded flex items-center justify-center ${
                 application.agreementInfo!.medicalDisclosureAgreed ? 'bg-green-500' : 'bg-gray-300'
@@ -309,7 +306,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
               </div>
               <span className="text-sm">의료정보 제공에 동의</span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <div className={`w-4 h-4 rounded flex items-center justify-center ${
                 application.agreementInfo!.marketingAgreed ? 'bg-green-500' : 'bg-gray-300'
@@ -325,10 +322,10 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
           </div>
         </div>
 
-        {/* 최종 동의 */}
+        {}
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">최종 동의</h2>
-          
+
           <label className="flex items-start space-x-2 cursor-pointer">
             <input
               type="checkbox"
@@ -341,7 +338,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
                 위 모든 내용을 확인했으며, 보험 가입을 신청합니다. (필수)
               </span>
               <p className="text-xs text-gray-600 mt-1">
-                보험 가입 신청 후에는 철회가 제한될 수 있으며, 
+                보험 가입 신청 후에는 철회가 제한될 수 있으며,
                 허위 정보 제공 시 보험계약이 무효가 될 수 있습니다.
               </p>
             </div>
@@ -349,7 +346,7 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
         </div>
       </div>
 
-      {/* 버튼 */}
+      {}
       <div className="flex justify-between">
         <button
           onClick={onPrevious}
@@ -374,4 +371,3 @@ const FinalConfirmation: React.FC<FinalConfirmationProps> = ({
 };
 
 export default FinalConfirmation;
-

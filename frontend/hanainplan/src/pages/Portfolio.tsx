@@ -34,18 +34,18 @@ function Portfolio() {
   const { user } = useUserStore();
   const [portfolioData, setPortfolioData] = useState<PortfolioData>({
     totalAssets: 0,
-    totalLiabilities: 45000000, // 임시 하드코딩
+    totalLiabilities: 45000000,
     netWorth: 0,
     savings: {
       general: 0,
       irp: 0,
     },
     insurance: {
-      total: 20000000, // 임시 하드코딩
-      monthly: 150000, // 임시 하드코딩
+      total: 20000000,
+      monthly: 150000,
     },
     expenses: {
-      monthly: 2500000, // 임시 하드코딩
+      monthly: 2500000,
       categories: {
         living: 1200000,
         medical: 300000,
@@ -67,24 +67,14 @@ function Portfolio() {
       try {
         setIsLoading(true);
 
-        // 모든 계좌 조회 (일반 계좌 + IRP 계좌)
-        console.log('🔍 모든 계좌 조회 시작 - 사용자 ID:', user.id);
         const accountsResponse = await getAllAccounts(user.id);
-        console.log('📊 모든 계좌 응답:', accountsResponse);
         setAllAccountsData(accountsResponse);
 
         const { totalBankingBalance, totalIrpBalance, totalBalance } = accountsResponse;
 
-        console.log('📊 포트폴리오 데이터 계산:');
-        console.log('  - 일반 계좌 잔액:', totalBankingBalance.toLocaleString() + '원');
-        console.log('  - IRP 계좌 잔액:', totalIrpBalance.toLocaleString() + '원');
-        console.log('  - 보험 (하드코딩):', '20,000,000원');
-        console.log('  - 총 자산:', totalBalance.toLocaleString() + '원');
-
-        // 포트폴리오 데이터 업데이트
         setPortfolioData(prev => ({
           ...prev,
-          totalAssets: totalBalance + 20000000, // 보험 포함
+          totalAssets: totalBalance + 20000000,
           netWorth: totalBalance + 20000000 - prev.totalLiabilities,
           savings: {
             general: totalBankingBalance,
@@ -92,10 +82,7 @@ function Portfolio() {
           },
         }));
 
-        console.log('✅ 포트폴리오 데이터 업데이트 완료');
-
       } catch (error) {
-        console.error('포트폴리오 데이터 조회 실패:', error);
       } finally {
         setIsLoading(false);
       }
@@ -134,7 +121,7 @@ function Portfolio() {
     <Layout>
       <div className="px-6 py-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
+          {}
           <div className="mb-8">
             <h1 className="text-3xl font-hana-bold text-gray-900 mb-2">
               포트폴리오 관리
@@ -144,24 +131,24 @@ function Portfolio() {
             </p>
           </div>
 
-          {/* Top Section - Asset Summary */}
+          {}
           <div className="mb-8">
-            <AssetSummary 
+            <AssetSummary
               totalAssets={portfolioData.totalAssets}
               totalLiabilities={portfolioData.totalLiabilities}
               netWorth={portfolioData.netWorth}
             />
           </div>
 
-          {/* Middle Section - Savings & Insurance */}
+          {}
           <div className="mb-8">
-            <SavingsInsurance 
+            <SavingsInsurance
               savings={portfolioData.savings}
               insurance={portfolioData.insurance}
             />
           </div>
 
-          {/* IRP 계좌 상세 정보 */}
+          {}
           {allAccountsData?.irpAccount && (
             <div className="mb-8">
               <div className="bg-white rounded-2xl shadow-lg p-8">
@@ -258,14 +245,14 @@ function Portfolio() {
             </div>
           )}
 
-          {/* IRP 포트폴리오 구성 상품 */}
+          {}
           {allAccountsData?.irpAccount && (
             <div className="mb-8">
               <IrpProductsPortfolio irpAccountNumber={allAccountsData.irpAccount.accountNumber} />
             </div>
           )}
 
-          {/* IRP 계좌 미보유 시 안내 */}
+          {}
           {!allAccountsData?.irpAccount && (
             <div className="mb-8">
               <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-2xl p-8">
@@ -290,9 +277,9 @@ function Portfolio() {
             </div>
           )}
 
-          {/* Bottom Section - Asset Distribution Chart */}
+          {}
           <div>
-            <AssetDistribution 
+            <AssetDistribution
               totalAssets={portfolioData.totalAssets}
               savings={portfolioData.savings}
               insurance={portfolioData.insurance}

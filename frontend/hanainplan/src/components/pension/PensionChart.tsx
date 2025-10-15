@@ -26,12 +26,11 @@ type PensionChartProps = {
 function PensionChart({ data, currentAge }: PensionChartProps) {
   if (!data.length) return null
 
-  // 차트 데이터 변환
   const chartData = data.map(item => ({
     age: `${item.age}세`,
-    총자산: Math.round(item.totalAssets / 10000), // 억원 단위
-    연간연금: item.yearlyPension, // 만원 단위
-    월간연금: item.monthlyPension // 만원 단위
+    총자산: Math.round(item.totalAssets / 10000),
+    연간연금: item.yearlyPension,
+    월간연금: item.monthlyPension
   }))
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -53,8 +52,8 @@ function PensionChart({ data, currentAge }: PensionChartProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 w-full">
       <h3 className="text-xl font-hana-bold text-gray-900 mb-6">자산 여정 및 연금 수령 예상</h3>
-      
-      {/* 차트 영역 */}
+
+      {}
       <div className="w-full h-80 mb-6">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -69,18 +68,18 @@ function PensionChart({ data, currentAge }: PensionChartProps) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="age" 
+            <XAxis
+              dataKey="age"
               tick={{ fontSize: 12, fontFamily: 'Hana2-Regular' }}
               stroke="#666"
             />
-            <YAxis 
+            <YAxis
               yAxisId="left"
               tick={{ fontSize: 12, fontFamily: 'Hana2-Regular' }}
               stroke="#666"
               label={{ value: '총자산 (만원)', angle: -90, position: 'insideLeft' }}
             />
-            <YAxis 
+            <YAxis
               yAxisId="right"
               orientation="right"
               tick={{ fontSize: 12, fontFamily: 'Hana2-Regular' }}
@@ -111,7 +110,7 @@ function PensionChart({ data, currentAge }: PensionChartProps) {
         </ResponsiveContainer>
       </div>
 
-      {/* 상세 정보 테이블 */}
+      {}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

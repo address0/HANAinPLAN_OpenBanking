@@ -22,4 +22,3 @@ function ProductCard({ imageSrc, title, description, alt }: ProductCardProps) {
 }
 
 export default ProductCard
-

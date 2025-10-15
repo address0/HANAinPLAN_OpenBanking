@@ -9,12 +9,12 @@ type InputFieldProps = {
   className?: string
 }
 
-function InputField({ 
-  label, 
-  value, 
-  onChange, 
-  type = 'text', 
-  placeholder, 
+function InputField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
   unit,
   required = false,
   className = ''

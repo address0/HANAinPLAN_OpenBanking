@@ -43,11 +43,10 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
 }) => {
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number, blockId: string} | null>(null);
-  
-  // 보험 가입 모드 상태
+
   const [isInsuranceApplicationMode, setIsInsuranceApplicationMode] = useState<boolean>(false);
-  const { 
-    currentStep: insuranceStep, 
+  const {
+    currentStep: insuranceStep,
     setCurrentStep: setInsuranceStep,
     selectedProduct: storeSelectedProduct,
     setSelectedProduct,
@@ -58,7 +57,6 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
     resetApplication
   } = useInsuranceStore();
 
-  // 더미 보험상품 데이터
   const insuranceProducts: LocalInsuranceProduct[] = [
     {
       id: '1',
@@ -114,7 +112,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
 
   const consultationSteps = [
     '상품 선택',
-    '약관 확인', 
+    '약관 확인',
     '보험료 계산',
     '개인정보 입력',
     '최종 확인',
@@ -123,7 +121,6 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
 
   const selectedProductData = selectedProduct || insuranceProducts[0];
 
-  // 보험 가입 관련 핸들러
   const handleStartInsuranceApplication = () => {
     setIsInsuranceApplicationMode(true);
     setInsuranceStep(0);
@@ -217,20 +214,19 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
     resetApplication();
   };
 
-  // 텍스트 선택 처리
   const handleTextSelection = (_event: React.MouseEvent, blockId: string) => {
     const selection = window.getSelection();
     if (selection && selection.toString().trim()) {
       const selectedText = selection.toString().trim();
       setSelectedText(selectedText);
-      
+
       const range = selection.getRangeAt(0);
       const container = range.commonAncestorContainer.parentElement;
-      
+
       if (container) {
         const containerText = container.textContent || '';
         const startIndex = containerText.indexOf(selectedText);
-        
+
         if (startIndex !== -1) {
           const endIndex = startIndex + selectedText.length;
           setSelectionRange({ start: startIndex, end: endIndex, blockId });
@@ -239,7 +235,6 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
     }
   };
 
-  // 형광펜 추가
   const handleAddHighlight = (color: string) => {
     if (selectedText && selectionRange && userRole === 'counselor') {
       const highlight: Omit<HighlightInfo, 'id'> = {
@@ -253,54 +248,49 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
       onHighlightAdd(highlight);
       setSelectedText('');
       setSelectionRange(null);
-      
-      // 텍스트 선택 해제
+
       if (window.getSelection) {
         window.getSelection()?.removeAllRanges();
       }
     }
   };
 
-  // 텍스트에 하이라이트 적용
   const applyHighlights = (text: string, blockId: string) => {
     if (!highlights.length) return text;
-    
-    // 해당 블록의 하이라이트만 필터링
+
     const blockHighlights = highlights.filter(h => h.blockId === blockId);
     if (!blockHighlights.length) return text;
-    
+
     let highlightedText = text;
-    
-    // 하이라이트를 역순으로 정렬하여 뒤에서부터 적용
+
     const sortedHighlights = [...blockHighlights].sort((a, b) => b.startIndex - a.startIndex);
-    
+
     sortedHighlights.forEach(highlight => {
       const beforeText = highlightedText.substring(0, highlight.startIndex);
       const highlightedPart = highlightedText.substring(highlight.startIndex, highlight.endIndex);
       const afterText = highlightedText.substring(highlight.endIndex);
-      
+
       if (!highlightedPart.includes('<mark') && highlightedPart.trim().length > 0) {
         highlightedText = `${beforeText}<mark style="background-color: ${highlight.color}; padding: 2px 4px; border-radius: 3px; opacity: 0.8;">${highlightedPart}</mark>${afterText}`;
       }
     });
-    
+
     return highlightedText;
   };
 
-  // 보험 가입 단계별 렌더링
   const renderInsuranceApplicationStep = () => {
     switch (insuranceStep) {
-      case 0: // 상품 선택
+      case 0:
         return (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">보험 상품 선택</h2>
               <p className="text-gray-600">가입하고 싶은 보험 상품을 선택해주세요</p>
             </div>
-            
+
             <div className="grid gap-4">
               {insuranceProducts.map((product) => (
-                <div 
+                <div
                   key={product.id}
                   className="border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-blue-500 transition-colors"
                   onClick={() => handleProductSelect(product)}
@@ -322,21 +312,21 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         );
 
-      case 1: // 약관 확인
+      case 1:
         return (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">약관 확인</h2>
               <p className="text-gray-600">보험 약관을 확인하고 동의해주세요</p>
             </div>
-            
+
             {storeSelectedProduct && (
               <div className="space-y-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="font-bold mb-2">{storeSelectedProduct.name}</h3>
                   <p className="text-sm text-gray-700">{storeSelectedProduct.description}</p>
                 </div>
-                
+
                 <div className="space-y-3">
                   <h4 className="font-semibold">주요 약관</h4>
                   <div className="p-3 bg-gray-50 rounded text-sm">
@@ -349,7 +339,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                     보험금 지급은 보험사고 발생일로부터 30일 이내에 처리합니다.
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <label className="flex items-center">
                     <input type="checkbox" className="mr-2" />
@@ -369,21 +359,21 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         );
 
-      case 2: // 보험료 계산
+      case 2:
         return (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">보험료 계산</h2>
               <p className="text-gray-600">보장 내용과 보험료를 확인해주세요</p>
             </div>
-            
+
             {storeSelectedProduct && (
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-bold mb-2">보장 내용</h3>
                   <p className="text-sm">{storeSelectedProduct.coverage}</p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">보장 금액</label>
@@ -398,7 +388,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">월 보험료</span>
@@ -410,14 +400,14 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         );
 
-      case 3: // 개인정보 입력
+      case 3:
         return (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">개인정보 입력</h2>
               <p className="text-gray-600">보험 가입에 필요한 개인정보를 입력해주세요</p>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">이름</label>
@@ -447,7 +437,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                 <input type="text" className="w-full p-2 border rounded" placeholder="회사원" />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-1">주소</label>
               <input type="text" className="w-full p-2 border rounded" placeholder="서울시 강남구 테헤란로 123" />
@@ -455,14 +445,14 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         );
 
-      case 4: // 최종 확인
+      case 4:
         return (
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">최종 확인</h2>
               <p className="text-gray-600">입력하신 정보를 최종 확인해주세요</p>
             </div>
-            
+
             {storeSelectedProduct && (
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -470,7 +460,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                   <p className="font-medium">{storeSelectedProduct.name}</p>
                   <p className="text-sm text-gray-600">{storeSelectedProduct.category}</p>
                 </div>
-                
+
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-bold mb-2">보험료 정보</h3>
                   <div className="flex justify-between">
@@ -478,7 +468,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                     <span className="font-bold">{new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', minimumFractionDigits: 0 }).format(50000)}</span>
                   </div>
                 </div>
-                
+
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-bold mb-2">개인정보</h3>
                   <p className="text-sm">이름: 홍길동</p>
@@ -490,7 +480,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         );
 
-      case 5: // 가입 완료
+      case 5:
         return (
           <div className="space-y-6 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -498,12 +488,12 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            
+
             <div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">보험 가입이 완료되었습니다!</h2>
               <p className="text-gray-600">신청이 정상적으로 처리되었습니다</p>
             </div>
-            
+
             {storeSelectedProduct && (
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="font-bold mb-2">{storeSelectedProduct.name}</h3>
@@ -511,7 +501,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                 <p className="text-sm text-gray-600">증권번호: POL-2024-567890</p>
               </div>
             )}
-            
+
             <div className="space-y-3">
               <p className="text-sm text-gray-600">보험증권은 이메일로 발송됩니다</p>
               <p className="text-sm text-gray-600">첫 보험료 납입일: 다음 달 1일</p>
@@ -524,10 +514,9 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
     }
   };
 
-  // 기존 상담 모드 렌더링
   const renderConsultationMode = () => (
     <div className="space-y-4">
-      {/* 헤더 */}
+      {}
       <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl">
         <div className="flex items-center justify-between">
           <div>
@@ -541,7 +530,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
         </div>
       </div>
 
-      {/* 단계 표시 */}
+      {}
       <div className="px-4">
         <div className="flex items-center justify-between mb-4">
           {consultationSteps.map((step, index) => (
@@ -566,19 +555,19 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
         </div>
       </div>
 
-      {/* 컨텐츠 영역 */}
+      {}
       <div className="px-4 space-y-4">
-        {/* 상품 설명 */}
+        {}
         <div>
           <h3 className="text-base font-semibold text-gray-800 mb-2">상품 설명</h3>
-          <div 
+          <div
             className="p-3 bg-gray-50 rounded-lg text-sm"
             onMouseUp={(e) => handleTextSelection(e, 'description')}
             dangerouslySetInnerHTML={{ __html: applyHighlights(selectedProductData.description, 'description') }}
           />
         </div>
 
-        {/* 보장 내용 */}
+        {}
         <div>
           <h3 className="text-base font-semibold text-gray-800 mb-2">보장 내용</h3>
           <div className="p-3 bg-blue-50 rounded-lg text-sm">
@@ -586,12 +575,12 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         </div>
 
-        {/* 약관 */}
+        {}
         <div>
           <h3 className="text-base font-semibold text-gray-800 mb-2">주요 약관</h3>
           <div className="space-y-2">
             {selectedProductData.terms.map((term, index) => (
-              <div 
+              <div
                 key={index}
                 className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors text-sm"
                 onMouseUp={(e) => handleTextSelection(e, `term-${index}`)}
@@ -601,12 +590,12 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         </div>
 
-        {/* 보험 혜택 */}
+        {}
         <div>
           <h3 className="text-base font-semibold text-gray-800 mb-2">보험 혜택</h3>
           <div className="space-y-2">
             {selectedProductData.benefits.map((benefit, index) => (
-              <div 
+              <div
                 key={index}
                 className="p-3 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors text-sm"
                 onMouseUp={(e) => handleTextSelection(e, `benefit-${index}`)}
@@ -616,12 +605,12 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         </div>
 
-        {/* 보험 제외사항 */}
+        {}
         <div>
           <h3 className="text-base font-semibold text-gray-800 mb-2">보험 제외사항</h3>
           <div className="space-y-2">
             {selectedProductData.exclusions.map((exclusion, index) => (
-              <div 
+              <div
                 key={index}
                 className="p-3 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors text-sm"
                 onMouseUp={(e) => handleTextSelection(e, `exclusion-${index}`)}
@@ -631,7 +620,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           </div>
         </div>
 
-        {/* 형광펜 도구 (상담사만) */}
+        {}
         {selectedText && userRole === 'counselor' && (
           <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-50">
             <div className="flex items-center space-x-2">
@@ -675,7 +664,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
         )}
       </div>
 
-      {/* 하단 액션 버튼 */}
+      {}
       <div className="px-4 py-3 bg-gray-50 border-t">
         <div className="flex justify-between items-center">
           <button
@@ -685,12 +674,12 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
           >
             이전
           </button>
-          
+
           <div className="text-center">
             <div className="text-xs text-gray-600">현재 단계</div>
             <div className="font-semibold text-blue-600 text-sm">{consultationSteps[currentStep]}</div>
           </div>
-          
+
           <div className="flex space-x-2">
             <button
               onClick={handleStartInsuranceApplication}
@@ -715,7 +704,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
     <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
       {isInsuranceApplicationMode ? (
         <div className="flex flex-col h-full">
-          {/* 보험 가입 헤더 */}
+          {}
           <div className="px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold">보험 가입</h2>
@@ -727,8 +716,8 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
               </button>
             </div>
           </div>
-          
-          {/* 단계 표시 */}
+
+          {}
           <div className="px-6 py-3 bg-gray-50 border-b">
             <div className="flex items-center justify-between">
               {consultationSteps.map((step, index) => (
@@ -752,13 +741,13 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
               ))}
             </div>
           </div>
-          
-          {/* 단계별 컨텐츠 */}
+
+          {}
           <div className="flex-1 p-6 overflow-y-auto">
             {renderInsuranceApplicationStep()}
           </div>
-          
-          {/* 하단 네비게이션 */}
+
+          {}
           <div className="px-6 py-4 bg-gray-50 border-t">
             <div className="flex justify-between">
               <button
@@ -768,7 +757,7 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
               >
                 이전
               </button>
-              
+
               {insuranceStep === 5 ? (
                 <div className="flex space-x-3">
                   <button
@@ -789,7 +778,6 @@ const InsuranceDashboard: React.FC<InsuranceDashboardProps> = ({
                   onClick={() => {
                     switch (insuranceStep) {
                       case 0:
-                        // 상품 선택은 handleProductSelect에서 처리
                         break;
                       case 1:
                         handleTermsAgreement();

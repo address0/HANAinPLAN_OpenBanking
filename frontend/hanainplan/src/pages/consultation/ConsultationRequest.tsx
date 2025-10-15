@@ -62,7 +62,6 @@ const consultationFields: ConsultationField[] = [
   }
 ];
 
-// 상품 아이콘 매핑
 const getFundIcon = (fundName: string) => {
   if (fundName.includes('글로벌') || fundName.includes('해외')) return '🌍';
   if (fundName.includes('테크') || fundName.includes('기술')) return '💻';
@@ -73,7 +72,6 @@ const getFundIcon = (fundName: string) => {
   return '💰';
 };
 
-// 자산관리 상담 옵션
 const assetManagementOptions = [
   {
     id: 'rebalancing',
@@ -89,7 +87,6 @@ const assetManagementOptions = [
   }
 ];
 
-// 전문 분야 파싱 함수
 const parseSpecialization = (specialization: string | null): string[] => {
   if (!specialization) return [];
   try {
@@ -103,8 +100,8 @@ const parseSpecialization = (specialization: string | null): string[] => {
 function ConsultationRequest() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedField, setSelectedField] = useState<string>('');
-  const [selectedSubOption, setSelectedSubOption] = useState<string>(''); // 상품 또는 자산관리 옵션
-  const [generalRequest, setGeneralRequest] = useState<string>(''); // 일반 상담 요청 사항
+  const [selectedSubOption, setSelectedSubOption] = useState<string>('');
+  const [generalRequest, setGeneralRequest] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedCounselor, setSelectedCounselor] = useState<Counselor | null>(null);
@@ -114,10 +111,9 @@ function ConsultationRequest() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showProductNoticeModal, setShowProductNoticeModal] = useState(false);
   const [consultationId, setConsultationId] = useState<string>('');
-  
+
   const { user } = useUserStore();
 
-  // 전체 상담사 목록 조회
   const { data: allConsultants = [] } = useQuery({
     queryKey: ['consultants'],
     queryFn: async () => {
@@ -126,7 +122,6 @@ function ConsultationRequest() {
     }
   });
 
-  // 예금 상품 목록 조회
   const { data: depositProducts = [] } = useQuery({
     queryKey: ['depositProducts'],
     queryFn: async () => {
@@ -135,7 +130,6 @@ function ConsultationRequest() {
     }
   });
 
-  // 펀드 상품 목록 조회
   const { data: fundClasses = [] } = useQuery({
     queryKey: ['fundClasses'],
     queryFn: async () => {
@@ -143,9 +137,7 @@ function ConsultationRequest() {
     }
   });
 
-  // 상품 옵션 동적 생성
   const productOptions: ProductOption[] = [
-    // 예금 상품 (하나은행만 필터링)
     ...depositProducts
       .filter(product => product.bankCode === 'HANA')
       .map(product => ({
@@ -155,7 +147,6 @@ function ConsultationRequest() {
         icon: '🏦',
         type: 'deposit' as const
       })),
-    // 펀드 상품 (전체)
     ...fundClasses.map(fund => ({
       id: fund.childFundCd,
       name: fund.fundMaster.fundName,
@@ -165,37 +156,33 @@ function ConsultationRequest() {
     }))
   ];
 
-  // 다음 7일간의 날짜 생성 (주말 제외)
   const generateDates = () => {
     const dates: string[] = [];
     const today = new Date();
-    
+
     let count = 0;
     let i = 1;
     while (count < 7) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      
-      // 주말은 제외
+
       if (date.getDay() !== 0 && date.getDay() !== 6) {
         dates.push(date.toISOString().split('T')[0]);
         count++;
       }
       i++;
     }
-    
+
     return dates;
   };
 
   const dates = generateDates();
 
-  // 시간대 목록 (30분 단위)
   const timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
   ];
 
-  // 날짜와 시간 선택 후 가능한 상담사 조회
   const loadAvailableConsultants = async (date: string, time: string) => {
     setIsLoadingConsultants(true);
     try {
@@ -208,22 +195,18 @@ function ConsultationRequest() {
       const available = allConsultants.filter(c => availableIds.includes(c.consultantId));
       setAvailableConsultants(available);
     } catch (error) {
-      console.error('상담사 조회 실패:', error);
       setAvailableConsultants([]);
     } finally {
       setIsLoadingConsultants(false);
     }
   };
 
-
-  // 상품/자산관리 옵션 목록 반환
   const getSubOptions = () => {
     if (selectedField === 'product') return productOptions;
     if (selectedField === 'asset-management') return assetManagementOptions;
     return [];
   };
 
-  // 선택된 옵션의 이름 반환
   const getSelectedOptionName = () => {
     if (selectedField === 'product') {
       return productOptions.find(option => option.id === selectedSubOption)?.name || '';
@@ -236,22 +219,19 @@ function ConsultationRequest() {
 
   const handleNext = async () => {
     if (currentStep < getTotalSteps()) {
-      // Step 1에서 상품가입 선택 시 안내 모달 표시
       if (currentStep === 1 && selectedField === 'product') {
         setShowProductNoticeModal(true);
         return;
       }
-      
-      // Step 3에서 Step 4로 넘어갈 때 상담사 조회 (모든 상담 4단계 통일)
+
       if (currentStep === 3 && selectedDate && selectedTimeSlot) {
         await loadAvailableConsultants(selectedDate, selectedTimeSlot);
       }
-      
+
       setCurrentStep(currentStep + 1);
     }
   };
 
-  // 상품 가입 안내 확인 후 다음 단계로
   const handleProductNoticeConfirm = () => {
     setShowProductNoticeModal(false);
     setCurrentStep(currentStep + 1);
@@ -269,7 +249,6 @@ function ConsultationRequest() {
       return;
     }
 
-    // 각 상담별 2단계 입력 확인
     if (selectedField === 'product' && !selectedSubOption) {
       alert('상품을 선택해주세요.');
       return;
@@ -285,10 +264,8 @@ function ConsultationRequest() {
 
     setIsSubmitting(true);
     try {
-      // 예약 시간 생성
       const reservationDatetime = `${selectedDate}T${selectedTimeSlot}:00`;
-      
-      // detail 필드 생성
+
       let detail = '';
       if (selectedField === 'product') {
         detail = getSelectedOptionName();
@@ -299,8 +276,7 @@ function ConsultationRequest() {
       } else {
         detail = `${consultationFields.find(f => f.id === selectedField)?.name} 상담 신청`;
       }
-      
-      // 상담 신청 API 호출
+
       const response = await createConsultation({
         customerId: user.userId,
         consultantId: selectedCounselor.consultantId,
@@ -308,18 +284,16 @@ function ConsultationRequest() {
         reservationDatetime: reservationDatetime,
         detail: detail
       });
-      
+
       setConsultationId(response.consultId);
       setShowSuccessModal(true);
     } catch (error: any) {
-      console.error('상담 신청 실패:', error);
       alert(error.message || '상담 신청에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // 날짜 포맷팅
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
@@ -355,7 +329,7 @@ function ConsultationRequest() {
   };
 
   const getTotalSteps = () => {
-    return 4; // 모든 상담이 4단계로 통일
+    return 4;
   };
 
   const renderStep1 = () => (
@@ -364,7 +338,7 @@ function ConsultationRequest() {
         <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담 분야를 선택해주세요</h2>
         <p className="text-gray-600">어떤 분야의 상담을 받고 싶으신가요?</p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
         {consultationFields.map((field) => (
           <div
@@ -386,7 +360,6 @@ function ConsultationRequest() {
   );
 
   const renderStep2 = () => {
-    // 일반 상담: 요청 사항 작성
     if (selectedField === 'general') {
       return (
         <div className="space-y-6">
@@ -394,7 +367,7 @@ function ConsultationRequest() {
             <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">요청 사항을 작성해주세요</h2>
             <p className="text-gray-600">상담받고 싶은 내용을 자유롭게 작성해주세요</p>
           </div>
-          
+
           <div className="max-w-2xl mx-auto">
             <textarea
               value={generalRequest}
@@ -412,7 +385,6 @@ function ConsultationRequest() {
       );
     }
 
-    // 상품/자산관리: 옵션 선택
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -420,12 +392,12 @@ function ConsultationRequest() {
             {selectedField === 'product' ? '상품을 선택해주세요' : '상담 유형을 선택해주세요'}
           </h2>
           <p className="text-gray-600">
-            {selectedField === 'product' 
-              ? '가입을 원하는 상품을 선택해주세요' 
+            {selectedField === 'product'
+              ? '가입을 원하는 상품을 선택해주세요'
               : '원하는 자산관리 상담 유형을 선택해주세요'}
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {getSubOptions().map((option) => (
             <div
@@ -448,16 +420,15 @@ function ConsultationRequest() {
   };
 
   const renderStep3 = () => {
-    // Step3는 모든 상담에서 날짜/시간 선택
     return (
         <div className="space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담 일시를 선택해주세요</h2>
             <p className="text-gray-600">원하는 날짜와 시간을 선택해주세요</p>
           </div>
-          
+
           <div className="space-y-6">
-            {/* 날짜 선택 */}
+            {}
             <div>
               <h3 className="text-lg font-hana-bold text-gray-900 mb-3">날짜 선택</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -465,7 +436,7 @@ function ConsultationRequest() {
                   const dateObj = new Date(date);
                   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
                   const dayName = dayNames[dateObj.getDay()];
-                  
+
                   return (
                     <button
                       key={date}
@@ -490,7 +461,7 @@ function ConsultationRequest() {
               </div>
             </div>
 
-            {/* 시간 선택 */}
+            {}
             {selectedDate && (
               <div>
                 <h3 className="text-lg font-hana-bold text-gray-900 mb-3">시간 선택</h3>
@@ -521,7 +492,6 @@ function ConsultationRequest() {
   };
 
   const renderStep4 = () => {
-    // Step4는 모든 상담에서 상담사 선택
     if (isLoadingConsultants) {
       return (
         <div className="flex justify-center items-center py-12">
@@ -539,7 +509,7 @@ function ConsultationRequest() {
           <h2 className="text-2xl font-hana-bold text-gray-900 mb-2">상담사를 선택해주세요</h2>
           <p className="text-gray-600">선택하신 시간에 가능한 전문 상담사입니다 ({availableConsultants.length}명)</p>
         </div>
-        
+
         {availableConsultants.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">선택한 시간에 가능한 상담사가 없습니다.</p>
@@ -577,7 +547,7 @@ function ConsultationRequest() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     {specialties.length > 0 && (
                       <div>
@@ -596,14 +566,14 @@ function ConsultationRequest() {
                         </div>
                       </div>
                     )}
-                    
+
                     {counselor.experienceYears && (
                       <div>
                         <p className="text-sm text-gray-500">경력</p>
                         <p className="text-gray-700 font-hana-medium">{counselor.experienceYears}</p>
                       </div>
                     )}
-                    
+
                     {counselor.branchName && (
                       <div>
                         <p className="text-sm text-gray-500">소속 지점</p>
@@ -623,20 +593,20 @@ function ConsultationRequest() {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50">
-        {/* Progress Bar */}
+        {}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-2xl font-hana-bold text-gray-900">{getStepTitle()}</h1>
               <span className="text-sm text-gray-500">{currentStep}/{getTotalSteps()} 단계</span>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               {Array.from({ length: getTotalSteps() }, (_, i) => i + 1).map((step) => (
                 <div key={step} className="flex items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-hana-medium ${
-                    step <= currentStep 
-                      ? 'bg-hana-green text-white' 
+                    step <= currentStep
+                      ? 'bg-hana-green text-white'
                       : 'bg-gray-200 text-gray-500'
                   }`}>
                     {step}
@@ -652,14 +622,14 @@ function ConsultationRequest() {
           </div>
         </div>
 
-        {/* Main Content */}
+        {}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
 
-          {/* Navigation Buttons */}
+          {}
           <div className="flex justify-between mt-8">
             <button
               onClick={handlePrev}
@@ -703,13 +673,13 @@ function ConsultationRequest() {
           </div>
         </div>
 
-        {/* 상품 가입 안내 모달 */}
+        {}
         {showProductNoticeModal && (
-          <div 
+          <div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             onClick={() => setShowProductNoticeModal(false)}
           >
-            <div 
+            <div
               className="bg-white rounded-xl p-8 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
@@ -719,11 +689,11 @@ function ConsultationRequest() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                
+
                 <h2 className="text-2xl font-hana-bold text-gray-900 mb-4">
                   상품 가입 상담 안내
                 </h2>
-                
+
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-left space-y-3">
                   <div className="flex items-start">
                     <span className="text-yellow-600 mr-2 mt-0.5">📋</span>
@@ -734,7 +704,7 @@ function ConsultationRequest() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <span className="text-yellow-600 mr-2 mt-0.5">🪪</span>
                     <div>
@@ -744,7 +714,7 @@ function ConsultationRequest() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <span className="text-yellow-600 mr-2 mt-0.5">ℹ️</span>
                     <div>
@@ -754,7 +724,7 @@ function ConsultationRequest() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex space-x-3">
                   <button
                     onClick={() => setShowProductNoticeModal(false)}
@@ -774,16 +744,16 @@ function ConsultationRequest() {
           </div>
         )}
 
-        {/* 상담 신청 완료 모달 */}
+        {}
         {showSuccessModal && (
-          <div 
+          <div
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
             onClick={() => {
               setShowSuccessModal(false);
               window.location.href = '/';
             }}
           >
-            <div 
+            <div
               className="bg-white rounded-xl p-8 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
@@ -793,11 +763,11 @@ function ConsultationRequest() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                
+
                 <h2 className="text-2xl font-hana-bold text-gray-900 mb-3">
                   상담 신청이 완료되었습니다!
                 </h2>
-                
+
                 <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">상담 번호</span>
@@ -838,11 +808,11 @@ function ConsultationRequest() {
                     </span>
                   </div>
                 </div>
-                
+
                 <p className="text-gray-600 mb-6">
                   예약 확인 후 확정 시 등록된 메일로 안내드리겠습니다.
                 </p>
-                
+
                 <button
                   onClick={() => {
                     setShowSuccessModal(false);

@@ -7,25 +7,19 @@ import {
 } from '../../api/productApi';
 
 function ConsultantDepositProducts() {
-  // 금리 정보 상태
   const [interestRates, setInterestRates] = useState<InterestRateInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 컴포넌트 마운트 시 금리 정보 조회
   useEffect(() => {
     fetchInterestRates();
   }, []);
 
-  /**
-   * 금리 정보 조회
-   */
   const fetchInterestRates = async () => {
     try {
       setLoading(true);
       const rates = await getAllInterestRates();
       setInterestRates(rates);
     } catch (error) {
-      console.error('금리 정보 조회 실패:', error);
       alert('금리 정보 조회에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -49,12 +43,12 @@ function ConsultantDepositProducts() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* 헤더 */}
+          {}
           <div className="mb-8">
             <h1 className="text-3xl font-hana-bold text-gray-900 mb-3">정기예금 상품 금리 조회</h1>
           </div>
 
-          {/* 금리 비교 섹션 */}
+          {}
           <InterestRateComparison rates={interestRates} />
         </div>
       </div>

@@ -24,7 +24,6 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
   targetUserId,
   isInCall
 }) => {
-  // 고객의 포트폴리오 정보 조회
   const { data: portfolioData, isLoading } = useQuery({
     queryKey: ['portfolio', customerId],
     queryFn: () => getPortfolio(customerId),
@@ -43,7 +42,7 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
         </div>
       </div>
 
-      {/* 상담 유형 */}
+      {}
       {consultationInfo.detail && (
         <div className="mb-4">
           <div className="inline-flex items-center bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -52,7 +51,7 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
         </div>
       )}
 
-      {/* 포트폴리오 정보 */}
+      {}
       <div className="mb-6">
         <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
           <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +67,7 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
           </div>
         ) : portfolioData ? (
           <div className="space-y-3">
-            {/* 총 자산 */}
+            {}
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-700 font-medium">총 자산</span>
@@ -78,7 +77,7 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
               </div>
             </div>
 
-            {/* 자산 구성 */}
+            {}
             <div className="grid grid-cols-2 gap-3">
               {portfolioData.deposits && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -124,7 +123,7 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
         )}
       </div>
 
-      {/* 상담 기록 */}
+      {}
       <div className="flex-1 flex flex-col">
         <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
           <svg className="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,7 +131,7 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
           </svg>
           상담 기록
         </h3>
-        
+
         <div className="flex-1">
           <NotesTab
             consultationId={consultationInfo.id || ''}
@@ -155,4 +154,3 @@ const AssetConsultation: React.FC<AssetConsultationProps> = ({
 };
 
 export default AssetConsultation;
-

@@ -50,11 +50,11 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
       content: `
         제1조 (목적)
         이 약관은 ${selectedProduct.name} 보험계약의 체결, 이행 및 해지에 관한 사항을 정함을 목적으로 합니다.
-        
+
         제2조 (보험계약의 성립)
         1. 보험계약은 보험계약자가 청약하고 보험회사가 승낙함으로써 성립됩니다.
         2. 보험회사는 보험계약자의 청약을 접수한 때부터 30일 이내에 승낙 여부를 결정합니다.
-        
+
         제3조 (보험료의 납입)
         1. 보험료는 보험계약자가 약정한 방법에 따라 납입합니다.
         2. 보험료를 납입하지 않은 경우 보험계약의 효력이 정지됩니다.
@@ -69,7 +69,7 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
            - 성명, 주민등록번호, 주소, 연락처
            - 직업, 소득정보, 건강상태
            - 가족관계, 의료기록
-        
+
         2. 수집된 개인정보는 다음 목적으로 이용됩니다.
            - 보험계약 체결 및 이행
            - 보험금 지급 및 사후관리
@@ -104,13 +104,13 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
 
   return (
     <div className="space-y-4">
-      {/* 헤더 */}
+      {}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">약관 및 동의</h1>
         <p className="text-gray-600">보험 가입에 필요한 약관을 확인하고 동의해주세요</p>
       </div>
 
-      {/* 선택된 상품 정보 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-3">선택된 보험 상품</h2>
         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
@@ -124,10 +124,10 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
         </div>
       </div>
 
-      {/* 약관 내용 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">약관 및 동의사항</h2>
-        
+
         <div className="space-y-3">
           {termsSections.map((section) => (
             <div key={section.id} className="border border-gray-200 rounded-lg">
@@ -147,7 +147,7 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
+
               {expandedSections.has(section.id) && (
                 <div className="px-3 pb-3">
                   <div className="bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
@@ -162,10 +162,10 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
         </div>
       </div>
 
-      {/* 동의 체크박스 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">필수 동의사항</h2>
-        
+
         <div className="space-y-3">
           <label className="flex items-start space-x-3 cursor-pointer">
             <input
@@ -221,7 +221,7 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
         </div>
       </div>
 
-      {/* 버튼 */}
+      {}
       <div className="flex justify-between">
         <button
           onClick={onPrevious}
@@ -246,4 +246,3 @@ const TermsAgreement: React.FC<TermsAgreementProps> = ({ selectedProduct, onNext
 };
 
 export default TermsAgreement;
-

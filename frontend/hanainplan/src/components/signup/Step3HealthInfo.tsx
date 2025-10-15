@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
 import { getDiseaseCodes, searchDiseaseCodes, type DiseaseCodeData } from '../../api/userApi'
 
-// 질병 상세 정보 인터페이스
 interface DiseaseDetail {
   diseaseCode: string;
   diseaseName: string;
   diseaseCategory: string;
   riskLevel: string;
-  severity: 'mild' | 'moderate' | 'severe' | null; // 중증도
-  progressPeriod: 'under_1month' | '1_3months' | '3_6months' | '6_12months' | 'over_1year' | null; // 경과 기간
-  isChronic: boolean | null; // 만성 여부
+  severity: 'mild' | 'moderate' | 'severe' | null;
+  progressPeriod: 'under_1month' | '1_3months' | '3_6months' | '6_12months' | 'over_1year' | null;
+  isChronic: boolean | null;
   description?: string;
 }
 
@@ -17,7 +16,7 @@ interface HealthInfo {
   recentMedicalAdvice: boolean | null;
   recentHospitalization: boolean | null;
   majorDisease: boolean | null;
-  diseaseDetails: DiseaseDetail[]; // 질병 상세 정보 배열
+  diseaseDetails: DiseaseDetail[];
   longTermMedication: boolean | null;
   disabilityRegistered: boolean | null;
   insuranceRejection: boolean | null;
@@ -39,19 +38,16 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
   const [isDiseaseInputFocused, setIsDiseaseInputFocused] = useState(false)
   const [selectedDiseaseForDetails, setSelectedDiseaseForDetails] = useState<DiseaseCodeData | null>(null)
   const [showDiseaseDetailsForm, setShowDiseaseDetailsForm] = useState(false)
-  // 질병 상세 정보 입력용 state들
   const [severity, setSeverity] = useState<DiseaseDetail['severity']>(null)
   const [progressPeriod, setProgressPeriod] = useState<DiseaseDetail['progressPeriod']>(null)
   const [isChronic, setIsChronic] = useState<boolean | null>(null)
 
-  // API에서 질병 코드 데이터 로드
   useEffect(() => {
     const loadDiseaseCodes = async () => {
       try {
         const data = await getDiseaseCodes()
         setDiseaseList(data)
       } catch (error) {
-        console.error('질병 코드 데이터 로드 중 오류:', error)
         setDiseaseList([])
       }
     }
@@ -59,7 +55,6 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
     loadDiseaseCodes()
   }, [])
 
-  // 질병 검색 API 호출
   useEffect(() => {
     if (diseaseSearchKeyword.trim() === '') {
       if (isDiseaseInputFocused) {
@@ -78,7 +73,6 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
         setFilteredDiseases(data)
         setShowDiseaseDropdown(true)
       } catch (error) {
-        console.error('질병 검색 중 오류:', error)
         setFilteredDiseases([])
         setShowDiseaseDropdown(false)
       }
@@ -88,39 +82,33 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
     return () => clearTimeout(timeoutId)
   }, [diseaseSearchKeyword, isDiseaseInputFocused, diseaseList])
 
-  // 질병 선택 핸들러
   const handleDiseaseSelect = (disease: DiseaseCodeData) => {
     setSelectedDiseaseForDetails(disease)
     setShowDiseaseDetailsForm(true)
     setShowDiseaseDropdown(false)
     setIsDiseaseInputFocused(false)
     setDiseaseSearchKeyword(disease.diseaseName)
-    // 상세 정보 state 초기화
     setSeverity(null)
     setProgressPeriod(null)
     setIsChronic(null)
   }
 
-  // 질병 상세 정보 저장 핸들러
   const handleDiseaseDetailsSubmit = (diseaseDetail: DiseaseDetail) => {
     const updatedDiseaseDetails = [...(healthInfo.diseaseDetails || []), diseaseDetail]
     onHealthInfoChange('diseaseDetails', updatedDiseaseDetails)
     setShowDiseaseDetailsForm(false)
     setSelectedDiseaseForDetails(null)
     setDiseaseSearchKeyword('')
-    // 상세 정보 state 초기화
     setSeverity(null)
     setProgressPeriod(null)
     setIsChronic(null)
   }
 
-  // 질병 삭제 핸들러
   const handleRemoveDisease = (index: number) => {
     const updatedDiseaseDetails = healthInfo.diseaseDetails.filter((_, i) => i !== index)
     onHealthInfoChange('diseaseDetails', updatedDiseaseDetails)
   }
 
-  // 질병 입력 포커스 핸들러
   const handleDiseaseInputFocus = () => {
     setIsDiseaseInputFocused(true)
     if (diseaseSearchKeyword.trim() === '') {
@@ -138,7 +126,6 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
     }, 150)
   }
 
-  // 각 서브스텝별 유효성 검사
   const isSubStep1Valid = () => {
     return healthInfo.recentMedicalAdvice !== null && healthInfo.recentHospitalization !== null
   }
@@ -146,15 +133,14 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
   const isSubStep2Valid = () => {
     if (healthInfo.majorDisease === null) return false
     if (healthInfo.majorDisease === true) {
-      // 질병이 있다고 답한 경우, 최소 하나의 질병 상세 정보가 있어야 함
       return healthInfo.diseaseDetails && healthInfo.diseaseDetails.length > 0
     }
-    return true // 질병이 없다고 답한 경우
+    return true
   }
 
   const isSubStep3Valid = () => {
-    return healthInfo.longTermMedication !== null && 
-           healthInfo.disabilityRegistered !== null && 
+    return healthInfo.longTermMedication !== null &&
+           healthInfo.disabilityRegistered !== null &&
            healthInfo.insuranceRejection !== null
   }
 
@@ -166,7 +152,6 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
       default: return false
     }
   }
-  // 질병 상세 정보 입력 폼 렌더링
   const renderDiseaseDetailsForm = () => {
     if (!selectedDiseaseForDetails || !showDiseaseDetailsForm) return null
 
@@ -194,8 +179,8 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
           <h3 className="font-['Hana2.0_M'] text-[16px] text-gray-800 mb-4">
             질병 상세 정보 입력하기
           </h3>
-          
-          {/* 선택된 질병 정보 표시 */}
+
+          {}
           <div className="bg-gray-50 rounded-[8px] p-3 mb-4">
             <div className="flex justify-between items-start mb-2">
               <span className="font-['Hana2.0_M'] text-[14px] text-gray-800">
@@ -219,7 +204,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
             )}
           </div>
 
-          {/* 중증도 선택 */}
+          {}
           <div className="mb-4">
             <h4 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-2">중증도</h4>
             <div className="space-y-2">
@@ -249,7 +234,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
             </div>
           </div>
 
-          {/* 경과 기간 선택 */}
+          {}
           <div className="mb-4">
             <h4 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-2">진단 후 경과 기간</h4>
             <div className="space-y-2">
@@ -281,7 +266,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
             </div>
           </div>
 
-          {/* 만성 여부 선택 */}
+          {}
           <div className="mb-6">
             <h4 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-2">만성 질환 여부</h4>
             <div className="flex gap-4">
@@ -322,14 +307,13 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
             </div>
           </div>
 
-          {/* 버튼 */}
+          {}
           <div className="flex gap-2">
             <button
               onClick={() => {
                 setShowDiseaseDetailsForm(false)
                 setSelectedDiseaseForDetails(null)
                 setDiseaseSearchKeyword('')
-                // 상세 정보 state 초기화
                 setSeverity(null)
                 setProgressPeriod(null)
                 setIsChronic(null)
@@ -365,8 +349,8 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
         className="sr-only"
       />
       <div className={`w-5 h-5 rounded-full border-2 mr-2 flex items-center justify-center ${
-        healthInfo[field] === value 
-          ? 'border-[#008485] bg-[#008485]' 
+        healthInfo[field] === value
+          ? 'border-[#008485] bg-[#008485]'
           : 'border-gray-300'
       }`}>
         {healthInfo[field] === value && (
@@ -379,7 +363,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
 
   const renderSubStep1 = () => (
     <div className="w-[480px] space-y-4 px-2 max-h-[400px] overflow-y-auto">
-      {/* 질문 1: 최근 3개월 내 의사 권유사항 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-2">
           1. 최근 3개월 이내에 의사로부터 입원, 수술, 추가검사(재검 포함)를 권유받은 사실이 있습니까?
@@ -393,7 +377,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
         </div>
       </div>
 
-      {/* 질문 2: 최근 2년 내 입원/수술 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-2">
           2. 최근 2년 이내에 입원 또는 수술을 받은 적이 있습니까?
@@ -411,7 +395,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
 
   const renderSubStep2 = () => (
     <div className="w-[480px] space-y-4 px-2 max-h-[400px] overflow-y-auto">
-      {/* 질문 3: 최근 5년 내 중증질환 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-2">
           3. 최근 5년 이내에 질병으로 진단, 입원, 수술을 받은 적이 있습니까?
@@ -421,7 +405,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
           {renderRadioOption('majorDisease', false, '아니오')}
         </div>
 
-        {/* 질병이 있다고 선택한 경우 질병 검색 및 추가 */}
+        {}
         {healthInfo.majorDisease === true && (
           <div className="border-t border-gray-200 pt-4">
             <h4 className="font-['Hana2.0_M'] text-md text-gray-700 mb-2">질병명</h4>
@@ -435,8 +419,8 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
                 onBlur={handleDiseaseInputBlur}
                 className="w-full p-3 border border-gray-300 rounded-[8px] font-['Hana2.0_M'] text-[14px] focus:outline-none focus:border-[#008485]"
               />
-              
-              {/* 질병 검색 결과 드롭다운 */}
+
+              {}
               {showDiseaseDropdown && filteredDiseases.length > 0 && (
                 <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-[8px] mt-1 max-h-[200px] overflow-y-auto z-10 shadow-lg">
                   {filteredDiseases.map((disease) => (
@@ -467,7 +451,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
                 </div>
               )}
             </div>
-              
+
               {healthInfo.diseaseDetails && healthInfo.diseaseDetails.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="font-['Hana2.0_M'] text-[13px] text-gray-700 mb-2">선택된 질병 목록</h4>
@@ -518,7 +502,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
                 <p className="font-['Hana2.0_M'] text-sm text-gray-500">선택된 질병이 없습니다.</p>
               </div>
             )}
-            
+
           </div>
         )}
       </div>
@@ -527,7 +511,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
 
   const renderSubStep3 = () => (
     <div className="w-[480px] space-y-4 px-2 max-h-[400px] overflow-y-auto">
-      {/* 질문 4: 장기복용 약물 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-3">
           4. 장기복용 중인 약물이 있습니까?
@@ -538,7 +522,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
         </div>
       </div>
 
-      {/* 질문 5: 장애등록 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-3">
           5. 장애진단을 받은 적이 있거나 현재 장애 등록이 되어 있습니까?
@@ -549,7 +533,7 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
         </div>
       </div>
 
-      {/* 질문 6: 보험 거절 이력 */}
+      {}
       <div className="bg-white rounded-[12px] p-4 border border-gray-200 shadow-sm">
         <h3 className="font-['Hana2.0_M'] text-[14px] text-gray-800 mb-3">
           6. 과거 보험 가입이 거절되거나 보험금 지급 거절을 받은 적이 있습니까?
@@ -565,24 +549,24 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
   return (
     <div className="w-full flex flex-col items-center gap-2">
 
-      {/* 현재 서브스텝에 따른 질문 렌더링 */}
+      {}
       {currentSubStep === 1 && renderSubStep1()}
       {currentSubStep === 2 && renderSubStep2()}
       {currentSubStep === 3 && renderSubStep3()}
 
-      {/* 서브스텝 네비게이션 - 문항 이동용 (작고 심플한 디자인) */}
+      {}
       <div className="flex gap-3 mt-4">
         {currentSubStep > 1 && (
-          <button 
+          <button
             onClick={() => setCurrentSubStep((prev) => (prev - 1) as HealthSubStep)}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-[6px] font-['Hana2.0_M'] text-[14px] hover:bg-gray-200 transition-colors duration-200 border border-gray-300"
           >
             ← 이전 문항
           </button>
         )}
-        
+
         {currentSubStep < 3 && (
-          <button 
+          <button
             onClick={() => setCurrentSubStep((prev) => (prev + 1) as HealthSubStep)}
             disabled={!isCurrentSubStepValid()}
             className={`px-4 py-2 rounded-[6px] font-['Hana2.0_M'] text-[14px] transition-all duration-200 border ${
@@ -596,10 +580,10 @@ function Step3HealthInfo({ healthInfo, onHealthInfoChange }: Step3Props) {
         )}
       </div>
 
-      {/* 질병 상세 정보 입력 폼 모달 */}
+      {}
       {renderDiseaseDetailsForm()}
     </div>
   )
 }
 
-export default Step3HealthInfo 
+export default Step3HealthInfo

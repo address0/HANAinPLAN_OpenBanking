@@ -21,7 +21,6 @@ function IrpProducts() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdAccountInfo, setCreatedAccountInfo] = useState<any>(null);
 
-  // 사용자 입력 데이터 상태
   const [formData, setFormData] = useState<IrpAccountOpenRequest>({
     customerId: user?.id || 0,
     initialDeposit: 1000000,
@@ -32,7 +31,6 @@ function IrpProducts() {
     linkedMainAccount: ''
   });
 
-  // 약관 관련 상태
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [selectedTermType, setSelectedTermType] = useState('');
   const [agreedTerms, setAgreedTerms] = useState({
@@ -43,12 +41,11 @@ function IrpProducts() {
   });
   const [allAgreed, setAllAgreed] = useState(false);
 
-  // 계좌번호에서 은행 정보 반환
   const getBankInfo = (accountNumber: string) => {
     if (!accountNumber) return null;
-    
+
     const bankInfo = getBankByAccountNumber(accountNumber);
-    
+
     if (bankInfo) {
       return {
         code: bankInfo.code,
@@ -56,8 +53,7 @@ function IrpProducts() {
         logo: `/bank/${bankInfo.code}.png`
       };
     }
-    
-    // 패턴을 찾지 못한 경우 앞자리 3자리를 은행 코드로 사용
+
     const prefix = accountNumber.replace(/-/g, '').substring(0, 3);
     return {
       code: prefix,
@@ -66,24 +62,16 @@ function IrpProducts() {
     };
   };
 
-  // 컴포넌트 마운트 시 IRP 계좌 보유 여부 확인 및 계좌 목록 조회
   useEffect(() => {
     const initializeData = async () => {
       if (user?.id) {
         try {
-          // IRP 계좌 상태 확인
           const irpResponse = await checkIrpAccountStatus(user.id);
           setHasIrpAccount(irpResponse.hasIrpAccount);
-          // TODO: 나중에 백엔드에서 계좌 정보도 함께 반환하도록 수정
-          // if (irpResponse.hasIrpAccount && irpResponse.accountInfo) {
-          //   setIrpAccountInfo(irpResponse.accountInfo);
-          // }
 
-          // 사용자 활성 계좌 목록 조회
           const activeAccountsResponse = await getActiveBankingAccounts(user.id);
           setAccounts(activeAccountsResponse);
 
-          // 첫 번째 활성 계좌를 기본 선택
           if (activeAccountsResponse.length > 0) {
             setFormData(prev => ({
               ...prev,
@@ -91,7 +79,6 @@ function IrpProducts() {
             }));
           }
         } catch (error) {
-          console.error('데이터 초기화 실패:', error);
           setHasIrpAccount(false);
           setAccounts([]);
         }
@@ -104,7 +91,6 @@ function IrpProducts() {
     initializeData();
   }, [user?.id]);
 
-  // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -122,7 +108,6 @@ function IrpProducts() {
     };
   }, [showAccountDropdown]);
 
-  // 약관 동의 관련 함수들
   const handleShowTermsModal = (termType: string) => {
     setSelectedTermType(termType);
     setShowTermsModal(true);
@@ -146,7 +131,6 @@ function IrpProducts() {
     });
   };
 
-  // 모든 약관에 동의했는지 확인
   const isAllTermsAgreed = Object.values(agreedTerms).every(agreed => agreed);
 
   const handleApplyClick = () => {
@@ -155,11 +139,9 @@ function IrpProducts() {
   };
 
   const handleConsultationClick = () => {
-    // 상담 신청 페이지로 이동
     navigate('/consultation/request');
   };
 
-  // IRP 계좌 개설 API 호출
   const handleIrpAccountCreation = async () => {
     setIsLoading(true);
     setError(null);
@@ -168,7 +150,6 @@ function IrpProducts() {
       const response = await openIrpAccount(formData);
 
       if (response.success) {
-        // 성공 시 생성된 계좌 정보 저장하고 성공 모달 표시
         setCreatedAccountInfo({
           accountNumber: response.accountNumber,
           bankName: '하나은행',
@@ -177,22 +158,20 @@ function IrpProducts() {
           depositDay: formData.depositDay,
           investmentStyle: formData.investmentStyle
         });
-        setShowModal(false); // 개설 모달 닫기
-        setShowSuccessModal(true); // 성공 모달 열기
-        setHasIrpAccount(true); // 계좌 보유 상태 업데이트
+        setShowModal(false);
+        setShowSuccessModal(true);
+        setHasIrpAccount(true);
       } else {
         setError(response.message || '계좌 개설에 실패했습니다.');
       }
 
     } catch (error: any) {
-      console.error('IRP 계좌 개설 실패:', error);
       setError(error.response?.data?.message || '계좌 개설 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 사용자 정보가 없는 경우만 로딩 표시
   if (!user) {
     return (
       <Layout>
@@ -210,9 +189,9 @@ function IrpProducts() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
 
-        {/* Main Content */}
+        {}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* IRP 계좌 보유 시 정보 표시 */}
+          {}
           {hasIrpAccount && (
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-8">
               <div className="flex items-center gap-4 mb-4">
@@ -232,8 +211,8 @@ function IrpProducts() {
                   포트폴리오 보기
                 </button>
               </div>
-              
-              {/* IRP 계좌 상세 정보 */}
+
+              {}
               {(irpAccountInfo || createdAccountInfo) && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-green-200">
                   <div className="bg-white p-4 rounded-lg border border-green-100">
@@ -245,9 +224,9 @@ function IrpProducts() {
                   <div className="bg-white p-4 rounded-lg border border-green-100">
                     <div className="text-sm text-green-700 mb-1">현재 잔액</div>
                     <div className="font-hana-medium text-green-900">
-                      {irpAccountInfo?.currentBalance 
+                      {irpAccountInfo?.currentBalance
                         ? `${irpAccountInfo.currentBalance.toLocaleString()}원`
-                        : createdAccountInfo?.initialDeposit 
+                        : createdAccountInfo?.initialDeposit
                         ? `${createdAccountInfo.initialDeposit.toLocaleString()}원`
                         : '0원'
                       }
@@ -256,7 +235,7 @@ function IrpProducts() {
                   <div className="bg-white p-4 rounded-lg border border-green-100">
                     <div className="text-sm text-green-700 mb-1">월 자동납입</div>
                     <div className="font-hana-medium text-green-900">
-                      {(irpAccountInfo?.monthlyDeposit || createdAccountInfo?.monthlyDeposit) 
+                      {(irpAccountInfo?.monthlyDeposit || createdAccountInfo?.monthlyDeposit)
                         ? `${((irpAccountInfo?.monthlyDeposit || createdAccountInfo?.monthlyDeposit) / 10000).toLocaleString()}만원`
                         : '설정 안함'
                       }
@@ -267,7 +246,7 @@ function IrpProducts() {
             </div>
           )}
 
-          {/* Hero Section with Character */}
+          {}
           <div className="bg-gradient-to-br from-hana-green/5 to-blue-50 rounded-2xl p-8 mb-8">
             <div className="flex flex-col lg:flex-row items-center gap-8">
               <div className="flex-1">
@@ -276,7 +255,7 @@ function IrpProducts() {
                   개인형퇴직연금(IRP)으로 퇴직 후에도 안정적인 생활을 보장받으세요
                 </p>
 
-                {/* 오류 메시지 표시 */}
+                {}
                 {error && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <div className="flex items-center gap-3">
@@ -322,9 +301,9 @@ function IrpProducts() {
               </div>
               <div className="flex-shrink-0">
                 <div className="w-64 h-64 flex items-center justify-center">
-                  <img 
-                    src="/character/irp.png" 
-                    alt="IRP 캐릭터" 
+                  <img
+                    src="/character/irp.png"
+                    alt="IRP 캐릭터"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -332,7 +311,7 @@ function IrpProducts() {
             </div>
           </div>
 
-          {/* Product Information */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
             <h2 className="text-2xl font-hana-medium text-gray-900 mb-6">IRP(개인형퇴직연금)란?</h2>
             <div className="space-y-4 text-gray-700 font-hana-light">
@@ -368,7 +347,7 @@ function IrpProducts() {
             </div>
           </div>
 
-          {/* IRP 혜택 섹션 */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
             <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">IRP 주요 혜택</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -396,7 +375,7 @@ function IrpProducts() {
             </div>
           </div>
 
-          {/* 연소득별 세제혜택 시각화 */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
             <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">IRP 세제 혜택 정리</h3>
             <p className="text-gray-600 font-hana-light text-center mb-8">
@@ -404,7 +383,7 @@ function IrpProducts() {
             </p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* 세제혜택 표 */}
+              {}
               <div className="space-y-6">
                 <h4 className="text-xl font-hana-medium text-gray-900 mb-4">세액공제율</h4>
                 <div className="space-y-4">
@@ -431,11 +410,11 @@ function IrpProducts() {
                 </div>
               </div>
 
-              {/* 시각적 차트 */}
+              {}
               <div className="space-y-6">
                 <h4 className="text-xl font-hana-medium text-gray-900 mb-4">혜택 비교 차트</h4>
                 <div className="space-y-4">
-                  {/* 5,500만원 이하 차트 바 */}
+                  {}
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium text-gray-700">총급여 5,500만원 이하</span>
@@ -452,7 +431,7 @@ function IrpProducts() {
                     </div>
                   </div>
 
-                  {/* 5,500만원 초과 차트 바 */}
+                  {}
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium text-gray-700">총급여 5,500만원 초과</span>
@@ -480,7 +459,7 @@ function IrpProducts() {
               </div>
             </div>
 
-            {/* 추가 납입 혜택 */}
+            {}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
                 <div className="text-3xl mb-2">💰</div>
@@ -503,7 +482,7 @@ function IrpProducts() {
             </div>
           </div>
 
-          {/* 하나은행 IRP 상품 특징 */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
             <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">하나은행 IRP 상품 특징</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -538,7 +517,7 @@ function IrpProducts() {
             </div>
           </div>
 
-          {/* 추가 정보 및 FAQ 섹션 */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
             <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">자주 묻는 질문</h3>
             <div className="space-y-4">
@@ -559,11 +538,11 @@ function IrpProducts() {
         </div>
       </div>
 
-      {/* IRP 계좌 개설 모달 */}
+      {}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* 모달 헤더 */}
+            {}
             <div className="bg-gradient-to-r from-hana-green to-green-600 text-white p-6 rounded-t-2xl">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-hana-medium">하나은행 IRP 계좌 개설</h2>
@@ -576,7 +555,7 @@ function IrpProducts() {
               </div>
             </div>
 
-            {/* 진행 단계 표시 */}
+            {}
             <div className="flex justify-center p-6 bg-gray-50">
               {[1, 2, 3, 4].map((step) => (
                 <div key={step} className="flex items-center">
@@ -596,9 +575,9 @@ function IrpProducts() {
               ))}
             </div>
 
-            {/* 단계별 컨텐츠 */}
+            {}
             <div className="p-6">
-              {/* 에러 메시지 표시 */}
+              {}
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-800 text-sm">{error}</p>
@@ -616,7 +595,7 @@ function IrpProducts() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         초기 납입금액
                       </label>
-                      <select 
+                      <select
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent"
                         value={formData.initialDeposit}
                         onChange={(e) => setFormData(prev => ({
@@ -685,9 +664,9 @@ function IrpProducts() {
                                 return (
                                   <div className="flex items-center">
                                     {bankInfo?.logo && (
-                                      <img 
-                                        src={bankInfo.logo} 
-                                        alt={bankInfo.name} 
+                                      <img
+                                        src={bankInfo.logo}
+                                        alt={bankInfo.name}
                                         className="w-6 h-6 mr-2"
                                       />
                                     )}
@@ -703,7 +682,7 @@ function IrpProducts() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
-                        
+
                         {showAccountDropdown && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                             {accounts.length === 0 ? (
@@ -725,9 +704,9 @@ function IrpProducts() {
                                     }}
                                   >
                                     {bankInfo?.logo && (
-                                      <img 
-                                        src={bankInfo.logo} 
-                                        alt={bankInfo.name} 
+                                      <img
+                                        src={bankInfo.logo}
+                                        alt={bankInfo.name}
                                         className="w-6 h-6 mr-3"
                                       />
                                     )}
@@ -759,10 +738,10 @@ function IrpProducts() {
                   <div className="space-y-4 text-left max-w-md mx-auto">
                     <div className="space-y-3">
                       <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-hana-green cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="risk" 
-                          value="CONSERVATIVE" 
+                        <input
+                          type="radio"
+                          name="risk"
+                          value="CONSERVATIVE"
                           className="mr-3 text-hana-green"
                           checked={formData.investmentStyle === 'CONSERVATIVE'}
                           onChange={(e) => setFormData(prev => ({
@@ -776,10 +755,10 @@ function IrpProducts() {
                         </div>
                       </label>
                       <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-hana-green cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="risk" 
-                          value="MODERATE" 
+                        <input
+                          type="radio"
+                          name="risk"
+                          value="MODERATE"
                           className="mr-3 text-hana-green"
                           checked={formData.investmentStyle === 'MODERATE'}
                           onChange={(e) => setFormData(prev => ({
@@ -793,10 +772,10 @@ function IrpProducts() {
                         </div>
                       </label>
                       <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-hana-green cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="risk" 
-                          value="AGGRESSIVE" 
+                        <input
+                          type="radio"
+                          name="risk"
+                          value="AGGRESSIVE"
                           className="mr-3 text-hana-green"
                           checked={formData.investmentStyle === 'AGGRESSIVE'}
                           onChange={(e) => setFormData(prev => ({
@@ -826,7 +805,7 @@ function IrpProducts() {
                     IRP 계좌 개설을 위한 필수 약관에 동의해주세요
                   </p>
 
-                  {/* 모두 동의 체크박스 */}
+                  {}
                   <div className="mb-6 text-left max-w-lg mx-auto">
                     <label className="flex items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200 hover:border-blue-300 cursor-pointer">
                       <input
@@ -942,7 +921,7 @@ function IrpProducts() {
                   </p>
 
                   <div className="text-left max-w-lg mx-auto space-y-6">
-                    {/* 사용자 정보 */}
+                    {}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-hana-medium text-gray-900 mb-3">신청자 정보</h4>
                       <div className="space-y-2 text-sm">
@@ -953,7 +932,7 @@ function IrpProducts() {
                       </div>
                     </div>
 
-                    {/* 출금계좌 정보 */}
+                    {}
                     <div className="bg-orange-50 p-4 rounded-lg">
                       <h4 className="font-hana-medium text-orange-900 mb-3">출금계좌 정보</h4>
                       <div className="space-y-2 text-sm">
@@ -965,9 +944,9 @@ function IrpProducts() {
                                 <span className="text-orange-700">자동이체 계좌:</span>
                                 <div className="flex items-center">
                                   {bankInfo?.logo && (
-                                    <img 
-                                      src={bankInfo.logo} 
-                                      alt={bankInfo.name} 
+                                    <img
+                                      src={bankInfo.logo}
+                                      alt={bankInfo.name}
                                       className="w-5 h-5 mr-2"
                                     />
                                   )}
@@ -988,7 +967,7 @@ function IrpProducts() {
                       </div>
                     </div>
 
-                    {/* 납입 정보 */}
+                    {}
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h4 className="font-hana-medium text-blue-900 mb-3">납입 정보</h4>
                       <div className="space-y-2 text-sm">
@@ -1011,7 +990,7 @@ function IrpProducts() {
                       </div>
                     </div>
 
-                    {/* 투자 성향 */}
+                    {}
                     <div className="bg-green-50 p-4 rounded-lg">
                       <h4 className="font-hana-medium text-green-900 mb-3">투자 성향</h4>
                       <div className="space-y-2 text-sm">
@@ -1027,7 +1006,7 @@ function IrpProducts() {
                       </div>
                     </div>
 
-                    {/* 약관 동의 상태 */}
+                    {}
                     <div className="bg-purple-50 p-4 rounded-lg">
                       <h4 className="font-hana-medium text-purple-900 mb-3">약관 동의</h4>
                       <div className="space-y-2 text-sm">
@@ -1052,7 +1031,7 @@ function IrpProducts() {
               )}
             </div>
 
-            {/* 모달 버튼 */}
+            {}
             <div className="flex justify-between p-6 bg-gray-50 rounded-b-2xl">
               <button
                 onClick={() => setShowModal(false)}
@@ -1097,11 +1076,11 @@ function IrpProducts() {
         </div>
       )}
 
-      {/* 약관 원문보기 모달 */}
+      {}
       {showTermsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            {/* 모달 헤더 */}
+            {}
             <div className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-hana-medium">
@@ -1119,7 +1098,7 @@ function IrpProducts() {
               </div>
             </div>
 
-            {/* 약관 내용 */}
+            {}
             <div className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="prose max-w-none">
                 {selectedTermType === 'privacy' && (
@@ -1198,7 +1177,7 @@ function IrpProducts() {
               </div>
             </div>
 
-            {/* 모달 버튼 */}
+            {}
             <div className="flex justify-end p-6 bg-gray-50 rounded-b-2xl">
               <button
                 onClick={() => setShowTermsModal(false)}
@@ -1211,11 +1190,11 @@ function IrpProducts() {
         </div>
       )}
 
-      {/* IRP 계좌 개설 성공 모달 */}
+      {}
       {showSuccessModal && createdAccountInfo && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full">
-            {/* 모달 헤더 */}
+            {}
             <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-t-2xl text-center">
               <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1226,7 +1205,7 @@ function IrpProducts() {
               <p className="text-green-100 font-hana-light mt-2">하나은행 IRP 계좌가 성공적으로 개설되었습니다.</p>
             </div>
 
-            {/* 계좌 정보 */}
+            {}
             <div className="p-6">
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <div className="text-center mb-4">
@@ -1294,7 +1273,7 @@ function IrpProducts() {
               </div>
             </div>
 
-            {/* 모달 버튼 */}
+            {}
             <div className="flex gap-3 p-6 bg-gray-50 rounded-b-2xl">
               <button
                 onClick={() => navigate('/portfolio')}
@@ -1305,7 +1284,6 @@ function IrpProducts() {
               <button
                 onClick={() => {
                   setShowSuccessModal(false);
-                  // 생성된 계좌 정보를 IRP 계좌 정보로 설정
                   setIrpAccountInfo({
                     accountNumber: createdAccountInfo.accountNumber,
                     currentBalance: createdAccountInfo.initialDeposit,

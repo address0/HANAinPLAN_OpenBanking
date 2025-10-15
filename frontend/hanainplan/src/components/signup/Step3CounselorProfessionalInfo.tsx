@@ -33,28 +33,24 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
 
   const handleInputChange = (field: keyof ProfessionalInfo, value: string) => {
     let formattedValue = value
-    
-    // 전화번호 자동 포맷팅
+
     if (field === 'workPhoneNumber') {
       formattedValue = formatPhoneNumber(value)
     }
-    
+
     onProfessionalInfoChange({
       ...professionalInfo,
       [field]: formattedValue
     })
-    
-    // 에러 메시지 초기화
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
     }
   }
 
   const formatPhoneNumber = (value: string) => {
-    // 숫자만 추출
     const numbers = value.replace(/[^\d]/g, '')
-    
-    // 길이에 따라 포맷팅
+
     if (numbers.length <= 2) {
       return numbers
     } else if (numbers.length <= 6) {
@@ -68,7 +64,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
 
   const validateField = (field: keyof ProfessionalInfo, value: string) => {
     let error = ''
-    
+
     switch (field) {
       case 'specialty':
         if (!value.trim()) error = '전문직종을 선택해주세요.'
@@ -89,7 +85,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
         }
         break
     }
-    
+
     setErrors(prev => ({ ...prev, [field]: error }))
     return !error
   }
@@ -110,7 +106,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
       </div>
 
       <div className="space-y-6">
-        {/* 전문직종 선택 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             전문직종 <span className="text-red-500">*</span>
@@ -137,7 +133,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
           )}
         </div>
 
-        {/* 직책 선택 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             직책 <span className="text-red-500">*</span>
@@ -164,7 +160,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
           )}
         </div>
 
-        {/* 업무용 연락처 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             업무용 연락처 <span className="text-red-500">*</span>
@@ -186,7 +182,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
           )}
         </div>
 
-        {/* 업무용 이메일 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             업무용 이메일
@@ -209,7 +205,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
         </div>
       </div>
 
-      {/* 안내 메시지 */}
+      {}
       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
         <div className="flex items-start">
           <div className="flex-shrink-0">
@@ -219,7 +215,7 @@ function Step3CounselorProfessionalInfo({ professionalInfo, onProfessionalInfoCh
           </div>
           <div className="ml-3">
             <p className="text-sm text-blue-700 font-['Hana2.0_M']">
-              업무용 연락처와 이메일은 고객 상담 시 사용될 정보입니다. 
+              업무용 연락처와 이메일은 고객 상담 시 사용될 정보입니다.
               정확한 정보를 입력해주세요.
             </p>
           </div>

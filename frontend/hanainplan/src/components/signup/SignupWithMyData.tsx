@@ -27,7 +27,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
 
     setIsLoading(true);
     try {
-      // 휴대폰 인증번호 발송 API 호출
       const response = await fetch('/api/user/phone/verify', {
         method: 'POST',
         headers: {
@@ -45,7 +44,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         alert('인증번호 발송에 실패했습니다.');
       }
     } catch (error) {
-      console.error('인증번호 발송 실패:', error);
       alert('인증번호 발송에 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -60,7 +58,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
 
     setIsLoading(true);
     try {
-      // 인증번호 검증 API 호출
       const response = await fetch('/api/user/phone/verify-code', {
         method: 'POST',
         headers: {
@@ -81,7 +78,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         alert('인증번호가 올바르지 않습니다.');
       }
     } catch (error) {
-      console.error('인증번호 검증 실패:', error);
       alert('인증번호 검증에 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -91,7 +87,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
   const handleIdentityVerification = async () => {
     setIsLoading(true);
     try {
-      // 실명인증 API 호출 (휴대폰 번호로 CI 생성)
       const response = await fetch('/api/user/ci/verify', {
         method: 'POST',
         headers: {
@@ -111,7 +106,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         alert('실명인증에 실패했습니다.');
       }
     } catch (error) {
-      console.error('실명인증 실패:', error);
       alert('실명인증에 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -120,11 +114,9 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
 
   const handleMyDataConsent = (consent: boolean, bankAccountInfo?: any[]) => {
     setShowMyDataModal(false);
-    
+
     if (consent) {
-      // 마이데이터 동의 완료
       setSignupStep('complete');
-      // 부모 컴포넌트에 회원가입 완료 알림 (계좌 정보 포함)
       onSignupComplete({
         ci: ci,
         myDataConsent: true,
@@ -132,7 +124,6 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         timestamp: new Date().toISOString()
       });
     } else {
-      // 마이데이터 동의 거부 - 기본 회원가입만 진행
       setSignupStep('complete');
       onSignupComplete({
         ci: ci,
@@ -146,8 +137,8 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold text-center mb-6">회원가입</h2>
-      
-      {/* 휴대폰 인증 단계 */}
+
+      {}
       {signupStep === 'phone' && (
         <div className="space-y-4">
           <div className="text-center">
@@ -156,7 +147,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
               휴대폰 번호를 입력하고 인증을 완료해주세요.
             </p>
           </div>
-          
+
           <div className="space-y-3">
             <input
               type="tel"
@@ -166,7 +157,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
               disabled={isPhoneVerified}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             />
-            
+
             {!isCodeSent ? (
               <button
                 onClick={handleSendVerificationCode}
@@ -203,7 +194,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         </div>
       )}
 
-      {/* 실명인증 단계 */}
+      {}
       {signupStep === 'identity' && (
         <div className="space-y-4">
           <div className="text-center">
@@ -230,7 +221,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         </div>
       )}
 
-      {/* 마이데이터 동의 단계 */}
+      {}
       {signupStep === 'mydata' && (
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -238,7 +229,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         </div>
       )}
 
-      {/* 완료 단계 */}
+      {}
       {signupStep === 'complete' && (
         <div className="text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -253,7 +244,7 @@ const SignupWithMyData: React.FC<SignupWithMyDataProps> = ({
         </div>
       )}
 
-      {/* 마이데이터 동의 모달 */}
+      {}
       <MyDataConsentModal
         isOpen={showMyDataModal}
         onClose={() => setShowMyDataModal(false)}

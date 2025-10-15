@@ -24,25 +24,23 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     period: '3MONTHS' as PeriodType,
     keyword: ''
   });
-  
+
   const { selectedAccountId, selectedAccountType, accounts, allAccountsData } = useAccountStore();
   const { user } = useUserStore();
 
-  // 선택된 계좌 정보 가져오기 (useMemo로 메모이제이션)
   const selectedAccount = useMemo(() => {
     if (selectedAccountType === 'IRP' && allAccountsData?.irpAccount) {
       return {
-        accountId: 0, // IRP는 별도 ID 체계
+        accountId: 0,
         accountNumber: allAccountsData.irpAccount.accountNumber,
         accountName: 'IRP 계좌',
-        accountType: 7, // IRP 타입
+        accountType: 7,
         balance: allAccountsData.irpAccount.currentBalance,
       } as any;
     }
     return accounts.find(acc => acc.accountId === selectedAccountId);
   }, [selectedAccountId, selectedAccountType, accounts, allAccountsData]);
 
-  // 은행 정보 가져오기
   const getBankInfo = (accountNumber: string) => {
     if (accountNumber.length >= 3) {
       const pattern = accountNumber.substring(0, 3);
@@ -51,7 +49,6 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     return null;
   };
 
-  // 필터 옵션들
   const filterOptions = [
     { value: 'ALL', label: '전체조회' },
     { value: 'DEPOSIT', label: '입금' },
@@ -71,11 +68,10 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     { value: '1YEAR', label: '1년' }
   ];
 
-  // 기간 계산 함수
   const getDateRange = (period: PeriodType) => {
     const now = new Date();
     const startDate = new Date();
-    
+
     switch (period) {
       case '1WEEK':
         startDate.setDate(now.getDate() - 7);
@@ -90,7 +86,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
         startDate.setFullYear(now.getFullYear() - 1);
         break;
     }
-    
+
     return {
       startDate: startDate.toISOString().split('T')[0],
       endDate: now.toISOString().split('T')[0]
@@ -98,20 +94,10 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
   };
 
   useEffect(() => {
-    console.log('TransactionHistory - useEffect triggered:', {
-      selectedAccountId,
-      selectedAccountType,
-      user: !!user,
-      refreshTrigger
-    });
-
-    if ((selectedAccountId || selectedAccountType === 'IRP') && user) {
-      // 계좌가 변경되면 이전 거래내역 초기화
-      setTransactions([]);
+    if (selectedAccount && user) {
       setError(null);
       loadTransactions();
     } else {
-      // 계좌가 없으면 로딩 상태를 false로 설정
       setTransactions([]);
       setIsLoading(false);
       setError(null);
@@ -119,19 +105,9 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
   }, [selectedAccountId, selectedAccountType, user, refreshTrigger]);
 
   const loadTransactions = async (customFilters?: typeof filters) => {
-    // 선택된 계좌가 없거나 사용자가 없으면 리턴
     if (!selectedAccount || !user) {
-      console.log('loadTransactions - early return:', {
-        selectedAccount: !!selectedAccount,
-        user: !!user
-      });
       return;
     }
-
-    console.log('loadTransactions - starting:', {
-      accountNumber: selectedAccount.accountNumber,
-      currentFilters: customFilters || filters
-    });
 
     try {
       setIsLoading(true);
@@ -140,33 +116,16 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
       const currentFilters = customFilters || filters;
       const dateRange = getDateRange(currentFilters.period);
 
-      // 모든 계좌 타입에 대해 동일하게 거래내역 API 호출
-      console.log('loadTransactions - API call params:', {
-        accountNumber: selectedAccount.accountNumber,
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
-        transactionType: currentFilters.type === 'ALL' ? undefined : currentFilters.type === 'DEPOSIT' ? 'DEPOSIT' : currentFilters.type === 'WITHDRAWAL' ? 'WITHDRAWAL' : undefined,
-        sortDirection: currentFilters.sortOrder
-      });
-
       const response = await getTransactionHistory({
         accountNumber: selectedAccount.accountNumber,
-        page: 0,
-        size: 20,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        transactionType: currentFilters.type === 'ALL' ? undefined : currentFilters.type === 'DEPOSIT' ? 'DEPOSIT' : currentFilters.type === 'WITHDRAWAL' ? 'WITHDRAWAL' : undefined,
+        sortBy: 'transactionDate',
         sortDirection: currentFilters.sortOrder
-      });
-      
-      console.log('loadTransactions - API response received:', {
-        totalElements: response.totalElements,
-        contentLength: response.content?.length || 0
       });
 
       let filteredTransactions = response.content || [];
 
-      // 프론트엔드에서 추가 필터링
       if (currentFilters.type === 'DEPOSIT') {
         filteredTransactions = filteredTransactions.filter(transaction =>
           transaction.transactionDirection === 'CREDIT'
@@ -177,7 +136,6 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
         );
       }
 
-      // 키워드 검색 필터링
       if (currentFilters.type === 'KEYWORD' && currentFilters.keyword.trim()) {
         filteredTransactions = filteredTransactions.filter(transaction =>
           transaction.description?.toLowerCase().includes(currentFilters.keyword.toLowerCase()) ||
@@ -185,10 +143,8 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
         );
       }
 
-      console.log('loadTransactions - filtered transactions:', filteredTransactions.length);
       setTransactions(filteredTransactions);
     } catch (err) {
-      console.error('거래내역 로드 오류:', err);
       setError('거래내역을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -201,20 +157,15 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
 
       let date: Date;
 
-    // 배열 형태로 오는 경우 [year, month, day, hour, minute, second, millisecond]
     if (Array.isArray(dateValue) && dateValue.length >= 3) {
       const [year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0] = dateValue;
-      // 백엔드에서 월을 1부터 시작하는 값으로 보내고 있으므로 그대로 사용
       date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), Number(millisecond));
     }
-      // 문자열이나 숫자인 경우
       else {
         date = new Date(dateValue as any);
       }
 
-      // 날짜가 유효하지 않은 경우
       if (isNaN(date.getTime())) {
-        console.warn('유효하지 않은 날짜:', dateValue);
         return '날짜 오류';
       }
 
@@ -224,7 +175,6 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
         day: '2-digit'
       });
     } catch (error) {
-      console.error('날짜 파싱 오류:', error, '입력값:', dateValue);
       return '날짜 오류';
     }
   };
@@ -235,20 +185,15 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
 
       let date: Date;
 
-    // 배열 형태로 오는 경우 [year, month, day, hour, minute, second, millisecond]
     if (Array.isArray(dateValue) && dateValue.length >= 3) {
       const [year, month, day, hour = 0, minute = 0, second = 0, millisecond = 0] = dateValue;
-      // 백엔드에서 월을 1부터 시작하는 값으로 보내고 있으므로 그대로 사용
       date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second), Number(millisecond));
     }
-      // 문자열이나 숫자인 경우
       else {
         date = new Date(dateValue as any);
       }
 
-      // 날짜가 유효하지 않은 경우
       if (isNaN(date.getTime())) {
-        console.warn('유효하지 않은 시간:', dateValue);
         return '';
       }
 
@@ -258,23 +203,19 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
         hour12: false
       });
     } catch (error) {
-      console.error('시간 파싱 오류:', error, '입력값:', dateValue);
       return '';
     }
   };
 
-  // 필터 변경 핸들러
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  // 필터 적용
   const applyFilters = () => {
     loadTransactions(filters);
     setShowFilterModal(false);
   };
 
-  // 현재 필터 표시 텍스트
   const getFilterDisplayText = () => {
     const typeText = filterOptions.find(opt => opt.value === filters.type)?.label || '전체조회';
     const sortText = sortOptions.find(opt => opt.value === filters.sortOrder)?.label || '최신순';
@@ -287,40 +228,19 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     return `${typeText} / ${sortText} / ${periodText}`;
   };
 
-  // 선택된 계좌 표시 텍스트
   const getSelectedAccountDisplayText = () => {
     if (!selectedAccount) return '';
 
-    // IRP 계좌인 경우
     if (selectedAccountType === 'IRP') {
       return `하나은행 IRP ${selectedAccount.accountNumber}`;
     }
 
-    // 일반 계좌인 경우
     const bankInfo = getBankInfo(selectedAccount.accountNumber);
     const accountType = selectedAccount.accountType === 1 ? '입출금통장' : '기타';
 
     return `${bankInfo?.name || '은행'} ${accountType} ${selectedAccount.accountNumber}`;
   };
 
-
-  const getTransactionTypeDisplay = (type: string) => {
-    const typeMap: { [key: string]: string } = {
-      'DEPOSIT': '입금',
-      'WITHDRAWAL': '출금',
-      'TRANSFER_IN': '이체입금',
-      'TRANSFER_OUT': '이체출금',
-      'CARD_PAYMENT': '카드결제',
-      'ATM_WITHDRAWAL': 'ATM출금',
-      'SALARY': '급여입금',
-      'INTEREST': '이자지급',
-      'FEE': '수수료',
-      'AUTO_TRANSFER': '자동이체'
-    };
-    return typeMap[type] || type;
-  };
-
-  // 계좌가 없으면 아무것도 렌더링하지 않음 (IRP 계좌 선택 시에는 렌더링)
   if (!selectedAccountId && selectedAccountType !== 'IRP') {
     return null;
   }
@@ -359,7 +279,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     return (
       <div className="bg-white rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200">
-          {/* 선택된 계좌 정보 */}
+          {}
           {selectedAccount && (
             <div className="mb-3">
               <div className="text-xs text-gray-500 font-hana-regular mb-1">선택된 계좌</div>
@@ -367,7 +287,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
             </div>
           )}
 
-          {/* 필터 정보 - 모든 계좌 타입에 대해 표시 */}
+          {}
           <div
             className="flex items-center cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded"
             onClick={() => setShowFilterModal(true)}
@@ -390,7 +310,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
     <>
       <div className="bg-white rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200">
-          {/* 선택된 계좌 정보 */}
+          {}
           {selectedAccount && (
             <div className="mb-3">
               <div className="text-xs text-gray-500 font-hana-regular mb-1">선택된 계좌</div>
@@ -398,7 +318,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
             </div>
           )}
 
-          {/* 필터 정보 - 모든 계좌 타입에 대해 표시 */}
+          {}
           <div
             className="flex items-center cursor-pointer hover:bg-gray-50 transition-colors p-2 rounded"
             onClick={() => setShowFilterModal(true)}
@@ -439,15 +359,15 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
           </div>
         ))}
       </div>
-      
-      {/* 필터 모달 */}
+
+      {}
       {showFilterModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-hana-bold text-gray-800">거래내역 필터</h3>
-                <button 
+                <button
                   onClick={() => setShowFilterModal(false)}
                   className="text-gray-500 text-2xl hover:text-gray-700"
                 >
@@ -456,7 +376,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
               </div>
 
               <div className="space-y-6">
-                {/* 조회 유형 */}
+                {}
                 <div>
                   <label className="block text-sm font-hana-medium text-gray-700 mb-3">조회 유형</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -476,7 +396,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
                   </div>
                 </div>
 
-                {/* 키워드 검색 */}
+                {}
                 {filters.type === 'KEYWORD' && (
                   <div>
                     <label className="block text-sm font-hana-medium text-gray-700 mb-2">검색 키워드</label>
@@ -490,7 +410,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
                   </div>
                 )}
 
-                {/* 정렬 순서 */}
+                {}
                 <div>
                   <label className="block text-sm font-hana-medium text-gray-700 mb-3">정렬 순서</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -510,7 +430,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
                   </div>
                 </div>
 
-                {/* 기간 선택 */}
+                {}
                 <div>
                   <label className="block text-sm font-hana-medium text-gray-700 mb-3">조회 기간</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -531,7 +451,7 @@ function TransactionHistory({ refreshTrigger }: TransactionHistoryProps) {
                 </div>
               </div>
 
-              {/* 버튼들 */}
+              {}
               <div className="flex gap-3 mt-8">
                 <button
                   onClick={() => setShowFilterModal(false)}

@@ -36,10 +36,10 @@ interface IrpPasswordData {
 
 interface FundFormData {
   transactionType: TransactionType;
-  amount: string; // 매수 금액
-  sellUnits: string; // 매도 좌수
-  sellAll: boolean; // 전량 매도
-  selectedSubscription?: FundPortfolio; // 매도할 펀드 선택
+  amount: string;
+  sellUnits: string;
+  sellAll: boolean;
+  selectedSubscription?: FundPortfolio;
 }
 
 const ProductConsultation: React.FC<ProductConsultationProps> = ({
@@ -49,56 +49,47 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
   targetUserId,
   isInCall
 }) => {
-  // 단계 관리
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [idVerified, setIdVerified] = useState<boolean>(false);
-  
-  // 상품 정보
+
   const [productType, setProductType] = useState<ProductType | null>(null);
   const [productInfo, setProductInfo] = useState<any>(null);
-  
-  // 폼 데이터
+
   const [depositFormData, setDepositFormData] = useState<DepositFormData>({
     accountName: '',
     initialBalance: '',
     depositPeriod: 12,
     interestPaymentMethod: 'AUTO'
   });
-  
-  // IRP 계좌 비밀번호 (4자리 숫자)
+
   const [irpPassword, setIrpPassword] = useState<IrpPasswordData>({
     password: ''
   });
-  
+
   const [fundFormData, setFundFormData] = useState<FundFormData>({
     transactionType: 'buy',
     amount: '',
     sellUnits: '',
     sellAll: false
   });
-  
-  // 결과 상태
+
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processResult, setProcessResult] = useState<{success: boolean; message: string} | null>(null);
   const [error, setError] = useState<string>('');
-  
-  // 예금 수급액 계산 결과
+
   const [depositProjection, setDepositProjection] = useState<{
     principal: number;
     interest: number;
     total: number;
     monthlyBreakdown: Array<{ month: number; principal: number; interest: number; total: number }>;
   } | null>(null);
-  
-  // 펀드 예상 수익률 계산 결과
+
   const [fundProjection, setFundProjection] = useState<{
     scenarios: Array<{ rate: number; label: string; finalAmount: number; profit: number }>;
   } | null>(null);
-  
-  // 비밀번호 입력 완료 상태 (상담사가 볼 수 있도록)
+
   const [passwordCompleted, setPasswordCompleted] = useState<boolean>(false);
 
-  // 예금 상품 조회
   const { data: depositProducts = [] } = useQuery({
     queryKey: ['depositProducts'],
     queryFn: async () => {
@@ -107,7 +98,6 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   });
 
-  // 펀드 상품 조회
   const { data: fundClasses = [] } = useQuery({
     queryKey: ['fundClasses'],
     queryFn: async () => {
@@ -115,25 +105,21 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   });
 
-  // 금리 정보 조회 (하나인플랜 서버의 통합 금리 정보)
   const { data: interestRates = [] } = useQuery({
     queryKey: ['allInterestRates'],
     queryFn: async () => {
       try {
-        // 하나인플랜 서버의 통합 금리 API 호출
         const response = await fetch('/api/banking/interest-rates/all');
         if (!response.ok) {
           throw new Error('금리 정보 조회 실패');
         }
         return await response.json();
       } catch (error) {
-        console.error('금리 정보 조회 실패:', error);
         return [];
       }
     }
   });
 
-  // 사용자 펀드 보유 내역 조회 (매도용, 상담사는 고객의 포트폴리오 조회)
   const targetUserIdForFund = currentUserRole === 'counselor' ? targetUserId : currentUserId;
   const { data: userFundPortfolio = [] } = useQuery({
     queryKey: ['userFundPortfolio', targetUserIdForFund],
@@ -146,32 +132,27 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     enabled: productType === 'fund' && fundFormData.transactionType === 'sell'
   });
 
-  // IRP 계좌 정보 조회 (3단계에서만 조회, 상담사는 고객의 계좌, 고객은 자신의 계좌 조회)
   const targetUserIdForIrp = currentUserRole === 'counselor' ? targetUserId : currentUserId;
   const { data: irpAccount } = useQuery({
     queryKey: ['irpAccount', targetUserIdForIrp],
     queryFn: () => getIrpAccount(targetUserIdForIrp),
-    enabled: !!targetUserIdForIrp && currentStep >= 3 && !!productType // 3단계 이상이고 상품이 선택된 경우에만 조회
+    enabled: !!targetUserIdForIrp && currentStep >= 3 && !!productType
   });
 
-  // consultationInfo.detail에서 상품 파싱
   useEffect(() => {
     if (!consultationInfo.detail || !depositProducts.length || !fundClasses.length) return;
 
-    // 예금 상품에서 찾기
     const depositProduct = depositProducts.find(p => p.name === consultationInfo.detail);
     if (depositProduct) {
       setProductType('deposit');
       setProductInfo(depositProduct);
-      // 기본값 설정
       setDepositFormData(prev => ({
         ...prev,
-        depositPeriod: 12 // 기본 12개월
+        depositPeriod: 12
       }));
       return;
     }
 
-    // 펀드 상품에서 찾기
     const fundProduct = fundClasses.find(f => f.fundMaster?.fundName === consultationInfo.detail);
     if (fundProduct) {
       setProductType('fund');
@@ -183,15 +164,12 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   }, [consultationInfo.detail, depositProducts, fundClasses]);
 
-  // WebSocket 이벤트 리스너 설정 (단계 동기화)
   useEffect(() => {
     if (currentUserRole === 'customer') {
-      // 고객은 상담사로부터 단계 동기화 메시지를 받음
       WebSocketService.onConsultationStepSync((message) => {
         if (message.data) {
           setCurrentStep(message.data.step || currentStep);
           setIdVerified(message.data.idVerified || idVerified);
-          // 상담사가 입력한 폼 데이터 동기화
           if (message.data.depositFormData) {
             setDepositFormData(prev => ({
               ...prev,
@@ -207,7 +185,6 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         }
       });
     } else if (currentUserRole === 'counselor') {
-      // 상담사는 고객의 비밀번호 입력 완료 상태를 받음
       WebSocketService.onConsultationStepSync((message) => {
         if (message.data && message.data.passwordCompleted !== undefined) {
           setPasswordCompleted(message.data.passwordCompleted);
@@ -216,27 +193,24 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
 
     return () => {
-      // cleanup (필요시)
     };
   }, [currentUserRole, currentStep, idVerified]);
-  
-  // 고객의 IRP 비밀번호 입력 상태를 상담사에게 알림
+
   useEffect(() => {
-    if (currentUserRole === 'customer' && 
-        consultationInfo.id && 
+    if (currentUserRole === 'customer' &&
+        consultationInfo.id &&
         currentStep === 3) {
-      const isCompleted = irpPassword.password.length === 4 && 
+      const isCompleted = irpPassword.password.length === 4 &&
                          /^\d{4}$/.test(irpPassword.password);
-      
+
       if (isCompleted !== passwordCompleted) {
         setPasswordCompleted(isCompleted);
-        // 상담사에게 비밀번호 입력 완료 상태 전송 (비밀번호 자체는 전송하지 않음)
         WebSocketService.sendConsultationStepSync({
           type: 'CONSULTATION_STEP_SYNC',
           roomId: consultationInfo.id,
           senderId: currentUserId,
           receiverId: targetUserId,
-          data: { 
+          data: {
             step: currentStep,
             passwordCompleted: isCompleted
           }
@@ -245,25 +219,20 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   }, [irpPassword.password, currentUserRole, consultationInfo.id, currentStep, currentUserId, targetUserId, passwordCompleted]);
 
-  // 단계별 진행 가능 여부
   const canProceedToNextStep = (): boolean => {
     switch (currentStep) {
       case 1:
         return idVerified;
       case 2:
-        return true; // 상품 정보 확인은 항상 진행 가능
+        return true;
       case 3:
-        // IRP 비밀번호 확인
-        // 고객: 직접 입력한 비밀번호 확인 (4자리 숫자)
-        // 상담사: 고객이 비밀번호 입력을 완료했는지 확인
         let passwordValid = false;
         if (currentUserRole === 'customer') {
           passwordValid = irpPassword.password.length === 4 && /^\d{4}$/.test(irpPassword.password);
         } else {
-          // 상담사는 고객의 passwordCompleted 상태 확인
           passwordValid = passwordCompleted;
         }
-        
+
         if (productType === 'deposit') {
           return depositFormData.initialBalance !== '' &&
                  Number(depositFormData.initialBalance) >= 1000000 &&
@@ -277,29 +246,25 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         }
         return false;
       case 4:
-        return false; // 4단계는 최종 단계
+        return false;
       default:
         return false;
     }
   };
 
-  // 가입 기간에 맞는 금리 찾기
   const findInterestRateForPeriod = (period: number, bankCode: string): number => {
     if (!interestRates || interestRates.length === 0 || !productInfo) {
-      return 0.03; // 기본 3%
+      return 0.03;
     }
 
-    // 해당 은행과 상품의 금리 필터링
-    const relevantRates = interestRates.filter((rate: any) => 
+    const relevantRates = interestRates.filter((rate: any) =>
       rate.bankCode === bankCode && rate.interestType === 'BASIC'
     );
 
     if (relevantRates.length === 0) {
-      return 0.03; // 기본 3%
+      return 0.03;
     }
 
-    // maturityPeriod 형식: "6개월", "12개월", "24개월" 등
-    // period는 개월 수로 입력됨
     const matchingRate = relevantRates.find((rate: any) => {
       const periodMatch = rate.maturityPeriod?.match(/(\d+)개월/);
       if (periodMatch) {
@@ -313,7 +278,6 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
       return matchingRate.interestRate;
     }
 
-    // 정확히 일치하는 기간이 없으면 가장 가까운 금리 찾기
     const sortedRates = relevantRates
       .map((rate: any) => {
         const periodMatch = rate.maturityPeriod?.match(/(\d+)개월/);
@@ -328,20 +292,19 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     return sortedRates.length > 0 ? sortedRates[0].rate : 0.03;
   };
 
-  // 예금 수급액 계산 (복리)
   const calculateDepositProjection = (principal: number, period: number, annualRate: number) => {
     const monthlyRate = annualRate / 12;
     const totalMonths = period;
     const monthlyBreakdown = [];
-    
+
     let currentPrincipal = principal;
     let totalInterest = 0;
-    
+
     for (let month = 1; month <= totalMonths; month++) {
       const monthInterest = currentPrincipal * monthlyRate;
       totalInterest += monthInterest;
       currentPrincipal += monthInterest;
-      
+
       monthlyBreakdown.push({
         month,
         principal,
@@ -349,7 +312,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         total: currentPrincipal
       });
     }
-    
+
     setDepositProjection({
       principal,
       interest: totalInterest,
@@ -357,50 +320,44 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
       monthlyBreakdown
     });
   };
-  
-  // 펀드 예상 수익률 계산 (시나리오별)
+
   const calculateFundProjection = (amount: number) => {
-    // 시나리오: 비관(-10%), 보수(+5%), 낙관(+15%), 최상(+25%)
     const scenarios = [
       { rate: -0.10, label: '비관적 (-10%)', finalAmount: 0, profit: 0 },
       { rate: 0.05, label: '보수적 (+5%)', finalAmount: 0, profit: 0 },
       { rate: 0.15, label: '낙관적 (+15%)', finalAmount: 0, profit: 0 },
       { rate: 0.25, label: '최상 (+25%)', finalAmount: 0, profit: 0 }
     ];
-    
+
     scenarios.forEach(scenario => {
       scenario.finalAmount = amount * (1 + scenario.rate);
       scenario.profit = scenario.finalAmount - amount;
     });
-    
+
     setFundProjection({ scenarios });
   };
-  
-  // 예금 폼 데이터 변경 시 자동 계산 및 동기화
+
   useEffect(() => {
-    if (productType === 'deposit' && 
-        depositFormData.initialBalance && 
+    if (productType === 'deposit' &&
+        depositFormData.initialBalance &&
         Number(depositFormData.initialBalance) >= 1000000 &&
         depositFormData.depositPeriod &&
         productInfo) {
-      // 가입 기간에 맞는 실제 금리 찾기
       const rate = findInterestRateForPeriod(depositFormData.depositPeriod, productInfo.bankCode || 'HANA');
-      console.log(`가입 기간 ${depositFormData.depositPeriod}개월에 적용되는 금리: ${(rate * 100).toFixed(2)}%`);
-      
+
       calculateDepositProjection(
         Number(depositFormData.initialBalance),
         depositFormData.depositPeriod,
         rate
       );
-      
-      // 상담사가 폼을 변경하면 고객에게 실시간 동기화
+
       if (currentUserRole === 'counselor' && consultationInfo.id && currentStep === 3) {
         WebSocketService.sendConsultationStepSync({
           type: 'CONSULTATION_STEP_SYNC',
           roomId: consultationInfo.id,
           senderId: currentUserId,
           receiverId: targetUserId,
-          data: { 
+          data: {
             step: currentStep,
             idVerified,
             depositFormData
@@ -409,23 +366,21 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
       }
     }
   }, [depositFormData.initialBalance, depositFormData.depositPeriod, depositFormData.interestPaymentMethod, productType, currentUserRole, currentStep, consultationInfo.id, currentUserId, targetUserId, idVerified, productInfo, interestRates]);
-  
-  // 펀드 폼 데이터 변경 시 자동 계산 및 동기화
+
   useEffect(() => {
-    if (productType === 'fund' && 
+    if (productType === 'fund' &&
         fundFormData.transactionType === 'buy' &&
-        fundFormData.amount && 
+        fundFormData.amount &&
         Number(fundFormData.amount) > 0) {
       calculateFundProjection(Number(fundFormData.amount));
-      
-      // 상담사가 폼을 변경하면 고객에게 실시간 동기화
+
       if (currentUserRole === 'counselor' && consultationInfo.id && currentStep === 3) {
         WebSocketService.sendConsultationStepSync({
           type: 'CONSULTATION_STEP_SYNC',
           roomId: consultationInfo.id,
           senderId: currentUserId,
           receiverId: targetUserId,
-          data: { 
+          data: {
             step: currentStep,
             idVerified,
             fundFormData
@@ -435,22 +390,20 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   }, [fundFormData, productType, currentUserRole, currentStep, consultationInfo.id, currentUserId, targetUserId, idVerified]);
 
-  // 다음 단계로
   const handleNextStep = () => {
     if (canProceedToNextStep()) {
       const newStep = Math.min(currentStep + 1, 4);
       setCurrentStep(newStep);
       setError('');
-      
-      // 상담사가 단계를 변경하면 고객에게 동기화
+
       if (currentUserRole === 'counselor' && consultationInfo.id) {
         WebSocketService.sendConsultationStepSync({
           type: 'CONSULTATION_STEP_SYNC',
           roomId: consultationInfo.id,
           senderId: currentUserId,
           receiverId: targetUserId,
-          data: { 
-            step: newStep, 
+          data: {
+            step: newStep,
             idVerified,
             depositFormData: productType === 'deposit' ? depositFormData : undefined,
             fundFormData: productType === 'fund' ? fundFormData : undefined
@@ -460,14 +413,12 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   };
 
-  // 이전 단계로
   const handlePrevStep = () => {
     const newStep = Math.max(currentStep - 1, 1);
     setCurrentStep(newStep);
     setError('');
     setProcessResult(null);
-    
-    // 상담사가 단계를 변경하면 고객에게 동기화
+
     if (currentUserRole === 'counselor' && consultationInfo.id) {
       WebSocketService.sendConsultationStepSync({
         type: 'CONSULTATION_STEP_SYNC',
@@ -479,35 +430,32 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   };
 
-  // 최종 가입 승인 (IRP 계좌 내 포트폴리오로 처리)
   const handleFinalApproval = async () => {
     setIsProcessing(true);
     setError('');
-    
-    // 고객의 userId 사용 (상담사가 승인할 때도 고객 계좌로 생성)
+
     const customerUserId = currentUserRole === 'counselor' ? targetUserId : currentUserId;
-    
+
     try {
       if (productType === 'deposit') {
-        // IRP 계좌 내에서 예금 상품 가입
         if (!irpAccount) {
           throw new Error('IRP 계좌 정보를 찾을 수 없습니다.');
         }
-        
+
         const request: DepositSubscribeRequest = {
           userId: customerUserId,
           bankCode: irpAccount.bankCode,
           irpAccountNumber: irpAccount.accountNumber,
-          linkedAccountNumber: irpAccount.accountNumber, // IRP 계좌를 연결 계좌로 사용
+          linkedAccountNumber: irpAccount.accountNumber,
           depositCode: productInfo.depositCode,
           productName: productInfo.name,
-          productType: 0, // 정기예금 타입
+          productType: 0,
           contractPeriod: depositFormData.depositPeriod,
           subscriptionAmount: Number(depositFormData.initialBalance)
         };
-        
+
         const result = await subscribeDepositProduct(request);
-        
+
         if (result.success) {
         setProcessResult({
           success: true,
@@ -516,16 +464,15 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         } else {
           throw new Error(result.message || '예금 상품 가입에 실패했습니다.');
         }
-        
+
       } else if (productType === 'fund') {
         if (fundFormData.transactionType === 'buy') {
-          // 펀드 매수
           const result = await purchaseFund({
             userId: customerUserId,
             childFundCd: productInfo.childFundCd,
             purchaseAmount: Number(fundFormData.amount)
           });
-          
+
           if (result.success) {
             setProcessResult({
               success: true,
@@ -535,18 +482,17 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
             throw new Error(result.errorMessage || '펀드 매수에 실패했습니다.');
           }
         } else {
-          // 펀드 매도
           if (!fundFormData.selectedSubscription) {
             throw new Error('매도할 펀드를 선택해주세요.');
           }
-          
+
           const result = await redeemFund({
             userId: customerUserId,
             subscriptionId: fundFormData.selectedSubscription.subscriptionId,
             sellUnits: fundFormData.sellAll ? undefined : Number(fundFormData.sellUnits),
             sellAll: fundFormData.sellAll
           });
-          
+
           if (result.success) {
             setProcessResult({
               success: true,
@@ -558,7 +504,6 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         }
       }
     } catch (err: any) {
-      console.error('가입 처리 실패:', err);
       setError(err.message || '가입 처리 중 오류가 발생했습니다.');
       setProcessResult({
         success: false,
@@ -569,11 +514,10 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     }
   };
 
-  // 단계별 렌더링
   const renderStep1 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-gray-900">1단계: 신분증 확인</h3>
-      
+
       {currentUserRole === 'customer' ? (
         <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 text-center">
           <div className="text-6xl mb-4">🪪</div>
@@ -602,8 +546,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               onChange={(e) => {
                 const checked = e.target.checked;
                 setIdVerified(checked);
-                
-                // 신분증 확인 상태 동기화
+
                 if (consultationInfo.id) {
                   WebSocketService.sendConsultationStepSync({
                     type: 'CONSULTATION_STEP_SYNC',
@@ -630,33 +573,28 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     </div>
   );
 
-  // PDF 문서 열기 함수
   const openPdfDocument = (docType: string) => {
     if (!productInfo) return;
-    
+
     let pdfPath = '';
-    
+
     if (productType === 'deposit') {
-      // 예금: depositCode 사용 (예: HANA-DEP-001)
       const fileName = `${productInfo.depositCode}_${docType}.pdf`;
       pdfPath = `/pdf/deposit/${fileName}`;
     } else if (productType === 'fund') {
-      // 펀드: childFundCd 사용 (예: 30810C)
       const fileName = `${productInfo.childFundCd}_${docType}.pdf`;
       pdfPath = `/pdf/fund/${fileName}`;
     }
-    
-    // 새 창에서 PDF 열기
+
     window.open(pdfPath, '_blank');
   };
 
-  // PDF 문서 다운로드 함수
   const downloadPdfDocument = (docType: string, docName: string) => {
     if (!productInfo) return;
-    
+
     let pdfPath = '';
     let fileName = '';
-    
+
     if (productType === 'deposit') {
       fileName = `${productInfo.name}_${docName}.pdf`;
       pdfPath = `/pdf/deposit/${productInfo.depositCode}_${docType}.pdf`;
@@ -664,8 +602,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
       fileName = `${productInfo.fundName}_${docName}.pdf`;
       pdfPath = `/pdf/fund/${productInfo.childFundCd}_${docType}.pdf`;
     }
-    
-    // 다운로드 트리거
+
     const link = document.createElement('a');
     link.href = pdfPath;
     link.download = fileName;
@@ -677,7 +614,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
   const renderStep2 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-gray-900">2단계: 상품 정보 확인</h3>
-      
+
       {productInfo ? (
         <>
         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
@@ -692,10 +629,10 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               </p>
             </div>
           </div>
-          
+
           {productType === 'deposit' && (
             <div className="space-y-3">
-              {/* 정기예금의 경우 실제 엔터티에는 금리 정보가 없으므로 기본 정보만 표시 */}
+              {}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-lg">
                   <p className="text-sm text-gray-600 mb-1">상품 코드</p>
@@ -716,12 +653,12 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   <p className="text-gray-800">{productInfo.description}</p>
                 </div>
               )}
-              {/* 현재 금리 정보 표시 */}
+              {}
               {interestRates.length > 0 && (
                 <div className="bg-white p-4 rounded-lg border border-green-200">
                   <p className="text-sm text-gray-600 mb-3">현재 적용 금리 (기준일: {new Date().toLocaleDateString()})</p>
-                  
-                  {/* 기본금리 */}
+
+                  {}
                   <div className="mb-4">
                     <h5 className="text-sm font-medium text-gray-700 mb-2">기본 금리</h5>
                     <div className="grid grid-cols-2 gap-3">
@@ -740,8 +677,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                         ))}
                     </div>
                   </div>
-                  
-                  {/* 우대금리 */}
+
+                  {}
                   {interestRates.filter((rate: any) => rate.bankCode === 'HANA' && rate.interestType === 'PREFERENTIAL').length > 0 && (
                     <div>
                       <h5 className="text-sm font-medium text-gray-700 mb-2">우대 금리</h5>
@@ -762,7 +699,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                       </div>
                     </div>
                   )}
-                  
+
                   {interestRates.filter((rate: any) => rate.bankCode === 'HANA').length === 0 && (
                     <p className="text-sm text-gray-500 text-center py-4">하나은행의 금리 정보가 없습니다.</p>
                   )}
@@ -770,7 +707,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               )}
             </div>
           )}
-          
+
           {productType === 'fund' && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
@@ -802,9 +739,9 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               {productInfo.sourceUrl && (
                 <div className="bg-white p-4 rounded-lg">
                   <p className="text-sm text-gray-600 mb-1">상세 정보</p>
-                  <a 
-                    href={productInfo.sourceUrl} 
-                    target="_blank" 
+                  <a
+                    href={productInfo.sourceUrl}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 underline"
                   >
@@ -812,7 +749,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   </a>
                 </div>
               )}
-              {/* 펀드 투자 안내 */}
+              {}
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <p className="text-sm text-orange-800">
                   📊 펀드 투자는 원금손실 위험이 있으며, 과거 수익률이 미래 수익률을 보장하지 않습니다.
@@ -821,23 +758,23 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
             </div>
           )}
         </div>
-          
-          {/* PDF 문서 섹션 */}
+
+          {}
           <div className="bg-white border-2 border-purple-200 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-3xl">📄</span>
               <h4 className="text-xl font-bold text-gray-900">상품 관련 문서</h4>
             </div>
-            
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-blue-800">
                 📌 상품 가입 전 아래 문서를 반드시 확인해주세요. 각 문서를 열람하거나 다운로드할 수 있습니다.
               </p>
             </div>
-            
+
             {productType === 'deposit' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 상품 이용 약관 */}
+                {}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-1">
@@ -860,8 +797,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     </button>
                   </div>
                 </div>
-                
-                {/* 상품 설명서 */}
+
+                {}
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="flex-1">
@@ -886,10 +823,10 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                 </div>
               </div>
             )}
-            
+
             {productType === 'fund' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 특약 */}
+                {}
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <span className="text-2xl">📋</span>
@@ -913,8 +850,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     </button>
                   </div>
                 </div>
-                
-                {/* 투자설명서 */}
+
+                {}
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <span className="text-2xl">📘</span>
@@ -938,8 +875,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     </button>
                   </div>
                 </div>
-                
-                {/* 간이투자설명서 */}
+
+                {}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <span className="text-2xl">📗</span>
@@ -963,8 +900,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     </button>
                   </div>
                 </div>
-                
-                {/* 운용보고서 */}
+
+                {}
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <span className="text-2xl">📊</span>
@@ -990,7 +927,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                 </div>
               </div>
             )}
-            
+
             <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-sm text-red-800">
                 ⚠️ 상품 가입 전 관련 문서를 반드시 숙지하시기 바랍니다. 문서의 내용을 충분히 이해한 후 가입을 진행해주세요.
@@ -1003,7 +940,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
           <p className="text-gray-600">상품 정보를 불러오는 중...</p>
         </div>
       )}
-      
+
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <h5 className="font-bold text-yellow-900 mb-2">💡 상담사 안내</h5>
         <p className="text-sm text-yellow-800">
@@ -1026,8 +963,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
   const renderStep3 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-gray-900">3단계: 가입 정보 입력 및 예상 수익 확인</h3>
-      
-      {/* IRP 계좌 정보 */}
+
+      {}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
@@ -1038,7 +975,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
             <p className="text-sm text-gray-600">가입 시 사용될 계좌입니다</p>
           </div>
         </div>
-        
+
         {irpAccount ? (
           <div className="bg-white rounded-lg p-4 space-y-3">
             <div className="flex justify-between items-center pb-2 border-b border-gray-200">
@@ -1080,8 +1017,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
             <div className="flex justify-between items-center pt-2 border-t border-gray-200">
               <span className="text-sm text-gray-600">계좌 상태</span>
               <span className={`font-medium px-2 py-1 rounded text-sm ${
-                irpAccount.accountStatus === 'ACTIVE' 
-                  ? 'bg-green-100 text-green-800' 
+                irpAccount.accountStatus === 'ACTIVE'
+                  ? 'bg-green-100 text-green-800'
                   : 'bg-gray-100 text-gray-800'
               }`}>
                 {irpAccount.accountStatus === 'ACTIVE' ? '정상' : irpAccount.accountStatus}
@@ -1094,24 +1031,24 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
           </div>
         )}
       </div>
-      
-      {/* 예금 상품 입력 폼 */}
+
+      {}
       {productType === 'deposit' && (
         <div className="space-y-6">
-          {/* 상담사 입력 영역 */}
+          {}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
             <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
               <span className="text-2xl mr-2">👔</span>
               상담사 입력 영역
             </h4>
-            
+
         <div className="space-y-4">
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 mb-4">
                 <p className="text-sm text-blue-800">
                   💡 IRP 계좌 내에서 예금 상품에 가입하는 것이므로 별도의 계좌가 생성되지 않습니다.
                 </p>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               가입 금액 (원) <span className="text-red-500">*</span>
@@ -1132,7 +1069,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   <p className="text-sm text-orange-600 mt-1">⚠️ IRP 계좌 잔액보다 큽니다</p>
                 )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               가입 기간 <span className="text-red-500">*</span>
@@ -1148,7 +1085,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               이자 지급 방법 <span className="text-red-500">*</span>
@@ -1180,15 +1117,15 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               </div>
             </div>
           </div>
-          
-          {/* 예상 수익 시각화 */}
+
+          {}
           {depositProjection && (
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6">
               <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                 <span className="text-2xl mr-2">💰</span>
                 예상 수익 분석
               </h4>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-white rounded-lg p-4 text-center">
                   <p className="text-sm text-gray-600 mb-1">원금</p>
@@ -1209,8 +1146,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   </p>
                 </div>
               </div>
-              
-              {/* 월별 수익 차트 (간단한 바 차트) */}
+
+              {}
               <div className="bg-white rounded-lg p-4">
                 <p className="text-sm font-medium text-gray-700 mb-3">월별 예상 수익 추이</p>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -1220,7 +1157,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                       <div key={item.month} className="flex items-center gap-2">
                         <span className="text-xs text-gray-600 w-16">{item.month}개월</span>
                         <div className="flex-1 bg-gray-100 rounded-full h-6 relative overflow-hidden">
-                          <div 
+                          <div
                             className="bg-gradient-to-r from-green-400 to-green-600 h-full rounded-full flex items-center justify-end pr-2"
                             style={{ width: `${(item.total / depositProjection.total) * 100}%` }}
                           >
@@ -1233,7 +1170,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     ))}
                 </div>
               </div>
-              
+
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs text-blue-800 font-medium mb-1">
                   📊 적용 금리 정보
@@ -1251,14 +1188,14 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               </div>
             </div>
           )}
-          
-          {/* 고객 IRP 비밀번호 입력 영역 */}
+
+          {}
           <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
             <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
               <span className="text-2xl mr-2">🔐</span>
               고객 본인 인증 (IRP 계좌 비밀번호)
             </h4>
-            
+
             {currentUserRole === 'customer' ? (
               <div className="space-y-4">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -1266,7 +1203,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     💡 기존 IRP 계좌의 4자리 비밀번호를 입력해주세요.
                   </p>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
                     IRP 계좌 비밀번호 (4자리 숫자) <span className="text-red-500">*</span>
@@ -1312,17 +1249,17 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
           </div>
         </div>
       )}
-      
-      {/* 펀드 상품 입력 폼 */}
+
+      {}
       {productType === 'fund' && (
         <div className="space-y-6">
-          {/* 상담사 입력 영역 */}
+          {}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
             <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
               <span className="text-2xl mr-2">👔</span>
               상담사 입력 영역
             </h4>
-            
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1353,7 +1290,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               </label>
             </div>
           </div>
-          
+
           {fundFormData.transactionType === 'buy' ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1400,7 +1337,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   <p className="text-gray-600 text-center py-4">보유 중인 펀드가 없습니다</p>
                 )}
               </div>
-              
+
               {fundFormData.selectedSubscription && (
                 <>
                   <div>
@@ -1415,7 +1352,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                       전량 매도
                     </label>
                   </div>
-                  
+
                   {!fundFormData.sellAll && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1442,21 +1379,21 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
           )}
             </div>
           </div>
-          
-          {/* 펀드 예상 수익률 시각화 */}
+
+          {}
           {fundFormData.transactionType === 'buy' && fundProjection && (
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-6">
               <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                 <span className="text-2xl mr-2">📈</span>
                 펀드 예상 수익 시나리오
               </h4>
-              
+
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
                 <p className="text-xs text-orange-800">
                   ⚠️ 펀드 투자는 원금 손실 위험이 있으며, 아래는 가상의 시나리오입니다.
                 </p>
               </div>
-              
+
               <div className="space-y-3">
                 {fundProjection.scenarios.map((scenario, idx) => (
                   <div key={idx} className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-purple-300 transition-colors">
@@ -1468,13 +1405,13 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
-                        <div 
+                        <div
                           className={`h-full rounded-full flex items-center justify-center ${
-                            scenario.profit >= 0 
-                              ? 'bg-gradient-to-r from-green-400 to-green-600' 
+                            scenario.profit >= 0
+                              ? 'bg-gradient-to-r from-green-400 to-green-600'
                               : 'bg-gradient-to-r from-red-400 to-red-600'
                           }`}
-                          style={{ 
+                          style={{
                             width: `${Math.max(10, Math.min(100, 50 + (scenario.rate * 100)))}%`
                           }}
                         >
@@ -1490,7 +1427,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs text-blue-800">
                   💡 실제 수익률은 시장 상황에 따라 변동되며, 과거 수익률이 미래 수익을 보장하지 않습니다.
@@ -1498,14 +1435,14 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               </div>
             </div>
           )}
-          
-          {/* 고객 IRP 비밀번호 입력 영역 (펀드용) */}
+
+          {}
           <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
             <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
               <span className="text-2xl mr-2">🔐</span>
               고객 본인 인증 (IRP 계좌 비밀번호)
             </h4>
-            
+
             {currentUserRole === 'customer' ? (
               <div className="space-y-4">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -1513,7 +1450,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     💡 기존 IRP 계좌의 4자리 비밀번호를 입력해주세요.
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     IRP 계좌 비밀번호 (4자리 숫자) <span className="text-red-500">*</span>
@@ -1535,7 +1472,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                     <p className="text-sm text-orange-600 mt-1">⚠️ 4자리 숫자를 입력해주세요</p>
                   )}
                 </div>
-                
+
               </div>
             ) : (
               <div className="bg-white rounded-lg p-6 text-center">
@@ -1563,12 +1500,12 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
   const renderStep4 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-gray-900">4단계: 최종 확인 및 승인</h3>
-      
+
       {!processResult ? (
         <>
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
             <h4 className="text-lg font-bold text-gray-900 mb-4">가입 정보 확인</h4>
-            
+
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-blue-200">
                 <span className="text-gray-600">상품명</span>
@@ -1576,14 +1513,14 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   {productInfo?.name || productInfo?.fundName}
                 </span>
               </div>
-              
+
               <div className="flex justify-between py-2 border-b border-blue-200">
                 <span className="text-gray-600">상품 유형</span>
                 <span className="font-medium text-gray-900">
                   {productType === 'deposit' ? '정기예금' : '펀드'}
                 </span>
               </div>
-              
+
               {productType === 'deposit' && (
                 <>
                   <div className="flex justify-between py-2 border-b border-blue-200">
@@ -1610,7 +1547,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                   </div>
                 </>
               )}
-              
+
               {productType === 'fund' && (
                 <>
                   <div className="flex justify-between py-2 border-b border-blue-200">
@@ -1637,8 +1574,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
                       <div className="flex justify-between py-2 border-b border-blue-200">
                         <span className="text-gray-600">매도 방식</span>
                         <span className="font-medium text-gray-900">
-                          {fundFormData.sellAll 
-                            ? '전량 매도' 
+                          {fundFormData.sellAll
+                            ? '전량 매도'
                             : `${Number(fundFormData.sellUnits).toFixed(4)} 좌`
                           }
                         </span>
@@ -1649,19 +1586,19 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
               )}
             </div>
           </div>
-          
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
               💡 IRP 계좌 내에서 포트폴리오로 관리됩니다. 별도의 계좌가 생성되지 않습니다.
             </p>
           </div>
-          
+
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
               ⚠️ 위 정보를 확인하신 후, 상담사가 최종 승인 버튼을 클릭하면 가입이 완료됩니다.
             </p>
           </div>
-          
+
           {currentUserRole === 'counselor' && (
             <button
               onClick={handleFinalApproval}
@@ -1674,8 +1611,8 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         </>
       ) : (
         <div className={`border-2 rounded-lg p-6 ${
-          processResult.success 
-            ? 'bg-green-50 border-green-200' 
+          processResult.success
+            ? 'bg-green-50 border-green-200'
             : 'bg-red-50 border-red-200'
         }`}>
           <div className="text-center">
@@ -1698,7 +1635,6 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
     </div>
   );
 
-  // 진행 표시기
   const renderProgressIndicator = () => (
     <div className="flex items-center justify-between mb-8">
       {[1, 2, 3, 4].map((step) => (
@@ -1746,17 +1682,17 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         </div>
       </div>
 
-      {/* 진행 표시기 */}
+      {}
       {renderProgressIndicator()}
 
-      {/* 에러 메시지 */}
+      {}
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-800">{error}</p>
         </div>
       )}
 
-      {/* 현재 단계 렌더링 */}
+      {}
       <div className="flex-1 mb-6">
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
@@ -1764,7 +1700,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         {currentStep === 4 && renderStep4()}
       </div>
 
-      {/* 네비게이션 버튼 */}
+      {}
       {currentUserRole === 'counselor' && !processResult && (
         <div className="flex gap-3 pt-4 border-t">
           {currentStep > 1 && (
@@ -1787,7 +1723,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
         </div>
       )}
 
-      {/* 상담 기록 (최하단) */}
+      {}
       <div className="mt-6 pt-6 border-t">
         <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
           <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1795,7 +1731,7 @@ const ProductConsultation: React.FC<ProductConsultationProps> = ({
           </svg>
           상담 기록
         </h3>
-        
+
         <NotesTab
           consultationId={consultationInfo.id || ''}
           currentUserId={currentUserId}

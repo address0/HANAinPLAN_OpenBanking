@@ -1,6 +1,5 @@
 import { httpGet, httpPost } from '../lib/http';
 
-// 산업 데이터 타입 정의
 export interface IndustryData {
   industryCode: string;
   industryName: string;
@@ -8,17 +7,14 @@ export interface IndustryData {
   averageIncomeLevel?: string;
 }
 
-// 모든 산업 데이터 조회
 export const getIndustries = async (): Promise<IndustryData[]> => {
   return await httpGet<IndustryData[]>('industries');
 };
 
-// 키워드로 산업 검색
 export const searchIndustries = async (keyword: string): Promise<IndustryData[]> => {
   return await httpGet<IndustryData[]>('industries/search', { keyword });
 };
 
-// 질병 코드 데이터 타입 정의
 export interface DiseaseCodeData {
   diseaseCode: string;
   diseaseName: string;
@@ -36,28 +32,21 @@ export interface DiseaseCodeData {
   remark?: string;
 }
 
-// 모든 질병 코드 조회
 export const getDiseaseCodes = async (): Promise<DiseaseCodeData[]> => {
   return await httpGet<DiseaseCodeData[]>('diseases');
 };
 
-// 키워드로 질병 검색
 export const searchDiseaseCodes = async (keyword: string): Promise<DiseaseCodeData[]> => {
   return await httpGet<DiseaseCodeData[]>('diseases/search', { keyword });
 };
 
-// ================================
-// 회원가입 관련 API
-// ================================
-
-// 회원가입 요청 데이터 타입
 export interface SignUpRequest {
   userType: 'GENERAL' | 'COUNSELOR';
   name: string;
   socialNumber: string;
   phoneNumber: string;
   verificationCode: string;
-  ci: string; // 실명인증 CI값 (필수)
+  ci: string;
   password?: string;
   confirmPassword?: string;
   kakaoId?: string;
@@ -101,7 +90,6 @@ export interface SignUpRequest {
   };
 }
 
-// 회원가입 응답 데이터 타입
 export interface SignUpResponse {
   userId?: number;
   userType?: string;
@@ -112,32 +100,27 @@ export interface SignUpResponse {
   message: string;
 }
 
-// 회원가입
 export const signUp = async (request: SignUpRequest): Promise<SignUpResponse> => {
   return await httpPost<SignUpResponse>('auth/signup', request);
 };
 
-// 주민번호 중복 확인
 export const checkSocialNumber = async (socialNumber: string): Promise<{ isDuplicate: boolean; message: string }> => {
   return await httpGet<{ isDuplicate: boolean; message: string }>('auth/check-social-number', { socialNumber });
 };
 
-// 전화번호 중복 확인
 export const checkPhoneNumber = async (phoneNumber: string): Promise<{ isDuplicate: boolean; message: string }> => {
   return await httpGet<{ isDuplicate: boolean; message: string }>('auth/check-phone-number', { phoneNumber });
 };
 
-// 인증번호 전송
-export const sendVerificationCode = async (phoneNumber: string): Promise<{ 
-  success: boolean; 
-  message: string; 
-  verificationCode?: string; 
-  expiresInMinutes?: number 
+export const sendVerificationCode = async (phoneNumber: string): Promise<{
+  success: boolean;
+  message: string;
+  verificationCode?: string;
+  expiresInMinutes?: number
 }> => {
   return await httpPost<{ success: boolean; message: string; verificationCode?: string; expiresInMinutes?: number }>('auth/send-verification-code', { phoneNumber });
 };
 
-// 인증번호 확인
 export const verifyCode = async (phoneNumber: string, verificationCode: string): Promise<{
   success: boolean;
   message: string
@@ -145,17 +128,11 @@ export const verifyCode = async (phoneNumber: string, verificationCode: string):
   return await httpPost<{ success: boolean; message: string }>('auth/verify-code', { phoneNumber, verificationCode });
 };
 
-// ================================
-// CI 검증 관련 API
-// ================================
-
-// CI 검증 요청 타입
 export interface CiVerificationRequest {
   name: string;
   residentNumber: string;
 }
 
-// CI 검증 응답 타입
 export interface CiVerificationResponse {
   success: boolean;
   message: string;
@@ -163,23 +140,16 @@ export interface CiVerificationResponse {
   errorCode?: string;
 }
 
-// CI 검증 (실명인증 서버 연동)
 export const verifyCi = async (request: CiVerificationRequest): Promise<CiVerificationResponse> => {
   return await httpPost<CiVerificationResponse>('auth/ci/verify', request);
 };
 
-// ================================
-// 로그인 관련 API
-// ================================
-
-// 로그인 요청 데이터 타입
 export interface LoginRequest {
   phoneNumber: string;
   password: string;
   loginType?: string;
 }
 
-// 로그인 응답 데이터 타입
 export interface LoginResponse {
   success: boolean;
   message: string;
@@ -191,7 +161,6 @@ export interface LoginResponse {
   loginType?: string;
 }
 
-// 로그인
 export const login = async (loginData: LoginRequest): Promise<LoginResponse> => {
   return await httpPost<LoginResponse>('auth/login', {
     ...loginData,
@@ -199,26 +168,18 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
   });
 };
 
-// 카카오 로그인
 export const kakaoLogin = async (kakaoId: string): Promise<LoginResponse> => {
   return await httpPost<LoginResponse>(`auth/kakao-login?kakaoId=${kakaoId}`, {});
 };
 
-// 사용자 존재 여부 확인 (전화번호 기준)
 export const checkUserExists = async (phoneNumber: string): Promise<boolean> => {
   return await httpGet<boolean>(`auth/check-user?phoneNumber=${phoneNumber}`);
 };
 
-// 로그아웃
 export const logout = async (): Promise<LoginResponse> => {
   return await httpPost<LoginResponse>('auth/logout', {});
 };
 
-// ================================
-// 사용자 정보 관리 API
-// ================================
-
-// 사용자 정보 응답 타입
 export interface UserInfoResponse {
   userBasicInfo: {
     userId: number;
@@ -263,7 +224,6 @@ export interface UserInfoResponse {
   };
 }
 
-// 사용자 정보 업데이트 요청 타입
 export interface UserInfoUpdateRequest {
   userBasicInfo?: {
     userName?: string;
@@ -298,19 +258,16 @@ export interface UserInfoUpdateRequest {
   };
 }
 
-// 비밀번호 변경 요청 타입
 export interface PasswordChangeRequest {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
 }
 
-// 사용자 정보 조회
 export const getUserInfo = async (userId: number): Promise<UserInfoResponse> => {
   return await httpGet<UserInfoResponse>(`user/info/${userId}`);
 };
 
-// 사용자 정보 수정
 export const updateUserInfo = async (userId: number, updateData: UserInfoUpdateRequest): Promise<UserInfoResponse> => {
   const response = await fetch(`/api/user/info/${userId}`, {
     method: 'PUT',
@@ -322,7 +279,6 @@ export const updateUserInfo = async (userId: number, updateData: UserInfoUpdateR
   return await response.json();
 };
 
-// 비밀번호 변경
 export const changePassword = async (userId: number, passwordData: PasswordChangeRequest): Promise<{success: boolean; message: string}> => {
   const response = await fetch(`/api/user/password/${userId}`, {
     method: 'PUT',
@@ -334,7 +290,6 @@ export const changePassword = async (userId: number, passwordData: PasswordChang
   return await response.json();
 };
 
-// 계정 탈퇴
 export const deleteAccount = async (userId: number, password: string): Promise<{success: boolean; message: string}> => {
   const response = await fetch(`/api/user/account/${userId}?password=${encodeURIComponent(password)}`, {
     method: 'DELETE',
@@ -345,11 +300,6 @@ export const deleteAccount = async (userId: number, password: string): Promise<{
   return await response.json();
 };
 
-// ================================
-// 마이데이터 수집 동의 관련 API
-// ================================
-
-// 계좌 정보 타입
 export interface AccountInfo {
   accountNumber: string;
   accountType: number;
@@ -359,7 +309,6 @@ export interface AccountInfo {
   updatedAt: string;
 }
 
-// 은행 계좌 정보 타입
 export interface BankAccountInfo {
   bankName: string;
   bankCode: string;
@@ -369,7 +318,6 @@ export interface BankAccountInfo {
   isCustomer: boolean;
 }
 
-// 마이데이터 수집 동의 요청 타입
 export interface MyDataConsentRequest {
   phoneNumber: string;
   socialNumber: string;
@@ -377,7 +325,6 @@ export interface MyDataConsentRequest {
   consentToMyDataCollection: boolean;
 }
 
-// 마이데이터 수집 동의 응답 타입
 export interface MyDataConsentResponse {
   message: string;
   bankAccountInfo: BankAccountInfo[];
@@ -385,7 +332,6 @@ export interface MyDataConsentResponse {
   totalAccounts: number;
 }
 
-// 마이데이터 수집 동의
 export const processMyDataConsent = async (request: MyDataConsentRequest): Promise<MyDataConsentResponse> => {
   return await httpPost<MyDataConsentResponse>('user/mydata/consent', request);
 };

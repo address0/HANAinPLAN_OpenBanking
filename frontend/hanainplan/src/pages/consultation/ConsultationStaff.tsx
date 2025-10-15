@@ -6,24 +6,22 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-// 백엔드 ConsultantDto 인터페이스
 interface Counselor {
   consultantId: number;
   userName: string;
   department: string;
   position: string;
   branchName: string;
-  specialization: string; // JSON 문자열
+  specialization: string;
   consultationRating: number;
   totalConsultations: number;
   workEmail: string;
   phoneNumber: string;
-  experienceYears: string; // "N년" 형식
-  consultationStatus: string; // 상담 가능 상태
-  workStatus: string; // 근무 상태
+  experienceYears: string;
+  consultationStatus: string;
+  workStatus: string;
 }
 
-// 전문 분야 파싱 함수
 const parseSpecialization = (specialization: string | null): string[] => {
   if (!specialization) return [];
   try {
@@ -42,7 +40,6 @@ function ConsultationStaff() {
   const [isFilterActive, setIsFilterActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 실제 상담사 목록 조회
   const { data: consultants = [], isLoading: consultantsLoading } = useQuery({
     queryKey: ['consultants'],
     queryFn: async () => {
@@ -51,7 +48,6 @@ function ConsultationStaff() {
     }
   });
 
-  // 가능한 상담사 조회
   const handleSearchAvailability = async () => {
     if (!selectedDate || !selectedTime) {
       alert('날짜와 시간을 선택해주세요.');
@@ -60,28 +56,22 @@ function ConsultationStaff() {
 
     setIsLoading(true);
     try {
-      // 시작 시간과 종료 시간 계산 (1시간 상담 기준)
       const startTime = `${selectedDate}T${selectedTime}:00`;
-      
-      // 종료 시간 계산 (로컬 시간 기준)
+
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const endHours = hours + 1;
       const endTime = `${selectedDate}T${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
 
-      console.log('조회 시간:', { startTime, endTime }); // 디버깅용
-      
       const availableIds = await fetchAvailableConsultantsAtTime(startTime, endTime);
       setAvailableConsultantIds(availableIds);
       setIsFilterActive(true);
     } catch (error) {
-      console.error('상담사 조회 실패:', error);
       alert('상담사 조회에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 필터 초기화
   const handleResetFilter = () => {
     setSelectedDate('');
     setSelectedTime('');
@@ -89,12 +79,10 @@ function ConsultationStaff() {
     setIsFilterActive(false);
   };
 
-  // 필터링된 상담사 목록
   const filteredCounselors = isFilterActive
     ? consultants.filter(counselor => availableConsultantIds.includes(counselor.consultantId))
     : consultants;
 
-  // 로딩 상태
   if (consultantsLoading) {
     return (
       <Layout>
@@ -112,9 +100,9 @@ function ConsultationStaff() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
 
-        {/* Main Content */}
+        {}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Introduction */}
+          {}
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
             <h2 className="text-3xl font-hana-bold text-gray-900 mb-4">전문 상담사와 함께하세요</h2>
             <p className="text-lg text-gray-600 mb-6">
@@ -132,11 +120,11 @@ function ConsultationStaff() {
             </div>
           </div>
 
-          {/* 날짜/시간 선택 필터 */}
+          {}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <h3 className="text-2xl font-hana-bold text-gray-900 mb-4">상담 희망 시간 선택</h3>
             <p className="text-gray-600 mb-4">원하시는 날짜와 시간을 선택하시면 해당 시간에 가능한 상담사만 표시됩니다.</p>
-            
+
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
@@ -150,7 +138,7 @@ function ConsultationStaff() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hana-green focus:border-transparent font-hana-regular"
                 />
               </div>
-              
+
               <div className="flex-1 min-w-[200px]">
                 <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                   시간 선택
@@ -182,7 +170,7 @@ function ConsultationStaff() {
                   <option value="18:00">오후 6:00</option>
                 </select>
               </div>
-              
+
               <div className="flex gap-2">
                 <button
                   onClick={handleSearchAvailability}
@@ -191,7 +179,7 @@ function ConsultationStaff() {
                 >
                   {isLoading ? '조회 중...' : '가능한 상담사 조회'}
                 </button>
-                
+
                 {isFilterActive && (
                   <button
                     onClick={handleResetFilter}
@@ -212,13 +200,13 @@ function ConsultationStaff() {
             )}
           </div>
 
-          {/* Counselor List */}
+          {}
           <div className="mb-6">
             <h3 className="text-2xl font-hana-bold text-gray-900 mb-4">
               상담사 목록 {isFilterActive && `(${filteredCounselors.length})`}
             </h3>
           </div>
-          
+
           {filteredCounselors.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-12 text-center">
               <p className="text-gray-600 text-lg font-hana-regular">
@@ -233,7 +221,7 @@ function ConsultationStaff() {
               {filteredCounselors.map((counselor) => {
                 const specialties = parseSpecialization(counselor.specialization);
                 return (
-                  <div 
+                  <div
                     key={counselor.consultantId}
                     className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
                     onClick={() => setSelectedCounselor(counselor)}
@@ -256,7 +244,7 @@ function ConsultationStaff() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {specialties.length > 0 && (
                       <div className="space-y-2 mb-4">
                         <p className="text-sm text-gray-500">전문분야</p>
@@ -300,15 +288,15 @@ function ConsultationStaff() {
           )}
         </div>
 
-        {/* Counselor Detail Modal */}
+        {}
         {selectedCounselor && (() => {
           const specialties = parseSpecialization(selectedCounselor.specialization);
           return (
-            <div 
+            <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
               onClick={() => setSelectedCounselor(null)}
             >
-              <div 
+              <div
                 className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >

@@ -12,7 +12,6 @@ function MyConsultations() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<ConsultationResponse | null>(null);
 
-  // 상담 목록 조회
   const { data: consultations = [], isLoading, error } = useQuery({
     queryKey: ['myConsultations', user?.userId],
     queryFn: () => {
@@ -22,9 +21,8 @@ function MyConsultations() {
     enabled: !!user?.userId,
   });
 
-  // 상담 취소 mutation
   const cancelMutation = useMutation({
-    mutationFn: ({ consultId, customerId }: { consultId: string; customerId: number }) => 
+    mutationFn: ({ consultId, customerId }: { consultId: string; customerId: number }) =>
       cancelConsultation(consultId, customerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myConsultations'] });
@@ -36,17 +34,15 @@ function MyConsultations() {
     },
   });
 
-  // 상담 취소 핸들러
   const handleCancelConsultation = () => {
     if (!selectedConsultation || !user?.userId) return;
-    
+
     cancelMutation.mutate({
       consultId: selectedConsultation.consultId,
       customerId: user.userId,
     });
   };
 
-  // 상담 상태별 필터링
   const filteredConsultations = consultations.filter((consultation) => {
     if (selectedTab === 'all') return true;
     if (selectedTab === 'upcoming') {
@@ -61,7 +57,6 @@ function MyConsultations() {
     return true;
   });
 
-  // 상담 유형 한글 변환
   const getConsultationTypeLabel = (type: string) => {
     switch (type) {
       case 'general': return '일반';
@@ -71,7 +66,6 @@ function MyConsultations() {
     }
   };
 
-  // 상담 상태 색상
   const getStatusColor = (status: string) => {
     switch (status) {
       case '예약신청': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
@@ -83,7 +77,6 @@ function MyConsultations() {
     }
   };
 
-  // 날짜 포맷팅
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ko-KR', {
@@ -95,7 +88,6 @@ function MyConsultations() {
     });
   };
 
-  // 취소 가능 여부 확인
   const isCancelable = (status: string) => {
     return ['예약신청', '예약확정'].includes(status);
   };
@@ -121,13 +113,13 @@ function MyConsultations() {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* 헤더 */}
+        {}
         <div className="mb-8">
           <h1 className="text-3xl font-hana-bold text-gray-900 mb-2">내 상담</h1>
           <p className="text-gray-600 font-hana-regular">신청한 상담 내역을 확인하고 관리하세요</p>
         </div>
 
-        {/* 탭 네비게이션 */}
+        {}
         <div className="mb-6 border-b border-gray-200">
           <div className="flex gap-2 overflow-x-auto">
             <button
@@ -173,7 +165,7 @@ function MyConsultations() {
           </div>
         </div>
 
-        {/* 상담 목록 */}
+        {}
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hana-green"></div>
@@ -295,7 +287,7 @@ function MyConsultations() {
         )}
       </div>
 
-      {/* 취소 확인 모달 */}
+      {}
       {showCancelModal && selectedConsultation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -346,11 +338,11 @@ function MyConsultations() {
         </div>
       )}
 
-      {/* 취소 완료 모달 */}
+      {}
       {showSuccessModal && selectedConsultation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
-            {/* 성공 아이콘 */}
+            {}
             <div className="text-center mb-6">
               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,7 +353,7 @@ function MyConsultations() {
               <p className="text-gray-600 font-hana-regular">상담이 성공적으로 취소되었습니다.</p>
             </div>
 
-            {/* 취소된 상담 정보 */}
+            {}
             <div className="bg-gray-50 rounded-xl p-6 mb-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -414,7 +406,7 @@ function MyConsultations() {
               </div>
             </div>
 
-            {/* 안내 메시지 */}
+            {}
             <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,7 +421,7 @@ function MyConsultations() {
               </div>
             </div>
 
-            {/* 버튼 */}
+            {}
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -449,4 +441,3 @@ function MyConsultations() {
 }
 
 export default MyConsultations;
-

@@ -21,11 +21,11 @@ interface AssetDistributionProps {
   };
 }
 
-function AssetDistribution({ 
-  totalAssets, 
-  savings, 
-  insurance, 
-  expenses 
+function AssetDistribution({
+  totalAssets,
+  savings,
+  insurance,
+  expenses
 }: AssetDistributionProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ko-KR', {
@@ -36,63 +36,60 @@ function AssetDistribution({
     }).format(amount);
   };
 
-  // 자산 분포 데이터
   const assetData = [
     {
       name: '일반 예적금',
       value: savings.general,
       percentage: Math.round((savings.general / totalAssets) * 100),
-      color: '#00857A', // hana-green
+      color: '#00857A',
     },
     {
       name: 'IRP',
       value: savings.irp,
       percentage: Math.round((savings.irp / totalAssets) * 100),
-      color: '#006D6E', // hana-green darker
+      color: '#006D6E',
     },
     {
       name: '보험',
       value: insurance.total,
       percentage: Math.round((insurance.total / totalAssets) * 100),
-      color: '#00A8A8', // hana-green lighter
+      color: '#00A8A8',
     },
     {
       name: '기타 자산',
       value: totalAssets - savings.general - savings.irp - insurance.total,
       percentage: Math.round(((totalAssets - savings.general - savings.irp - insurance.total) / totalAssets) * 100),
-      color: '#6B7280', // gray-500
+      color: '#6B7280',
     },
   ];
 
-  // 지출 분포 데이터 (월간)
   const expenseData = [
     {
       name: '생활비',
       value: expenses.categories.living,
       percentage: Math.round((expenses.categories.living / expenses.monthly) * 100),
-      color: '#00857A', // hana-green
+      color: '#00857A',
     },
     {
       name: '의료비',
       value: expenses.categories.medical,
       percentage: Math.round((expenses.categories.medical / expenses.monthly) * 100),
-      color: '#006D6E', // hana-green darker
+      color: '#006D6E',
     },
     {
       name: '문화생활',
       value: expenses.categories.entertainment,
       percentage: Math.round((expenses.categories.entertainment / expenses.monthly) * 100),
-      color: '#00A8A8', // hana-green lighter
+      color: '#00A8A8',
     },
     {
       name: '기타',
       value: expenses.categories.others,
       percentage: Math.round((expenses.categories.others / expenses.monthly) * 100),
-      color: '#6B7280', // gray-500
+      color: '#6B7280',
     },
   ];
 
-  // 커스텀 툴팁
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -111,15 +108,14 @@ function AssetDistribution({
     return null;
   };
 
-  // 커스텀 범례
   const renderLegend = (props: any) => {
     const { payload } = props;
     return (
       <div className="flex flex-wrap justify-center gap-4 mt-4">
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full" 
+            <div
+              className="w-3 h-3 rounded-full"
               style={{ backgroundColor: entry.color }}
             ></div>
             <span className="text-sm font-hana-medium text-gray-700">
@@ -138,12 +134,12 @@ function AssetDistribution({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* 자산 분포 차트 */}
+        {}
         <div className="text-center">
           <div className="mb-6">
             <h3 className="text-xl font-hana-bold text-gray-900">자산 분포</h3>
           </div>
-          
+
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -167,7 +163,7 @@ function AssetDistribution({
             </ResponsiveContainer>
           </div>
 
-          {/* 자산 분포 요약 */}
+          {}
           <div className="mt-6 p-4 bg-blue-50 rounded-xl">
             <h4 className="font-hana-bold text-gray-900 mb-3">자산 분포 요약</h4>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -181,12 +177,12 @@ function AssetDistribution({
           </div>
         </div>
 
-        {/* 지출 분포 차트 */}
+        {}
         <div className="text-center">
           <div className="mb-6">
             <h3 className="text-xl font-hana-bold text-gray-900">월간 지출 분포</h3>
           </div>
-          
+
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -210,7 +206,7 @@ function AssetDistribution({
             </ResponsiveContainer>
           </div>
 
-          {/* 지출 분포 요약 */}
+          {}
           <div className="mt-6 p-4 bg-red-50 rounded-xl">
             <h4 className="font-hana-bold text-gray-900 mb-3">월간 지출 요약</h4>
             <div className="mb-3">

@@ -10,17 +10,16 @@ interface AlertModalProps {
   autoCloseDelay?: number
 }
 
-function AlertModal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  message, 
+function AlertModal({
+  isOpen,
+  onClose,
+  title,
+  message,
   type = 'info',
   autoClose = false,
-  autoCloseDelay = 3000 
+  autoCloseDelay = 3000
 }: AlertModalProps) {
 
-  // 자동 닫기 기능
   useEffect(() => {
     if (isOpen && autoClose) {
       const timer = setTimeout(() => {
@@ -31,7 +30,6 @@ function AlertModal({
     }
   }, [isOpen, autoClose, autoCloseDelay, onClose])
 
-  // ESC 키로 닫기
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
@@ -41,7 +39,7 @@ function AlertModal({
 
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden' // 스크롤 방지
+      document.body.style.overflow = 'hidden'
     }
 
     return () => {
@@ -52,7 +50,6 @@ function AlertModal({
 
   if (!isOpen) return null
 
-  // 타입별 스타일 설정
   const getTypeStyles = () => {
     switch (type) {
       case 'success':
@@ -91,7 +88,7 @@ function AlertModal({
             </svg>
           )
         }
-      default: // info
+      default:
         return {
           bgColor: 'bg-blue-50',
           borderColor: 'border-blue-200',
@@ -110,23 +107,23 @@ function AlertModal({
 
   return (
     <>
-      {/* 배경 오버레이 */}
-      <div 
+      {}
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center animate-pulse"
         onClick={onClose}
         style={{
           animation: 'fadeIn 0.2s ease-out'
         }}
       >
-        {/* 모달 컨테이너 */}
-        <div 
+        {}
+        <div
           className={`relative max-w-md mx-4 p-6 rounded-[15px] shadow-2xl border-2 ${styles.bgColor} ${styles.borderColor}`}
           onClick={(e) => e.stopPropagation()}
           style={{
             animation: 'scaleIn 0.3s ease-out'
           }}
         >
-          {/* 닫기 버튼 */}
+          {}
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors duration-200"
@@ -136,14 +133,14 @@ function AlertModal({
             </svg>
           </button>
 
-          {/* 컨텐츠 */}
+          {}
           <div className="flex items-start gap-4">
-            {/* 아이콘 */}
+            {}
             <div className={`flex-shrink-0 ${styles.iconColor}`}>
               {styles.icon}
             </div>
 
-            {/* 텍스트 컨텐츠 */}
+            {}
             <div className="flex-1 pt-0.5">
               {title && (
                 <h3 className={`font-['Hana2.0_M'] text-[18px] leading-[24px] mb-2 ${styles.titleColor}`}>
@@ -156,7 +153,7 @@ function AlertModal({
             </div>
           </div>
 
-          {/* 확인 버튼 */}
+          {}
           <div className="flex justify-end mt-6">
             <button
               onClick={onClose}
@@ -168,19 +165,19 @@ function AlertModal({
         </div>
       </div>
 
-      {/* CSS 키프레임 애니메이션 */}
+      {}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        
+
         @keyframes scaleIn {
-          from { 
+          from {
             opacity: 0;
             transform: scale(0.9) translateY(-10px);
           }
-          to { 
+          to {
             opacity: 1;
             transform: scale(1) translateY(0);
           }
@@ -190,4 +187,4 @@ function AlertModal({
   )
 }
 
-export default AlertModal 
+export default AlertModal

@@ -11,25 +11,18 @@ import type {
 } from '../types/insurance';
 
 interface InsuranceStore {
-  // 현재 단계
   currentStep: number;
-  
-  // 선택된 상품
+
   selectedProduct: InsuranceProduct | null;
-  
-  // 가입 신청 정보
+
   application: Partial<InsuranceApplication>;
-  
-  // 보험료 계산 결과
+
   premiumCalculation: PremiumCalculationResponse | null;
-  
-  // 로딩 상태
+
   isLoading: boolean;
-  
-  // 에러 상태
+
   error: string | null;
-  
-  // 액션들
+
   setCurrentStep: (step: number) => void;
   setSelectedProduct: (product: InsuranceProduct) => void;
   setPersonalInfo: (personalInfo: PersonalInfo) => void;
@@ -59,13 +52,13 @@ export const useInsuranceStore = create<InsuranceStore>()(
       error: null,
 
       setCurrentStep: (step: number) => set({ currentStep: step }),
-      
-      setSelectedProduct: (product: InsuranceProduct) => 
-        set({ 
+
+      setSelectedProduct: (product: InsuranceProduct) =>
+        set({
           selectedProduct: product,
           application: { ...get().application, productId: product.id }
         }),
-      
+
       setPersonalInfo: (personalInfo: PersonalInfo) =>
         set({
           application: {
@@ -73,7 +66,7 @@ export const useInsuranceStore = create<InsuranceStore>()(
             applicantInfo: personalInfo
           }
         }),
-      
+
       setInsuranceDetails: (details: InsuranceDetails) =>
         set({
           application: {
@@ -81,7 +74,7 @@ export const useInsuranceStore = create<InsuranceStore>()(
             insuranceDetails: details
           }
         }),
-      
+
       setPaymentInfo: (paymentInfo: PaymentInfo) =>
         set({
           application: {
@@ -89,7 +82,7 @@ export const useInsuranceStore = create<InsuranceStore>()(
             paymentInfo
           }
         }),
-      
+
       setAgreementInfo: (agreementInfo: AgreementInfo) =>
         set({
           application: {
@@ -97,14 +90,14 @@ export const useInsuranceStore = create<InsuranceStore>()(
             agreementInfo
           }
         }),
-      
+
       setPremiumCalculation: (calculation: PremiumCalculationResponse) =>
         set({ premiumCalculation: calculation }),
-      
+
       setLoading: (loading: boolean) => set({ isLoading: loading }),
-      
+
       setError: (error: string | null) => set({ error }),
-      
+
       resetApplication: () => set({
         currentStep: 0,
         selectedProduct: null,
@@ -112,9 +105,9 @@ export const useInsuranceStore = create<InsuranceStore>()(
         premiumCalculation: null,
         error: null
       }),
-      
+
       completeApplication: () => set({
-        currentStep: 6, // 완료 단계
+        currentStep: 6,
         application: {
           ...get().application,
           status: 'COMPLETED'
@@ -132,4 +125,3 @@ export const useInsuranceStore = create<InsuranceStore>()(
     }
   )
 );
-

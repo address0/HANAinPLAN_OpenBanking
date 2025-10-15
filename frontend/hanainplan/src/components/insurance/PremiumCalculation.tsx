@@ -81,7 +81,6 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
       setCalculation(result);
     } catch (err) {
       setError('보험료 계산에 실패했습니다.');
-      console.error('Error calculating premium:', err);
     } finally {
       setIsCalculating(false);
     }
@@ -112,20 +111,20 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
 
   return (
     <div className="space-y-4">
-      {/* 헤더 */}
+      {}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">보험료 계산</h1>
         <p className="text-gray-600">가입 조건에 따른 보험료를 계산해보세요</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* 입력 폼 */}
+        {}
         <div className="space-y-4">
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">가입 정보 입력</h2>
-            
+
             <div className="space-y-4">
-              {/* 연령 */}
+              {}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">연령</label>
                 <input
@@ -141,7 +140,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
                 </p>
               </div>
 
-              {/* 성별 */}
+              {}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">성별</label>
                 <div className="flex space-x-4">
@@ -170,7 +169,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
                 </div>
               </div>
 
-              {/* 가입금액 */}
+              {}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">가입금액</label>
                 <input
@@ -187,7 +186,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
                 </p>
               </div>
 
-              {/* 납입기간 */}
+              {}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">납입기간</label>
                 <select
@@ -202,7 +201,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
                 </select>
               </div>
 
-              {/* 보장기간 */}
+              {}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">보장기간</label>
                 <select
@@ -219,7 +218,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
                 </select>
               </div>
 
-              {/* 납입주기 */}
+              {}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">납입주기</label>
                 <div className="space-y-1">
@@ -256,10 +255,10 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
             </button>
           </div>
 
-          {/* 특약 선택 */}
+          {}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">특약 선택 (선택사항)</h2>
-            
+
             <div className="space-y-3">
               {riderOptions.map((rider) => (
                 <label key={rider.id} className="flex items-start space-x-2 cursor-pointer">
@@ -284,12 +283,12 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
           </div>
         </div>
 
-        {/* 계산 결과 */}
+        {}
         <div className="space-y-4">
           {calculation && (
             <div className="bg-white rounded-lg shadow p-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">보험료 계산 결과</h2>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                   <span className="font-medium text-gray-800 text-sm">기본 보험료</span>
@@ -326,7 +325,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
                 </div>
               </div>
 
-              {/* 상세 내역 */}
+              {}
               <div className="mt-4">
                 <h3 className="font-semibold text-gray-800 mb-2 text-sm">상세 내역</h3>
                 <div className="space-y-1">
@@ -349,7 +348,7 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
         </div>
       </div>
 
-      {/* 버튼 */}
+      {}
       <div className="flex justify-between">
         <button
           onClick={onPrevious}
@@ -374,4 +373,3 @@ const PremiumCalculation: React.FC<PremiumCalculationProps> = ({ selectedProduct
 };
 
 export default PremiumCalculation;
-

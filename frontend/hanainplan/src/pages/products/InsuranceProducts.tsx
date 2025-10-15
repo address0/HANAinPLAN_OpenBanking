@@ -60,7 +60,6 @@ function InsuranceProducts() {
   const [selectedProduct, setSelectedProduct] = useState<InsuranceProduct | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'general' | 'pension'>('all');
 
-  // 목업 데이터 - 일반보험
   const generalInsuranceProducts: GeneralInsurance[] = [
     {
       productId: 1,
@@ -133,7 +132,6 @@ function InsuranceProducts() {
     }
   ];
 
-  // 목업 데이터 - 연금보험
   const pensionInsuranceProducts: PensionInsurance[] = [
     {
       productId: 4,
@@ -214,9 +212,9 @@ function InsuranceProducts() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
 
-        {/* Main Content */}
+        {}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Product Information */}
+          {}
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
             <h2 className="text-3xl font-hana-bold text-gray-900 mb-6">보험 상품이란?</h2>
             <div className="space-y-4 text-gray-700">
@@ -244,7 +242,7 @@ function InsuranceProducts() {
             </div>
           </div>
 
-          {/* Tab Navigation */}
+          {}
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-8">
             <button
               onClick={() => setActiveTab('all')}
@@ -278,25 +276,25 @@ function InsuranceProducts() {
             </button>
           </div>
 
-          {/* Product List */}
+          {}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {getDisplayProducts().map((product) => (
-              <div 
-                key={product.productId} 
+              <div
+                key={product.productId}
                 className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
                 onClick={() => setSelectedProduct(product)}
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-hana-bold text-gray-900">{product.productName}</h3>
                   <span className={`px-3 py-1 rounded-full text-sm font-hana-medium ${
-                    isGeneralInsurance(product) 
+                    isGeneralInsurance(product)
                       ? product.category === '건강보험' ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
                       : 'bg-purple-500 text-white'
                   }`}>
                     {isGeneralInsurance(product) ? product.category : '연금보험'}
                   </span>
                 </div>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between">
                     <span className="text-gray-500">상품코드</span>
@@ -345,13 +343,13 @@ function InsuranceProducts() {
             ))}
           </div>
 
-          {/* Product Detail Modal */}
+          {}
           {selectedProduct && (
-            <div 
+            <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
               onClick={() => setSelectedProduct(null)}
             >
-              <div 
+              <div
                 className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -369,7 +367,6 @@ function InsuranceProducts() {
 
                 <div className="p-6">
                   {isGeneralInsurance(selectedProduct) ? (
-                    // 일반보험 상세 정보
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                       <div>
                         <h3 className="text-lg font-hana-bold text-gray-900 mb-4">기본 정보</h3>
@@ -446,7 +443,6 @@ function InsuranceProducts() {
                       </div>
                     </div>
                   ) : (
-                    // 연금보험 상세 정보
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                       <div>
                         <h3 className="text-lg font-hana-bold text-gray-900 mb-4">기본 정보</h3>
@@ -528,7 +524,7 @@ function InsuranceProducts() {
                     </div>
                   )}
 
-                  {/* 특이사항 */}
+                  {}
                   <div className="mt-8">
                     <h3 className="text-lg font-hana-bold text-gray-900 mb-4">특이사항</h3>
                     <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
@@ -538,7 +534,7 @@ function InsuranceProducts() {
                     </div>
                   </div>
 
-                  {/* 신청 버튼 */}
+                  {}
                   <div className="mt-8 flex justify-center">
                     <button className="bg-green-500 text-white px-8 py-3 rounded-lg font-hana-medium hover:bg-green-600 transition-colors">
                       상품 신청하기

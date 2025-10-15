@@ -9,7 +9,6 @@ function Step6Complete({ userType, userName }: Step6CompleteProps) {
   const [showAnimation, setShowAnimation] = useState(false)
 
   useEffect(() => {
-    // 컴포넌트 마운트 후 애니메이션 시작
     const timer = setTimeout(() => {
       setShowAnimation(true)
     }, 100)
@@ -23,7 +22,7 @@ function Step6Complete({ userType, userName }: Step6CompleteProps) {
 
   return (
     <div className="w-full flex flex-col items-center gap-[30px]">
-      {/* 성공 아이콘 */}
+      {}
       <div className={`relative transition-all duration-1000 transform ${
         showAnimation ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
       }`}>
@@ -32,14 +31,14 @@ function Step6Complete({ userType, userName }: Step6CompleteProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        
-        {/* 성공 효과 원 */}
+
+        {}
         <div className={`absolute inset-0 w-24 h-24 rounded-full border-4 border-[#008485] transition-all duration-2000 ${
           showAnimation ? 'scale-150 opacity-0' : 'scale-100 opacity-100'
         }`}></div>
       </div>
 
-      {/* 완료 메시지 */}
+      {}
       <div className={`text-center transition-all duration-1000 delay-300 transform ${
         showAnimation ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
       }`}>
@@ -51,11 +50,11 @@ function Step6Complete({ userType, userName }: Step6CompleteProps) {
         </p>
       </div>
 
-      {/* 하나 로고와 브랜딩 */}
+      {}
       <div className={`flex flex-col items-center gap-4 transition-all duration-1000 delay-500 transform ${
         showAnimation ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
       }`}>
-        <img 
+        <img
           src="/images/img-hana-symbol.png"
           alt="하나 심볼"
           className="h-16 opacity-80"
@@ -70,7 +69,7 @@ function Step6Complete({ userType, userName }: Step6CompleteProps) {
         </div>
       </div>
 
-      {/* 액션 버튼 */}
+      {}
       <div className={`flex flex-col sm:flex-row gap-4 w-full max-w-[400px] transition-all duration-1000 delay-1000 transform ${
         showAnimation ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
       }`}>

@@ -30,7 +30,6 @@ const FundDetail = () => {
       setError(null);
     } catch (err) {
       setError('펀드 정보를 불러오는데 실패했습니다.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -77,7 +76,7 @@ const FundDetail = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* 헤더 */}
+        {}
         <div className="mb-6">
           <button
             onClick={() => navigate('/funds')}
@@ -130,7 +129,7 @@ const FundDetail = () => {
           </div>
         </div>
 
-        {/* 기준가 */}
+        {}
         {fund.latestNav && fund.latestNavDate && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-lg font-hana-bold mb-4">기준가 정보</h2>
@@ -151,7 +150,7 @@ const FundDetail = () => {
           </div>
         )}
 
-        {/* 기본 정보 */}
+        {}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-lg font-hana-bold mb-4">기본 정보</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -186,7 +185,7 @@ const FundDetail = () => {
           </div>
         </div>
 
-        {/* 투자 규칙 */}
+        {}
         {fund.rules && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-lg font-hana-bold mb-4">투자 규칙</h2>
@@ -235,7 +234,7 @@ const FundDetail = () => {
           </div>
         )}
 
-        {/* 수수료 정보 */}
+        {}
         {fund.fees && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-lg font-hana-bold mb-4">수수료 정보</h2>
@@ -282,7 +281,7 @@ const FundDetail = () => {
           </div>
         )}
 
-        {/* 유의사항 */}
+        {}
         <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
           <h3 className="text-lg font-hana-bold text-yellow-800 mb-3">투자 유의사항</h3>
           <ul className="space-y-2 text-sm text-yellow-700 font-hana-regular">
@@ -294,7 +293,7 @@ const FundDetail = () => {
         </div>
       </div>
 
-      {/* 매수 모달 (일반 고객만) */}
+      {}
       {user?.userType !== 'COUNSELOR' && showPurchaseModal && (
         <FundPurchaseModal
           isOpen={showPurchaseModal}

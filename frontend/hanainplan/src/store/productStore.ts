@@ -4,7 +4,7 @@ interface ProductCategory {
     name: string;
     detail: string;
     color: string;
-}   
+}
 
 interface ProductCategoryStore {
     categories: ProductCategory[];

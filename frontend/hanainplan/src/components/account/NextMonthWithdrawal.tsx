@@ -23,7 +23,7 @@ function NextMonthWithdrawal({ onProductClick, isMobile = false }: NextMonthWith
   };
 
   return (
-    <div 
+    <div
       className="bg-white rounded-lg p-4 h-[200px] border border-[#008485]/50 hover:border-[#008485] hover:shadow-lg transition-all grid grid-cols-5 gap-4"
       onClick={handleClick}
     >
@@ -36,11 +36,10 @@ function NextMonthWithdrawal({ onProductClick, isMobile = false }: NextMonthWith
           기준일: 2024-10-01
         </p>
       </div>
-      
 
       {!isMobile && (
         <div className="space-y-3 col-span-3 h-full overflow-y-auto">
-          
+
           {nextMonthData.withdrawals.map((item, index) => (
             <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
               <div>
@@ -56,7 +55,7 @@ function NextMonthWithdrawal({ onProductClick, isMobile = false }: NextMonthWith
           ))}
         </div>
       )}
-      
+
       {isMobile && (
         <div className="text-sm text-gray-500 font-hana-medium text-center mt-4">
           상세 내역 보기

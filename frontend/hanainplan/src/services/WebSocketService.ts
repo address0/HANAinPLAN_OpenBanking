@@ -61,7 +61,6 @@ class WebSocketService {
   private userId: number | null = null;
   private isConnected = false;
 
-  // 콜백 함수들
   private onCallRequestCallback?: (message: CallRequestMessage) => void;
   private onCallAcceptCallback?: (message: WebRTCMessage) => void;
   private onCallRejectCallback?: (message: WebRTCMessage) => void;
@@ -81,7 +80,6 @@ class WebSocketService {
       webSocketFactory: () => new SockJS('/ws'),
       connectHeaders: {},
       debug: (str) => {
-        console.log('STOMP Debug:', str);
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
@@ -89,20 +87,17 @@ class WebSocketService {
     });
 
     this.client.onConnect = (frame) => {
-      console.log('Connected to WebSocket:', frame);
       this.isConnected = true;
       this.onConnectionStateChangeCallback?.(true);
       this.subscribeToMessages();
     };
 
     this.client.onDisconnect = () => {
-      console.log('Disconnected from WebSocket');
       this.isConnected = false;
       this.onConnectionStateChangeCallback?.(false);
     };
 
     this.client.onStompError = (frame) => {
-      console.error('STOMP Error:', frame);
       this.isConnected = false;
       this.onConnectionStateChangeCallback?.(false);
     };
@@ -145,78 +140,64 @@ class WebSocketService {
   private subscribeToMessages(): void {
     if (!this.client || !this.isConnected) return;
 
-    // 통화 요청 수신
     this.client.subscribe('/user/queue/call-request', (message: Message) => {
       const callRequest: CallRequestMessage = JSON.parse(message.body);
       this.onCallRequestCallback?.(callRequest);
     });
 
-    // 통화 수락 수신
     this.client.subscribe('/user/queue/call-accept', (message: Message) => {
       const acceptMessage: WebRTCMessage = JSON.parse(message.body);
       this.onCallAcceptCallback?.(acceptMessage);
     });
 
-    // 통화 거절 수신
     this.client.subscribe('/user/queue/call-reject', (message: Message) => {
       const rejectMessage: WebRTCMessage = JSON.parse(message.body);
       this.onCallRejectCallback?.(rejectMessage);
     });
 
-    // 통화 종료 수신
     this.client.subscribe('/user/queue/call-end', (message: Message) => {
       const endMessage: WebRTCMessage = JSON.parse(message.body);
       this.onCallEndCallback?.(endMessage);
     });
 
-    // 상담 시작 수신 (상담사가 시작 버튼을 눌렀을 때)
     this.client.subscribe('/user/queue/consultation-start', (message: Message) => {
       const startMessage: WebRTCMessage = JSON.parse(message.body);
       this.onConsultationStartCallback?.(startMessage);
     });
 
-    // WebRTC Offer 수신
     this.client.subscribe('/user/queue/webrtc-offer', (message: Message) => {
       const offer: SDPMessage = JSON.parse(message.body);
       this.onOfferCallback?.(offer);
     });
 
-    // WebRTC Answer 수신
     this.client.subscribe('/user/queue/webrtc-answer', (message: Message) => {
       const answer: SDPMessage = JSON.parse(message.body);
       this.onAnswerCallback?.(answer);
     });
 
-    // ICE Candidate 수신
     this.client.subscribe('/user/queue/webrtc-ice', (message: Message) => {
       const iceCandidate: ICECandidateMessage = JSON.parse(message.body);
       this.onIceCandidateCallback?.(iceCandidate);
     });
 
-
-    // 단계 동기화 수신
     this.client.subscribe('/user/queue/step-sync', (message: Message) => {
       const syncMessage: WebRTCMessage = JSON.parse(message.body);
       this.onStepSyncCallback?.(syncMessage);
     });
 
-    // 상담 단계 동기화 수신
     this.client.subscribe('/user/queue/consultation-step-sync', (message: Message) => {
       const syncMessage: WebRTCMessage = JSON.parse(message.body);
       this.onConsultationStepSyncCallback?.(syncMessage);
     });
 
-    // 상담 메모 동기화 수신
     this.client.subscribe('/user/queue/consultation-note-sync', (message: Message) => {
       const syncMessage: WebRTCMessage = JSON.parse(message.body);
       this.onConsultationNoteSyncCallback?.(syncMessage);
     });
   }
 
-  // 메시지 전송 메소드들
   sendCallRequest(callRequest: CallRequestMessage): void {
     if (!this.client || !this.isConnected) {
-      console.error('WebSocket is not connected');
       return;
     }
     this.client.publish({
@@ -259,7 +240,7 @@ class WebSocketService {
 
   sendOffer(offer: SDPMessage): void {
     if (!this.client || !this.isConnected) return;
-    
+
     this.client.publish({
       destination: '/app/webrtc.offer',
       body: JSON.stringify(offer)
@@ -314,7 +295,6 @@ class WebSocketService {
     });
   }
 
-  // 콜백 등록 메소드들
   onCallRequest(callback: (message: CallRequestMessage) => void): void {
     this.onCallRequestCallback = callback;
   }
@@ -376,4 +356,4 @@ class WebSocketService {
   }
 }
 
-export default new WebSocketService(); 
+export default new WebSocketService();

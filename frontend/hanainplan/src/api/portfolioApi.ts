@@ -33,22 +33,16 @@ export const getPortfolio = async (customerId: number): Promise<PortfolioData> =
   return response.data;
 };
 
-/**
- * 사용자의 IRP 계좌 정보 조회
- */
 export const getIrpAccount = async (userId: number): Promise<IrpAccountInfo | null> => {
   try {
     const response = await axiosInstance.get(`/banking/irp/account/user/${userId}`);
-    
+
     if (response.data) {
-      // IRP 계좌 응답을 그대로 반환
       return response.data;
     }
-    
+
     return null;
   } catch (error) {
-    console.error('IRP 계좌 조회 실패:', error);
     return null;
   }
 };
-

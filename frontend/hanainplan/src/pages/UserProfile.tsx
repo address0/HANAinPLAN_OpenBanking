@@ -21,7 +21,6 @@ function UserProfile() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 사용자 정보 업데이트 API 호출
       setIsEditing(false);
   };
 

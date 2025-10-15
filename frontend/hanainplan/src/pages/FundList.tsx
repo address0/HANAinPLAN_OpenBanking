@@ -14,12 +14,10 @@ const FundList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 필터 상태
   const [selectedAssetType, setSelectedAssetType] = useState<string>('ALL');
   const [selectedClassCode, setSelectedClassCode] = useState<string>('ALL');
   const [maxAmount, setMaxAmount] = useState<string>('');
 
-  // 자산 유형 목록
   const assetTypes = [
     { value: 'ALL', label: '전체' },
     { value: 'MIXED', label: '혼합형' },
@@ -27,7 +25,6 @@ const FundList = () => {
     { value: 'EQUITY', label: '주식형' },
   ];
 
-  // 클래스 코드 목록
   const classCodes = [
     { value: 'ALL', label: '전체' },
     { value: 'P', label: 'P클래스 (퇴직연금)' },
@@ -35,12 +32,10 @@ const FundList = () => {
     { value: 'A', label: 'A클래스' },
   ];
 
-  // 데이터 로드
   useEffect(() => {
     loadFundClasses();
   }, []);
 
-  // 필터 적용
   useEffect(() => {
     applyFilters();
   }, [fundClasses, selectedAssetType, selectedClassCode, maxAmount]);
@@ -53,7 +48,6 @@ const FundList = () => {
       setError(null);
     } catch (err) {
       setError('펀드 목록을 불러오는데 실패했습니다.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -62,19 +56,16 @@ const FundList = () => {
   const applyFilters = () => {
     let filtered = [...fundClasses];
 
-    // 자산 유형 필터
     if (selectedAssetType !== 'ALL') {
       filtered = filtered.filter(
         (fund) => fund.fundMaster.assetType === selectedAssetType
       );
     }
 
-    // 클래스 코드 필터
     if (selectedClassCode !== 'ALL') {
       filtered = filtered.filter((fund) => fund.classCode === selectedClassCode);
     }
 
-    // 최소 투자금액 필터
     if (maxAmount) {
       const maxAmountNum = parseInt(maxAmount);
       filtered = filtered.filter((fund) => {
@@ -120,21 +111,21 @@ const FundList = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* 헤더 */}
+      {}
       <div className="mb-8">
         <h1 className="text-3xl font-hana-bold text-gray-900 mb-2">펀드 상품</h1>
         <p className="text-gray-600 font-hana-regular">
-          {user?.userType === 'COUNSELOR' 
+          {user?.userType === 'COUNSELOR'
             ? '고객님께 추천할 수 있는 펀드 상품을 확인하세요'
             : 'IRP 계좌로 투자 가능한 펀드 상품을 확인하세요'}
         </p>
       </div>
 
-      {/* 필터 */}
+      {}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-lg font-hana-bold mb-4">필터</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 자산 유형 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               자산 유형
@@ -152,7 +143,7 @@ const FundList = () => {
             </select>
           </div>
 
-          {/* 클래스 코드 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               클래스 유형
@@ -170,7 +161,7 @@ const FundList = () => {
             </select>
           </div>
 
-          {/* 최소 투자금액 */}
+          {}
           <div>
             <label className="block text-sm font-hana-medium text-gray-700 mb-2">
               투자 가능 금액 (원)
@@ -202,7 +193,7 @@ const FundList = () => {
         </div>
       </div>
 
-      {/* 펀드 목록 */}
+      {}
       <div className="grid grid-cols-1 gap-4">
         {filteredFunds.map((fund) => (
           <div
@@ -303,4 +294,3 @@ const FundList = () => {
 };
 
 export default FundList;
-

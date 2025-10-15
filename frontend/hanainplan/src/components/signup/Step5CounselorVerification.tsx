@@ -44,21 +44,18 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
       ...verificationInfo,
       [field]: value
     })
-    
-    // 에러 메시지 초기화
+
     if (field in errors && errors[field as keyof ValidationErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
     }
   }
 
   const handleFileUpload = async (docId: string, file: File) => {
-    // 파일 크기 검증 (10MB 제한)
     if (file.size > 10 * 1024 * 1024) {
       alert('파일 크기는 10MB를 초과할 수 없습니다.')
       return
     }
 
-    // PDF 또는 이미지 파일만 허용
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       alert('PDF 또는 이미지 파일(JPG, PNG)만 업로드 가능합니다.')
@@ -68,52 +65,37 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
     const newUploadedDocs = { ...uploadedDocs, [docId]: file }
     setUploadedDocs(newUploadedDocs)
 
-    // verificationDocuments 배열 업데이트
     const allFiles = Object.values(newUploadedDocs)
     handleInputChange('verificationDocuments', allFiles)
 
-    // OCR 처리 시작
     setIsProcessing(true)
     setProcessingDoc(docId)
 
     try {
       const result = await extractDocumentInfo(file)
-      
+
       if (result.success && result.extracted_info.length > 0) {
         const info = result.extracted_info[0]
-        
-        // 디버깅용 로그
-        console.log('✅ OCR 처리 완료:', docId)
-        console.log('📊 추출된 정보:', info)
-        console.log('📅 입사일:', info.hire_date)
-        console.log('📅 발급일:', info.issue_date)
-        
-        // 추출된 정보 저장
+
         setExtractedInfos(prev => {
           const newInfos = { ...prev, [docId]: info }
-          console.log('💾 extractedInfos 업데이트:', newInfos)
-          // editedInfos도 함께 업데이트 (동기화)
           setEditedInfos(newInfos)
           return newInfos
         })
-        
-        // 마스킹된 이미지 저장
+
         if (result.masked_images && result.masked_images.length > 0) {
           setMaskedImages(prev => ({ ...prev, [docId]: result.masked_images }))
         }
-        
-        // 마스킹된 이미지 자동 표시
+
         if (result.masked_images && result.masked_images.length > 0) {
           setCurrentModalImage(result.masked_images[0])
-          setIsEditMode(false)  // 읽기 모드로 시작
+          setIsEditMode(false)
           setShowModal(true)
         } else {
-          // 이미지가 없으면 알림만 표시
           alert(`✅ 문서 분석 완료!\n\n추출된 정보:\n- 이름: ${info.name || 'N/A'}\n- 지점: ${info.branch_name || 'N/A'}\n- 직급: ${info.position || 'N/A'}`)
         }
       }
     } catch (error) {
-      console.error('OCR 처리 중 오류:', error)
       alert('문서 분석 중 오류가 발생했습니다. 수동으로 정보를 입력해주세요.')
     } finally {
       setIsProcessing(false)
@@ -126,17 +108,14 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
     delete newUploadedDocs[docId]
     setUploadedDocs(newUploadedDocs)
 
-    // 추출된 정보도 삭제
     const newExtractedInfos = { ...extractedInfos }
     delete newExtractedInfos[docId]
     setExtractedInfos(newExtractedInfos)
 
-    // 마스킹된 이미지도 삭제
     const newMaskedImages = { ...maskedImages }
     delete newMaskedImages[docId]
     setMaskedImages(newMaskedImages)
 
-    // verificationDocuments 배열 업데이트
     const allFiles = Object.values(newUploadedDocs)
     handleInputChange('verificationDocuments', allFiles)
   }
@@ -145,27 +124,19 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
     if (maskedImages[docId] && maskedImages[docId].length > 0) {
       setCurrentModalImage(maskedImages[docId][0])
       setIsEditMode(false)
-      // 편집용 데이터 초기화 (extractedInfos의 최신 상태 복사)
       setEditedInfos({ ...extractedInfos })
       setShowModal(true)
-      
-      // 디버깅용 로그
-      console.log('📄 Modal opened for:', docId)
-      console.log('📊 Extracted info:', extractedInfos[docId])
-      console.log('📊 All extracted infos:', extractedInfos)
+
     }
   }
 
-  // 편집 모드 토글
   const toggleEditMode = () => {
     if (!isEditMode) {
-      // 편집 모드 진입 시 현재 데이터 복사
       setEditedInfos({ ...extractedInfos })
     }
     setIsEditMode(!isEditMode)
   }
 
-  // 편집된 정보 필드 업데이트
   const handleEditFieldChange = (docId: string, field: keyof ExtractedDocumentInfo, value: string) => {
     setEditedInfos(prev => ({
       ...prev,
@@ -176,20 +147,17 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
     }))
   }
 
-  // 편집 내용 저장
   const handleSaveEdit = () => {
     setExtractedInfos({ ...editedInfos })
     setIsEditMode(false)
     alert('수정사항이 저장되었습니다.')
   }
 
-  // 편집 취소
   const handleCancelEdit = () => {
     setEditedInfos({ ...extractedInfos })
     setIsEditMode(false)
   }
 
-  // 모든 문서 일괄 검증
   const handleVerifyAllDocuments = async () => {
     if (Object.keys(uploadedDocs).length < 2) {
       alert('재직증명서와 신분증을 모두 업로드해주세요.')
@@ -210,7 +178,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
 
     try {
       const result = await verifyAllDocuments({
-        employeeId: uploadedDocs['employment_contract'],  // 재직증명서
+        employeeId: uploadedDocs['employment_contract'],
         employmentContract: uploadedDocs['employment_contract'],
         identityVerification: uploadedDocs['identity_verification'],
         qualificationCert: undefined
@@ -218,14 +186,12 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
 
       if (result.success) {
         const merged = result.merged_info
-        
-        // 추출된 정보를 verificationInfo에 저장
+
         onVerificationInfoChange({
           ...verificationInfo,
           extractedInfo: merged
         })
 
-        // 직원번호 자동 입력
         if (merged.employee_id) {
           handleInputChange('employeeId', merged.employee_id)
         }
@@ -233,7 +199,6 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
         alert(`✅ 전체 문서 검증 완료!\n\n추출된 정보:\n- 이름: ${merged.name || 'N/A'}\n- 성별: ${merged.gender || 'N/A'}\n- 주민번호 앞자리: ${merged.social_number_front || 'N/A'}\n- 직원번호: ${merged.employee_id || 'N/A'}\n- 지점: ${merged.branch_name || 'N/A'}\n- 부서: ${merged.department || 'N/A'}\n- 직급: ${merged.position || 'N/A'}`)
       }
     } catch (error) {
-      console.error('문서 검증 중 오류:', error)
       alert('문서 검증 중 오류가 발생했습니다.')
     } finally {
       setIsProcessing(false)
@@ -242,7 +207,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
 
   const validateField = (field: keyof VerificationInfo, value: any) => {
     let error = ''
-    
+
     switch (field) {
       case 'employeeId':
         if (!value || !value.trim()) {
@@ -257,7 +222,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
         }
         break
     }
-    
+
     setErrors(prev => ({ ...prev, [field]: error }))
     return !error
   }
@@ -283,7 +248,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
       </div>
 
       <div className="space-y-8">
-        {/* 직원번호 입력 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             직원번호 <span className="text-red-500">*</span>
@@ -308,12 +273,12 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
           </p>
         </div>
 
-        {/* 검증 문서 업로드 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-4">
             검증 문서 <span className="text-red-500">*</span>
           </label>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {REQUIRED_DOCUMENTS.map((doc) => (
               <div key={doc.id} className="border border-gray-200 rounded-lg p-4">
@@ -355,8 +320,8 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                         </svg>
                       </button>
                     </div>
-                    
-                    {/* OCR 처리 중 표시 */}
+
+                    {}
                     {isProcessing && processingDoc === doc.id && (
                       <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
@@ -365,8 +330,8 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                         </span>
                       </div>
                     )}
-                    
-                    {/* 추출된 정보 표시 */}
+
+                    {}
                     {extractedInfos[doc.id] && (
                       <div className="space-y-2">
                         <div className="p-2 bg-blue-50 rounded border border-blue-200">
@@ -377,8 +342,8 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                             {extractedInfos[doc.id].position && <p>• 직급: {extractedInfos[doc.id].position}</p>}
                           </div>
                         </div>
-                        
-                        {/* 마스킹된 이미지 보기 버튼 */}
+
+                        {}
                         {maskedImages[doc.id] && (
                           <button
                             type="button"
@@ -433,7 +398,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
             </p>
           )}
 
-          {/* 일괄 검증 버튼 */}
+          {}
           {Object.keys(uploadedDocs).length >= 3 && (
             <div className="mt-4 flex justify-center">
               <button
@@ -460,7 +425,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
           )}
         </div>
 
-        {/* 추가 메모 */}
+        {}
         <div>
           <label className="block text-sm font-['Hana2.0_M'] text-gray-700 mb-2">
             추가 정보 (선택)
@@ -475,7 +440,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
         </div>
       </div>
 
-      {/* 안내 메시지 */}
+      {}
       <div className="mt-8 space-y-4">
         <div className="p-4 bg-yellow-50 rounded-lg">
           <div className="flex items-start">
@@ -510,7 +475,7 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700 font-['Hana2.0_M']">
-                제출된 문서는 상담사 신원 확인 목적으로만 사용되며 보안이 유지됩니다. 
+                제출된 문서는 상담사 신원 확인 목적으로만 사용되며 보안이 유지됩니다.
                 OCR로 자동 추출된 정보는 수정 가능하며, 검증 완료까지 1-2 영업일이 소요될 수 있습니다.
               </p>
             </div>
@@ -518,13 +483,13 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
         </div>
       </div>
 
-      {/* 마스킹된 이미지 모달 */}
+      {}
       {showModal && currentModalImage && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
           onClick={() => setShowModal(false)}
         >
-          <div 
+          <div
             className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -566,25 +531,25 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                 </button>
               </div>
             </div>
-            
+
             <div className="p-4">
-              <img 
+              <img
                 src={`data:image/png;base64,${currentModalImage}`}
                 alt="마스킹된 문서"
                 className="w-full h-auto"
               />
-              
-              {/* 추출된 정보 표시 */}
-              {Object.entries(isEditMode ? editedInfos : extractedInfos).map(([docId, info]) => 
+
+              {}
+              {Object.entries(isEditMode ? editedInfos : extractedInfos).map(([docId, info]) =>
                 maskedImages[docId]?.[0] === currentModalImage && (
                   <div key={docId} className="mt-4 space-y-3">
-                    {/* 추출 정보 카드 */}
+                    {}
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <h4 className="text-sm font-semibold text-blue-900 font-['Hana2.0_M'] mb-3">
                         📋 추출된 정보 {isEditMode && <span className="text-xs text-blue-600">(수정 모드)</span>}
                       </h4>
                       <div className="grid grid-cols-2 gap-3 text-sm font-['Hana2.0_M']">
-                        {/* 공통 필드: 이름 */}
+                        {}
                         <div className="flex flex-col space-y-1">
                           <label className="text-blue-700">이름:</label>
                           {isEditMode ? (
@@ -598,8 +563,8 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                             <span className="text-blue-900 font-medium">{info.name || '-'}</span>
                           )}
                         </div>
-                        
-                        {/* 재직증명서 전용 필드 */}
+
+                        {}
                         {docId === 'employment_contract' && (
                           <>
                             <div className="flex flex-col space-y-1">
@@ -671,8 +636,8 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                             </div>
                           </>
                         )}
-                        
-                        {/* 주민등록증 전용 필드 */}
+
+                        {}
                         {docId === 'identity_verification' && (
                           <>
                             <div className="flex flex-col space-y-1">
@@ -723,11 +688,11 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
                         )}
                       </div>
                     </div>
-                    
-                    {/* 안내 메시지 */}
+
+                    {}
                     <div className="p-3 bg-yellow-50 rounded-lg">
                       <p className="text-sm text-yellow-800 font-['Hana2.0_M']">
-                        {docId === 'identity_verification' 
+                        {docId === 'identity_verification'
                           ? 'ℹ️ 이미지에서 주민번호 뒷자리와 주소 상세 정보가 블러 처리되었습니다.'
                           : 'ℹ️ 민감한 정보는 이미지에서 자동으로 블러 처리되었습니다.'}
                       </p>
@@ -744,4 +709,3 @@ function Step5CounselorVerification({ verificationInfo, onVerificationInfoChange
 }
 
 export default Step5CounselorVerification
-

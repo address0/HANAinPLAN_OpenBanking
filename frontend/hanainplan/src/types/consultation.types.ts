@@ -1,4 +1,3 @@
-// 상담 관련 타입 정의
 
 export interface Consultation {
   id: string;
@@ -12,7 +11,7 @@ export interface Consultation {
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   consultationDate: string;
   consultationTime: string;
-  duration: number; // 분 단위
+  duration: number;
   meetingType: 'ONLINE' | 'OFFLINE' | 'PHONE';
   location?: string;
   notes?: string;

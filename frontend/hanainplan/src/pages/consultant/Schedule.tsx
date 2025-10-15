@@ -9,7 +9,6 @@ import koLocale from '@fullcalendar/core/locales/ko';
 import { fetchSchedules, createSchedule, deleteSchedule, type ScheduleEvent } from '../../api/scheduleApi';
 import './schedule.css';
 
-// FullCalendar 타입 정의
 interface DateSelectArg {
   start: Date;
   end: Date;
@@ -61,13 +60,11 @@ function ConsultantSchedule() {
 
   const queryClient = useQueryClient();
 
-  // 일정 목록 조회
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ['schedules'],
     queryFn: fetchSchedules
   });
 
-  // 일정 생성 mutation
   const createMutation = useMutation({
     mutationFn: createSchedule,
     onSuccess: () => {
@@ -80,7 +77,6 @@ function ConsultantSchedule() {
     }
   });
 
-  // 일정 삭제 mutation
   const deleteMutation = useMutation({
     mutationFn: deleteSchedule,
     onSuccess: () => {
@@ -93,7 +89,6 @@ function ConsultantSchedule() {
     }
   });
 
-  // 날짜 선택 핸들러
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedDate(selectInfo);
     setIsModalOpen(true);
@@ -105,7 +100,6 @@ function ConsultantSchedule() {
     });
   };
 
-  // 이벤트 클릭 핸들러
   const handleEventClick = (clickInfo: EventClickArg) => {
     const event = schedules.find(e => e.id === clickInfo.event.id);
     if (event) {
@@ -113,7 +107,6 @@ function ConsultantSchedule() {
     }
   };
 
-  // 모달 닫기
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedDate(null);
@@ -125,10 +118,9 @@ function ConsultantSchedule() {
     });
   };
 
-  // 일정 생성 제출
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedDate || !formData.title.trim()) {
       alert('제목을 입력해주세요.');
       return;
@@ -146,30 +138,28 @@ function ConsultantSchedule() {
     createMutation.mutate(newEvent);
   };
 
-  // 일정 삭제
   const handleDelete = () => {
     if (selectedEvent && confirm('정말 삭제하시겠습니까?')) {
       deleteMutation.mutate(selectedEvent.id);
     }
   };
 
-  // 이벤트 색상 가져오기
   const getEventColor = (type: string) => {
     switch (type.toLowerCase()) {
       case 'consultation':
         return {
-          backgroundColor: '#008485', // 청록색 (teal-500)
-          borderColor: '#008490', // 진한 청록색 (teal-600)
+          backgroundColor: '#008485',
+          borderColor: '#008490',
         };
       case 'meeting':
         return {
-          backgroundColor: '#3b82f6', // 파랑색 (blue-500)
-          borderColor: '#2563eb', // 진한 파랑색 (blue-600)
+          backgroundColor: '#3b82f6',
+          borderColor: '#2563eb',
         };
       case 'other':
         return {
-          backgroundColor: '#6b7280', // 회색 (gray-500)
-          borderColor: '#4b5563', // 진한 회색 (gray-600)
+          backgroundColor: '#6b7280',
+          borderColor: '#4b5563',
         };
       default:
         return {
@@ -179,13 +169,11 @@ function ConsultantSchedule() {
     }
   };
 
-  // 이벤트에 색상 적용
   const scheduleEvents = schedules.map(schedule => ({
     ...schedule,
     ...getEventColor(schedule.type || 'other')
   }));
 
-  // 시간을 24시간제로 포맷팅하는 함수
   const formatTime24Hour = (date: Date | null) => {
     if (!date) return '';
     return date.toLocaleTimeString('ko-KR', {
@@ -195,7 +183,6 @@ function ConsultantSchedule() {
     });
   };
 
-  // 이벤트 렌더링 커스터마이즈
   const renderEventContent = (eventContent: EventContentArg) => {
     const startTime = formatTime24Hour(eventContent.event.start);
     const endTime = formatTime24Hour(eventContent.event.end);
@@ -225,10 +212,10 @@ function ConsultantSchedule() {
     <Layout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* 헤더 */}
-          <h1 className="text-3xl font-hana-bold text-gray-900 mb-4">위클리 일정 관리</h1>  
+          {}
+          <h1 className="text-3xl font-hana-bold text-gray-900 mb-4">위클리 일정 관리</h1>
 
-          {/* 캘린더 */}
+          {}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -262,14 +249,14 @@ function ConsultantSchedule() {
             />
           </div>
 
-          {/* 일정 생성 모달 */}
+          {}
           {isModalOpen && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
                 <h2 className="text-2xl font-hana-bold text-gray-900 mb-4">새 일정 추가</h2>
                 <form onSubmit={handleSubmit}>
                   <div className="space-y-4">
-                    {/* 일정 유형 */}
+                    {}
                     <div>
                       <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                         일정 유형
@@ -285,7 +272,7 @@ function ConsultantSchedule() {
                       </select>
                     </div>
 
-                    {/* 제목 */}
+                    {}
                     <div>
                       <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                         제목 *
@@ -300,7 +287,7 @@ function ConsultantSchedule() {
                       />
                     </div>
 
-                    {/* 고객명 (상담인 경우) */}
+                    {}
                     {formData.type === 'consultation' && (
                       <div>
                         <label className="block text-sm font-hana-medium text-gray-700 mb-2">
@@ -316,7 +303,7 @@ function ConsultantSchedule() {
                       </div>
                     )}
 
-                    {/* 설명 */}
+                    {}
                     <div>
                       <label className="block text-sm font-hana-medium text-gray-700 mb-2">
                         설명
@@ -330,7 +317,7 @@ function ConsultantSchedule() {
                       />
                     </div>
 
-                    {/* 선택된 시간 표시 */}
+                    {}
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <p className="text-sm font-hana-medium text-gray-700">
                         선택된 시간: {selectedDate?.startStr ? new Date(selectedDate.startStr).toLocaleString('ko-KR') : ''} ~ {selectedDate?.endStr ? new Date(selectedDate.endStr).toLocaleString('ko-KR') : ''}
@@ -338,7 +325,7 @@ function ConsultantSchedule() {
                     </div>
                   </div>
 
-                  {/* 버튼 */}
+                  {}
                   <div className="flex gap-3 mt-6">
                     <button
                       type="button"
@@ -360,7 +347,7 @@ function ConsultantSchedule() {
             </div>
           )}
 
-          {/* 일정 상세 모달 */}
+          {}
           {selectedEvent && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
@@ -420,4 +407,3 @@ function ConsultantSchedule() {
 }
 
 export default ConsultantSchedule;
-

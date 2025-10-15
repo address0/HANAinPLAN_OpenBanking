@@ -58,7 +58,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
       };
     });
 
-    // 에러 메시지 클리어
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -72,7 +71,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
     setIsValidating(true);
     const newErrors: Record<string, string> = {};
 
-    // 기본 유효성 검사
     if (!formData.name.trim()) {
       newErrors.name = '이름을 입력해주세요.';
     }
@@ -118,7 +116,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
       return false;
     }
 
-    // 서버 유효성 검사
     try {
       const validationResult = await validatePersonalInfo(formData);
       if (!validationResult.valid) {
@@ -136,7 +133,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
         return false;
       }
     } catch (error) {
-      console.error('Validation error:', error);
       newErrors.general = '개인정보 검증 중 오류가 발생했습니다.';
       setErrors(newErrors);
       setIsValidating(false);
@@ -162,7 +158,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
         }));
       }
     } catch (error) {
-      console.error('Duplicate check error:', error);
     } finally {
       setIsDuplicateChecking(false);
     }
@@ -190,25 +185,25 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
 
   return (
     <div className="space-y-4">
-      {/* 헤더 */}
+      {}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">개인정보 입력</h1>
         <p className="text-gray-600">보험 가입에 필요한 개인정보를 입력해주세요</p>
       </div>
 
-      {/* 에러 메시지 */}
+      {}
       {errors.general && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-red-600 text-sm">{errors.general}</p>
         </div>
       )}
 
-      {/* 개인정보 입력 폼 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">기본 정보</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 이름 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               이름 <span className="text-red-500">*</span>
@@ -225,7 +220,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
 
-          {/* 주민등록번호 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               주민등록번호 <span className="text-red-500">*</span>
@@ -251,7 +246,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.residentNumber && <p className="text-red-500 text-xs mt-1">{errors.residentNumber}</p>}
           </div>
 
-          {/* 성별 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               성별 <span className="text-red-500">*</span>
@@ -282,7 +277,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             </div>
           </div>
 
-          {/* 생년월일 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               생년월일 <span className="text-red-500">*</span>
@@ -298,7 +293,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
           </div>
 
-          {/* 휴대폰 번호 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               휴대폰 번호 <span className="text-red-500">*</span>
@@ -315,7 +310,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber}</p>}
           </div>
 
-          {/* 이메일 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               이메일 <span className="text-red-500">*</span>
@@ -332,7 +327,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
 
-          {/* 직업 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               직업 <span className="text-red-500">*</span>
@@ -354,7 +349,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.occupation && <p className="text-red-500 text-xs mt-1">{errors.occupation}</p>}
           </div>
 
-          {/* 결혼상태 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               결혼상태 <span className="text-red-500">*</span>
@@ -374,12 +369,12 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
         </div>
       </div>
 
-      {/* 주소 정보 */}
+      {}
       <div className="bg-white rounded-lg shadow p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">주소 정보</h2>
-        
+
         <div className="space-y-3">
-          {/* 우편번호 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               우편번호 <span className="text-red-500">*</span>
@@ -404,7 +399,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
           </div>
 
-          {/* 기본 주소 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               기본 주소 <span className="text-red-500">*</span>
@@ -421,7 +416,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
             {errors.address1 && <p className="text-red-500 text-xs mt-1">{errors.address1}</p>}
           </div>
 
-          {/* 상세 주소 */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               상세 주소
@@ -437,7 +432,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
         </div>
       </div>
 
-      {/* 버튼 */}
+      {}
       <div className="flex justify-between">
         <button
           onClick={onPrevious}
@@ -462,4 +457,3 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ onNext, onPrevious }) => {
 };
 
 export default PersonalInfo;
-

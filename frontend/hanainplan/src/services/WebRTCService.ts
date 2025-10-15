@@ -19,11 +19,10 @@ class WebRTCService {
   private localStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
   private screenStream: MediaStream | null = null;
-  private videoSender: RTCRtpSender | null = null; // 비디오 트랙 Sender 저장
-  
-  // ICE candidate 큐 (remote description 설정 전에 도착한 candidate들 저장)
+  private videoSender: RTCRtpSender | null = null;
+
   private pendingIceCandidates: ICECandidateMessage[] = [];
-  
+
   private callState: CallState = {
     isInCall: false,
     roomId: null,
@@ -37,14 +36,12 @@ class WebRTCService {
     screenStream: null
   };
 
-  // 콜백 함수들
   private onLocalStreamCallback?: (stream: MediaStream) => void;
   private onRemoteStreamCallback?: (stream: MediaStream) => void;
   private onConnectionStateChangeCallback?: (state: RTCPeerConnectionState) => void;
   private onCallStateChangeCallback?: (state: CallState) => void;
   private onErrorCallback?: (error: Error) => void;
 
-  // ICE 서버 설정
   private iceServers: RTCIceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
@@ -55,14 +52,12 @@ class WebRTCService {
     this.setupWebSocketCallbacks();
   }
 
-  // WebSocket 콜백 설정
   private setupWebSocketCallbacks(): void {
     WebSocketService.onOffer(this.handleRemoteOffer.bind(this));
     WebSocketService.onAnswer(this.handleRemoteAnswer.bind(this));
     WebSocketService.onIceCandidate(this.handleRemoteIceCandidate.bind(this));
   }
 
-  // 로컬 미디어 스트림 초기화
   async initializeMedia(audioEnabled = true, videoEnabled = true): Promise<MediaStream> {
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
@@ -76,19 +71,16 @@ class WebRTCService {
 
       return this.localStream;
     } catch (error) {
-      console.error('Error accessing media devices:', error);
       this.onErrorCallback?.(new Error('미디어 장치에 접근할 수 없습니다.'));
       throw error;
     }
   }
 
-  // PeerConnection 생성
   private createPeerConnection(): RTCPeerConnection {
     const peerConnection = new RTCPeerConnection({
       iceServers: this.iceServers
     });
 
-    // ICE candidate 이벤트 처리
     peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.callState.roomId) {
         const iceMessage: ICECandidateMessage = {
@@ -103,7 +95,6 @@ class WebRTCService {
       }
     };
 
-    // 원격 스트림 수신
     peerConnection.ontrack = (event) => {
       this.remoteStream = event.streams[0];
       this.callState.remoteStream = this.remoteStream;
@@ -111,17 +102,13 @@ class WebRTCService {
       this.notifyCallStateChange();
     };
 
-    // 연결 상태 변경
     peerConnection.onconnectionstatechange = () => {
-      console.log('Connection state changed:', peerConnection.connectionState);
       this.callState.isConnected = peerConnection.connectionState === 'connected';
       this.onConnectionStateChangeCallback?.(peerConnection.connectionState);
       this.notifyCallStateChange();
     };
 
-    // ICE 연결 상태 변경
     peerConnection.oniceconnectionstatechange = () => {
-      console.log('ICE connection state changed:', peerConnection.iceConnectionState);
       if (peerConnection.iceConnectionState === 'failed') {
         this.onErrorCallback?.(new Error('WebRTC 연결에 실패했습니다.'));
       }
@@ -130,7 +117,6 @@ class WebRTCService {
     return peerConnection;
   }
 
-  // 통화 시작 (발신자)
   async startCall(roomId: string, calleeId: number): Promise<void> {
     try {
       if (!this.localStream) {
@@ -138,13 +124,11 @@ class WebRTCService {
       }
 
       this.peerConnection = this.createPeerConnection();
-      
-      // 로컬 스트림을 PeerConnection에 추가
+
       this.localStream!.getTracks().forEach(track => {
         this.peerConnection!.addTrack(track, this.localStream!);
       });
 
-      // 통화 상태 설정
       this.callState = {
         ...this.callState,
         isInCall: true,
@@ -155,13 +139,11 @@ class WebRTCService {
       this.notifyCallStateChange();
 
     } catch (error) {
-      console.error('Error starting call:', error);
       this.onErrorCallback?.(new Error('통화를 시작할 수 없습니다.'));
       throw error;
     }
   }
 
-  // 발신자: 수신자 수락 이후 Offer 생성 및 전송
   async sendOffer(roomId: string, receiverId: number): Promise<void> {
     try {
       if (!this.peerConnection) {
@@ -169,7 +151,6 @@ class WebRTCService {
         if (this.localStream) {
           this.localStream.getTracks().forEach(track => {
             const sender = this.peerConnection!.addTrack(track, this.localStream!);
-            // 비디오 트랙의 Sender 저장 (화면 공유 시 교체용)
             if (track.kind === 'video') {
               this.videoSender = sender;
             }
@@ -190,13 +171,11 @@ class WebRTCService {
 
       WebSocketService.sendOffer(offerMessage);
     } catch (error) {
-      console.error('❌ Error sending offer:', error);
       this.onErrorCallback?.(new Error('Offer 전송 중 오류가 발생했습니다.'));
       throw error;
     }
   }
 
-  // 통화 수락 (수신자)
   async acceptCall(roomId: string, callerId: number): Promise<void> {
     try {
       if (!this.localStream) {
@@ -204,17 +183,14 @@ class WebRTCService {
       }
 
       this.peerConnection = this.createPeerConnection();
-      
-      // 로컬 스트림을 PeerConnection에 추가
+
       this.localStream!.getTracks().forEach(track => {
         const sender = this.peerConnection!.addTrack(track, this.localStream!);
-        // 비디오 트랙의 Sender 저장 (화면 공유 시 교체용)
         if (track.kind === 'video') {
           this.videoSender = sender;
         }
       });
 
-      // 통화 상태 설정
       this.callState = {
         ...this.callState,
         isInCall: true,
@@ -226,39 +202,31 @@ class WebRTCService {
       this.notifyCallStateChange();
 
     } catch (error) {
-      console.error('Error accepting call:', error);
       this.onErrorCallback?.(new Error('통화를 수락할 수 없습니다.'));
       throw error;
     }
   }
 
-  // Offer 처리 (public 메서드)
   async handleOffer(offerMessage: SDPMessage): Promise<void> {
     await this.handleRemoteOffer(offerMessage);
   }
 
-  // 원격 Offer 처리
   private async handleRemoteOffer(offerMessage: SDPMessage): Promise<void> {
     try {
       if (!this.peerConnection) {
-        // 미디어 스트림이 없으면 초기화
         if (!this.localStream) {
           await this.initializeMedia();
         }
-        
-        // PeerConnection 생성
+
         this.peerConnection = this.createPeerConnection();
-        
-        // 로컬 스트림 추가
+
         this.localStream!.getTracks().forEach(track => {
           const sender = this.peerConnection!.addTrack(track, this.localStream!);
-          // 비디오 트랙의 Sender 저장 (화면 공유 시 교체용)
           if (track.kind === 'video') {
             this.videoSender = sender;
           }
         });
-        
-        // 통화 상태 업데이트 (수신자로 설정)
+
         this.callState = {
           ...this.callState,
           isInCall: true,
@@ -266,7 +234,7 @@ class WebRTCService {
           callerId: offerMessage.senderId,
           isCaller: false
         };
-        
+
         this.notifyCallStateChange();
       }
 
@@ -277,10 +245,8 @@ class WebRTCService {
 
       await this.peerConnection.setRemoteDescription(offer);
 
-      // Remote description이 설정되었으므로 대기 중인 ICE candidate들 처리
       await this.processPendingIceCandidates();
 
-      // Answer 생성 및 전송
       const answer = await this.peerConnection.createAnswer();
       await this.peerConnection.setLocalDescription(answer);
 
@@ -295,21 +261,17 @@ class WebRTCService {
       WebSocketService.sendAnswer(answerMessage);
 
     } catch (error) {
-      console.error('Error handling remote offer:', error);
       this.onErrorCallback?.(new Error('원격 Offer 처리 중 오류가 발생했습니다.'));
     }
   }
 
-  // Answer 처리 (public 메서드)
   async handleAnswer(answerMessage: SDPMessage): Promise<void> {
     await this.handleRemoteAnswer(answerMessage);
   }
 
-  // 원격 Answer 처리
   private async handleRemoteAnswer(answerMessage: SDPMessage): Promise<void> {
     try {
       if (!this.peerConnection) {
-        console.error('PeerConnection not initialized when receiving answer');
         return;
       }
 
@@ -320,24 +282,19 @@ class WebRTCService {
 
       await this.peerConnection.setRemoteDescription(answer);
 
-      // Remote description이 설정되었으므로 대기 중인 ICE candidate들 처리
       await this.processPendingIceCandidates();
 
     } catch (error) {
-      console.error('Error handling remote answer:', error);
       this.onErrorCallback?.(new Error('원격 Answer 처리 중 오류가 발생했습니다.'));
     }
   }
 
-  // 원격 ICE Candidate 처리
-  // ICE Candidate 처리 (public 메서드)
   async handleIceCandidate(iceMessage: ICECandidateMessage): Promise<void> {
     await this.handleRemoteIceCandidate(iceMessage);
   }
 
   private async handleRemoteIceCandidate(iceMessage: ICECandidateMessage): Promise<void> {
     try {
-      // PeerConnection이 없거나 remote description이 없으면 큐에 저장
       if (!this.peerConnection || !this.peerConnection.remoteDescription) {
         this.pendingIceCandidates.push(iceMessage);
         return;
@@ -352,17 +309,15 @@ class WebRTCService {
       await this.peerConnection.addIceCandidate(candidate);
 
     } catch (error) {
-      console.error('❌ Error handling remote ICE candidate:', error);
       this.onErrorCallback?.(new Error('ICE Candidate 처리 중 오류가 발생했습니다.'));
     }
   }
 
-  // 대기 중인 ICE candidate들 처리
   private async processPendingIceCandidates(): Promise<void> {
     if (!this.peerConnection || this.pendingIceCandidates.length === 0) {
       return;
     }
-    
+
     for (const iceMessage of this.pendingIceCandidates) {
       try {
         const candidate = new RTCIceCandidate({
@@ -373,37 +328,29 @@ class WebRTCService {
 
         await this.peerConnection.addIceCandidate(candidate);
       } catch (error) {
-        console.error('Error adding pending ICE candidate:', error);
       }
     }
 
-    // 처리 완료된 candidate들 제거
     this.pendingIceCandidates = [];
   }
 
-  // 통화 종료
   endCall(): void {
-    // 화면 공유 중이면 중지
     if (this.screenStream) {
       this.stopScreenShare();
     }
 
-    // 로컬 스트림 정리
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
       this.localStream = null;
     }
 
-    // PeerConnection 정리
     if (this.peerConnection) {
       this.peerConnection.close();
       this.peerConnection = null;
     }
 
-    // 대기 중인 ICE candidate들 제거
     this.pendingIceCandidates = [];
 
-    // 통화 상태 초기화
     this.callState = {
       isInCall: false,
       roomId: null,
@@ -422,7 +369,6 @@ class WebRTCService {
     this.notifyCallStateChange();
   }
 
-  // 마이크 음소거/해제
   toggleMicrophone(): boolean {
     if (this.localStream) {
       const audioTrack = this.localStream.getAudioTracks()[0];
@@ -434,7 +380,6 @@ class WebRTCService {
     return false;
   }
 
-  // 비디오 켜기/끄기
   toggleVideo(): boolean {
     if (this.localStream) {
       const videoTrack = this.localStream.getVideoTracks()[0];
@@ -446,14 +391,11 @@ class WebRTCService {
     return false;
   }
 
-  // 상태 변경 알림
   private notifyCallStateChange(): void {
-    // 새로운 객체를 생성해서 전달 (React 상태 업데이트 보장)
     const newState: CallState = { ...this.callState };
     this.onCallStateChangeCallback?.(newState);
   }
 
-  // 콜백 등록 메소드들
   onLocalStream(callback: (stream: MediaStream) => void): void {
     this.onLocalStreamCallback = callback;
   }
@@ -474,12 +416,10 @@ class WebRTCService {
     this.onErrorCallback = callback;
   }
 
-  // 현재 통화 상태 반환
   getCallState(): CallState {
     return { ...this.callState };
   }
 
-  // 미디어 스트림 반환
   getLocalStream(): MediaStream | null {
     return this.localStream;
   }
@@ -488,7 +428,6 @@ class WebRTCService {
     return this.remoteStream;
   }
 
-  // 테스트용 미디어 중지 (통화 중이 아닐 때만)
   stopMediaForTest(): void {
     if (!this.callState.isInCall && this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
@@ -498,7 +437,6 @@ class WebRTCService {
     }
   }
 
-  // 화면 공유 시작
   async startScreenShare(): Promise<void> {
     try {
       if (!this.peerConnection) {
@@ -509,7 +447,6 @@ class WebRTCService {
         throw new Error('이미 화면 공유 중입니다.');
       }
 
-      // 화면 캡처 시작
       this.screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           cursor: 'always' as any
@@ -517,15 +454,12 @@ class WebRTCService {
         audio: false
       });
 
-      // 화면 공유 트랙 가져오기
       const screenTrack = this.screenStream.getVideoTracks()[0];
 
-      // 기존 비디오 트랙을 화면 공유 트랙으로 교체
       if (this.videoSender) {
         await this.videoSender.replaceTrack(screenTrack);
       }
 
-      // 화면 공유 중지 이벤트 리스너 (사용자가 브라우저에서 공유 중지 버튼 클릭 시)
       screenTrack.onended = () => {
         this.stopScreenShare();
       };
@@ -534,26 +468,21 @@ class WebRTCService {
       this.callState.screenStream = this.screenStream;
       this.notifyCallStateChange();
 
-      console.log('Screen sharing started');
     } catch (error) {
-      console.error('Error starting screen share:', error);
       this.onErrorCallback?.(new Error('화면 공유를 시작할 수 없습니다.'));
       throw error;
     }
   }
 
-  // 화면 공유 중지
   async stopScreenShare(): Promise<void> {
     try {
       if (!this.callState.isScreenSharing || !this.screenStream) {
         return;
       }
 
-      // 화면 공유 스트림 중지
       this.screenStream.getTracks().forEach(track => track.stop());
       this.screenStream = null;
 
-      // 원래 카메라 비디오로 복구
       if (this.videoSender && this.localStream) {
         const videoTrack = this.localStream.getVideoTracks()[0];
         if (videoTrack) {
@@ -565,14 +494,11 @@ class WebRTCService {
       this.callState.screenStream = null;
       this.notifyCallStateChange();
 
-      console.log('Screen sharing stopped');
     } catch (error) {
-      console.error('Error stopping screen share:', error);
       this.onErrorCallback?.(new Error('화면 공유를 중지할 수 없습니다.'));
     }
   }
 
-  // 화면 공유 토글
   async toggleScreenShare(): Promise<boolean> {
     if (this.callState.isScreenSharing) {
       await this.stopScreenShare();
@@ -584,4 +510,4 @@ class WebRTCService {
   }
 }
 
-export default new WebRTCService(); 
+export default new WebRTCService();

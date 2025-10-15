@@ -7,13 +7,11 @@ interface InterestRateComparisonProps {
 
 function InterestRateComparison({ rates }: InterestRateComparisonProps) {
   const [selectedBank, setSelectedBank] = useState<string>('ALL');
-  
-  // 은행별로 필터링
-  const filteredRates = selectedBank === 'ALL' 
-    ? rates 
+
+  const filteredRates = selectedBank === 'ALL'
+    ? rates
     : rates.filter(rate => rate.bankCode === selectedBank);
-  
-  // 은행별로 그룹화
+
   const ratesByBank: { [key: string]: InterestRateInfo[] } = {};
   filteredRates.forEach(rate => {
     if (!ratesByBank[rate.bankName]) {
@@ -21,18 +19,17 @@ function InterestRateComparison({ rates }: InterestRateComparisonProps) {
     }
     ratesByBank[rate.bankName].push(rate);
   });
-  
-  // 만기기간별로 정렬
+
   const periodOrder = ['6개월', '1년', '2년', '3년', '5년'];
   Object.keys(ratesByBank).forEach(bankName => {
     ratesByBank[bankName].sort((a, b) => {
       return periodOrder.indexOf(a.maturityPeriod) - periodOrder.indexOf(b.maturityPeriod);
     });
   });
-  
+
   return (
     <div className="space-y-6">
-      {/* 은행 선택 탭 */}
+      {}
       <div className="flex gap-2 border-b border-gray-200">
         {['ALL', 'HANA', 'KOOKMIN', 'SHINHAN'].map(bank => (
           <button
@@ -48,21 +45,20 @@ function InterestRateComparison({ rates }: InterestRateComparisonProps) {
           </button>
         ))}
       </div>
-      
-      {/* 금리 정보 테이블 */}
+
+      {}
       {Object.entries(ratesByBank).map(([bankName, bankRates]) => {
-        // 일반 정기예금과 디폴트옵션 분리
         const normalDeposits = bankRates.filter(r => r.productCode.includes('001'));
         const defaultOptions = bankRates.filter(r => r.productCode.includes('002'));
-        
+
         return (
           <div key={bankName} className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="bg-gradient-to-r from-hana-green to-green-600 text-white px-6 py-4">
               <h3 className="text-xl font-hana-bold">{bankName}</h3>
             </div>
-            
+
             <div className="p-6 space-y-6">
-              {/* 일반 정기예금 */}
+              {}
               {normalDeposits.length > 0 && (
                 <div>
                   <h4 className="text-lg font-hana-bold text-gray-900 mb-4">일반 정기예금</h4>
@@ -95,12 +91,12 @@ function InterestRateComparison({ rates }: InterestRateComparisonProps) {
                   </div>
                 </div>
               )}
-              
-              {/* 디폴트옵션 */}
+
+              {}
               {defaultOptions.length > 0 && (
                 <div>
                   <h4 className="text-lg font-hana-bold text-gray-900 mb-4">
-                    디폴트옵션 정기예금 
+                    디폴트옵션 정기예금
                     <span className="ml-2 text-sm font-hana-regular text-gray-500">
                       (자동 만기 연장형)
                     </span>
@@ -129,7 +125,7 @@ function InterestRateComparison({ rates }: InterestRateComparisonProps) {
           </div>
         );
       })}
-      
+
       {filteredRates.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           금리 정보가 없습니다.
@@ -140,6 +136,3 @@ function InterestRateComparison({ rates }: InterestRateComparisonProps) {
 }
 
 export default InterestRateComparison;
-
-
-
