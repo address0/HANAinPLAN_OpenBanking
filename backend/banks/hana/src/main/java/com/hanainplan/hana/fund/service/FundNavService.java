@@ -53,3 +53,5 @@ public class FundNavService {
         return fundNavRepository.findByChildFundCdAndNavDate(childFundCd, navDate);
     }
 }
+
+

@@ -24,10 +24,10 @@ public class BankWithdrawalService {
     @Value("${external.api.hana-bank.base-url:http://localhost:8081}")
     private String hanaBankBaseUrl;
 
-    @Value("${external.api.kookmin-bank.base-url:http://localhost:8082}")
+    @Value("${external.api.kookmin-bank.base-url:http://localhost:8083}")
     private String kookminBankBaseUrl;
 
-    @Value("${external.api.shinhan-bank.base-url:http://localhost:8083}")
+    @Value("${external.api.shinhan-bank.base-url:http://localhost:8082}")
     private String shinhanBankBaseUrl;
 
     public BankWithdrawalResult processWithdrawal(String accountNumber, BigDecimal amount, String description) {

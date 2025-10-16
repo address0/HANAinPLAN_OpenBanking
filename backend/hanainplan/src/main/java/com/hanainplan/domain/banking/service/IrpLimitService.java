@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -24,9 +25,11 @@ public class IrpLimitService {
 
     public void checkAnnualLimit(String customerCi, BigDecimal depositAmount) {
         int currentYear = LocalDate.now().getYear();
+        LocalDateTime startDate = LocalDateTime.of(currentYear, 1, 1, 0, 0, 0);
+        LocalDateTime endDate = LocalDateTime.of(currentYear + 1, 1, 1, 0, 0, 0);
         
         BigDecimal yearlyTotal = transactionRepository
-                .sumIrpDepositsByCustomerCiAndYear(customerCi, currentYear)
+                .sumIrpDepositsByCustomerCiAndYear(customerCi, startDate, endDate)
                 .orElse(BigDecimal.ZERO);
         
         BigDecimal newTotal = yearlyTotal.add(depositAmount);
@@ -51,9 +54,11 @@ public class IrpLimitService {
 
     public IrpLimitStatus getAnnualLimitStatus(String customerCi) {
         int currentYear = LocalDate.now().getYear();
+        LocalDateTime startDate = LocalDateTime.of(currentYear, 1, 1, 0, 0, 0);
+        LocalDateTime endDate = LocalDateTime.of(currentYear + 1, 1, 1, 0, 0, 0);
         
         BigDecimal yearlyTotal = transactionRepository
-                .sumIrpDepositsByCustomerCiAndYear(customerCi, currentYear)
+                .sumIrpDepositsByCustomerCiAndYear(customerCi, startDate, endDate)
                 .orElse(BigDecimal.ZERO);
         
         return IrpLimitStatus.of(currentYear, yearlyTotal, ANNUAL_LIMIT);

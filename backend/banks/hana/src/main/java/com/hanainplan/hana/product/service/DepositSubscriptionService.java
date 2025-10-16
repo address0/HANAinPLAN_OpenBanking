@@ -76,7 +76,7 @@ public class DepositSubscriptionService {
         ProductSubscription subscription = ProductSubscription.builder()
                 .customerCi(request.getCustomerCi())
                 .productCode(request.getProductCode())
-                .accountNumber(request.getAccountNumber())
+                .accountNumber(request.getIrpAccountNumber()) // IRP 계좌번호 사용
                 .status(request.getStatus())
                 .subscriptionDate(LocalDate.parse(request.getSubscriptionDate()))
                 .maturityDate(LocalDate.parse(request.getMaturityDate()))

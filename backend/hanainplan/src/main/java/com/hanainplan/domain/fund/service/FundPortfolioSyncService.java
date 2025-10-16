@@ -149,7 +149,7 @@ public class FundPortfolioSyncService {
                             "HANA_TX_" + hanaTransactionId);
 
                     if (!exists) {
-                        FundTransaction transaction = createNewTransaction(userId, hanaTransaction);
+                        FundTransaction transaction = createNewTransaction(userId, customerCi, hanaTransaction);
                         fundTransactionRepository.save(transaction);
                         syncedCount++;
                         log.debug("신규 펀드 거래 내역 생성 - hanaTransactionId: {}", hanaTransactionId);
@@ -217,12 +217,17 @@ public class FundPortfolioSyncService {
         portfolio.setUpdatedAt(LocalDateTime.now());
     }
 
-    private FundTransaction createNewTransaction(Long userId, Map<String, Object> hanaTransaction) {
+    private FundTransaction createNewTransaction(Long userId, String customerCi, Map<String, Object> hanaTransaction) {
         Long hanaTransactionId = ((Number) hanaTransaction.get("transactionId")).longValue();
         Long subscriptionId = ((Number) hanaTransaction.get("subscriptionId")).longValue();
+        
+        // subscriptionId로 FundPortfolio를 찾아서 실제 portfolioId를 가져옴
+        FundPortfolio portfolio = fundPortfolioRepository
+                .findByCustomerCiAndSubscriptionId(customerCi, subscriptionId)
+                .orElseThrow(() -> new RuntimeException("포트폴리오를 찾을 수 없습니다 - subscriptionId: " + subscriptionId));
 
         return FundTransaction.builder()
-                .portfolioId(subscriptionId)
+                .portfolioId(portfolio.getPortfolioId()) // 실제 portfolioId 사용
                 .userId(userId)
                 .fundCode((String) hanaTransaction.get("childFundCd"))
                 .transactionType((String) hanaTransaction.get("transactionType"))

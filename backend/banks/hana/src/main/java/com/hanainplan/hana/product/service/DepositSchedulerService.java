@@ -19,12 +19,35 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DepositSchedulerService {
 
+    // TaxResult 클래스를 내부에 정의
+    public static class TaxResult {
+        private final BigDecimal grossAmount;
+        private final BigDecimal totalTax;
+        private final BigDecimal netAmount;
+        private final BigDecimal incomeTax;
+        private final BigDecimal localTax;
+
+        public TaxResult(BigDecimal grossAmount, BigDecimal totalTax, BigDecimal netAmount) {
+            this.grossAmount = grossAmount;
+            this.totalTax = totalTax;
+            this.netAmount = netAmount;
+            // 이자소득세: 소득세 14% + 지방소득세 1.4% = 총 15.4%
+            this.incomeTax = grossAmount.multiply(new BigDecimal("0.14"));
+            this.localTax = grossAmount.multiply(new BigDecimal("0.014"));
+        }
+
+        public BigDecimal getGrossAmount() { return grossAmount; }
+        public BigDecimal getTotalTax() { return totalTax; }
+        public BigDecimal getNetAmount() { return netAmount; }
+        public BigDecimal getIncomeTax() { return incomeTax; }
+        public BigDecimal getLocalTax() { return localTax; }
+    }
+
     private final DepositSubscriptionRepository depositSubscriptionRepository;
     private final com.hanainplan.hana.account.repository.AccountRepository accountRepository;
     private final com.hanainplan.hana.account.repository.TransactionRepository transactionRepository;
     
-    @Autowired(required = false)
-    private com.hanainplan.domain.banking.service.TaxCalculationService taxCalculationService;
+    // TaxCalculationService는 hanainplan 모듈에 있으므로 제거
 
     @Scheduled(cron = "0 0 1 * * ?")
     @Transactional
@@ -122,24 +145,23 @@ public class DepositSchedulerService {
                 deposit.getProductType() == 2 ? "일" : "개월",
                 maturityInterest);
 
-        if (taxCalculationService != null) {
-            com.hanainplan.domain.banking.dto.TaxResult taxResult = 
-                    taxCalculationService.calculateInterestTax(maturityInterest);
-            
-            log.info("세금 계산 - 세전: {}, 세액: {}, 세후: {}", 
-                    taxResult.getGrossAmount(), taxResult.getTotalTax(), taxResult.getNetAmount());
-            
-            deposit.processInterestPaymentWithTax(
-                    taxResult.getGrossAmount(),
-                    taxResult.getTotalTax(),
-                    taxResult.getNetAmount()
-            );
-            
-            createMaturityTransactions(deposit, taxResult);
-        } else {
-            deposit.processInterestPayment(maturityInterest);
-            createSimpleInterestTransaction(deposit, maturityInterest);
-        }
+        // 간단한 세금 계산 (이자소득세 15.4%)
+        BigDecimal taxRate = new BigDecimal("0.154");
+        BigDecimal totalTax = maturityInterest.multiply(taxRate);
+        BigDecimal netAmount = maturityInterest.subtract(totalTax);
+        
+        TaxResult taxResult = new TaxResult(maturityInterest, totalTax, netAmount);
+        
+        log.info("세금 계산 - 세전: {}, 세액: {}, 세후: {}", 
+                taxResult.getGrossAmount(), taxResult.getTotalTax(), taxResult.getNetAmount());
+        
+        deposit.processInterestPaymentWithTax(
+                taxResult.getGrossAmount(),
+                taxResult.getTotalTax(),
+                taxResult.getNetAmount()
+        );
+        
+        createMaturityTransactions(deposit, taxResult);
 
         deposit.setStatus("MATURED");
 
@@ -211,7 +233,7 @@ public class DepositSchedulerService {
     }
 
     private void createMaturityTransactions(DepositSubscription deposit, 
-                                           com.hanainplan.domain.banking.dto.TaxResult taxResult) {
+                                           TaxResult taxResult) {
         try {
             com.hanainplan.hana.account.entity.Account account = accountRepository
                     .findByAccountNumber(deposit.getAccountNumber())
