@@ -133,12 +133,13 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
           setTimeLeft(180)
           onDataChange({ verificationCode: '', isPhoneVerified: false })
           setIsVerified(false)
+          console.log(response.verificationCode)
 
           setAlertModal({
             isOpen: true,
             title: '인증번호 전송',
-            message: `인증번호가 전송되었습니다. (개발용: ${response.verificationCode})`,
-            type: 'success'
+              message: '인증번호가 전송되었습니다.',
+              type: 'success'
           })
         } else {
           setAlertModal({
@@ -262,7 +263,7 @@ function Step2BasicInfo({ signUpData, onDataChange, isValid }: Step2Props) {
   }
 
   useEffect(() => {
-    let interval: number | null = null
+    let interval: NodeJS.Timeout | null = null
 
     if (isCodeSent && timeLeft > 0) {
       interval = setInterval(() => {

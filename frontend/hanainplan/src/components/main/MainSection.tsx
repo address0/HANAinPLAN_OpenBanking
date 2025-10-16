@@ -97,18 +97,23 @@ function MainSection() {
               <h3 className="text-2xl sm:text-3xl font-hana-bold text-gray-900 text-left">
                 복잡한 연금관리, 이제는 하나의 계좌로
               </h3>
-              <div className="mt-8 text-gray-600 font-hana-medium text-base sm:text-lg leading-6 text-left">
+              <div className="mt-8 text-gray-600 font-hana-medium text-base sm:text-lg leading-6 text-left mb-8">
                 <p>IRP 계좌를 개설하고 자동이체를 설정하면,</p>
                 <p>연 900만원까지 소득에 대한 세제혜택을 받을 수 있어요.</p>
                 <br />
                 <p>IRP 계좌 안에서 정기예금, 펀드를 가입하고</p>
                 <p>HANAinPLAN에서 내 자산을 관리받아 보세요.</p>
               </div>
+              <CTAButton
+                label="IRP 계좌 개설하러 가기 →"
+                href="/products/irp"
+                className="w-full sm:w-[320px] h-[56px]"
+              />
             </div>
           </div>
         </div>
 
-        {}
+        {/* {}
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 place-items-center">
           {[
             {
@@ -166,7 +171,7 @@ function MainSection() {
               />
             </div>
           ))}
-        </div>
+        </div> */}
       </section>
 
       {}
