@@ -5,6 +5,7 @@ import AssetSummary from '../components/portfolio/AssetSummary';
 import SavingsInsurance from '../components/portfolio/SavingsInsurance';
 import AssetDistribution from '../components/portfolio/AssetDistribution';
 import IrpProductsPortfolio from '../components/portfolio/IrpProductsPortfolio';
+import IrpRebalancing from '../components/portfolio/IrpRebalancing';
 import { getAllAccounts, type AllAccountsResponse } from '../api/bankingApi';
 
 interface PortfolioData {
@@ -249,6 +250,16 @@ function Portfolio() {
           {allAccountsData?.irpAccount && (
             <div className="mb-8">
               <IrpProductsPortfolio irpAccountNumber={allAccountsData.irpAccount.accountNumber} />
+            </div>
+          )}
+
+          {}
+          {allAccountsData?.irpAccount && user?.id && (
+            <div className="mb-8">
+              <IrpRebalancing 
+                customerId={user.id} 
+                irpAccountNumber={allAccountsData.irpAccount.accountNumber} 
+              />
             </div>
           )}
 
