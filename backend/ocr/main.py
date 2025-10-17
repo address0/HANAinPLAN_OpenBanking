@@ -2,6 +2,7 @@ import io
 import re
 import base64
 import os
+import math
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -76,6 +77,27 @@ class CounselorRegistrationData(BaseModel):
     license_number: Optional[str] = None
     license_issue_date: Optional[str] = None
     hire_date: Optional[str] = None
+
+class SimilarUserRequest(BaseModel):
+    customer_id: int
+    birth_year: int
+    industry_code: str
+    asset_level: str
+    risk_profile_score: float
+    has_disease: bool
+
+class SimilarUser(BaseModel):
+    customer_id: int
+    similarity: float
+
+class AveragePortfolio(BaseModel):
+    cash_weight: float
+    deposit_weight: float
+    fund_weight: float
+
+class SimilarUserResponse(BaseModel):
+    similar_users: List[SimilarUser]
+    avg_portfolio: AveragePortfolio
 
 def get_db_connection():
     """MySQL 데이터베이스 연결"""
@@ -420,6 +442,170 @@ def extract_issue_date(text: str) -> Optional[str]:
         if match:
             return match.group(1)
     return None
+
+def calculate_age_similarity(birth_year1: int, birth_year2: int) -> float:
+    """나이 유사도 계산 (±5년 범위 내에서 유사도 계산)"""
+    age_diff = abs(birth_year1 - birth_year2)
+    if age_diff <= 5:
+        return 1.0 - (age_diff / 5.0) * 0.3  # 최대 30% 감점
+    elif age_diff <= 10:
+        return 0.7 - ((age_diff - 5) / 5.0) * 0.4  # 5-10년 차이시 0.7에서 0.3까지
+    else:
+        return max(0.0, 0.3 - (age_diff - 10) * 0.05)  # 10년 이상 차이시 더 감점
+
+def calculate_industry_similarity(industry1: str, industry2: str) -> float:
+    """직업군 유사도 계산 (같은 분류면 높은 유사도)"""
+    if industry1 == industry2:
+        return 1.0
+    
+    # 업종 분류별 가중치 (실제로는 더 세분화 가능)
+    industry_groups = {
+        'IT': ['IT001', 'IT002', 'IT003'],
+        'FINANCE': ['FIN001', 'FIN002', 'FIN003'],
+        'MANUFACTURING': ['MAN001', 'MAN002', 'MAN003'],
+        'SERVICE': ['SVC001', 'SVC002', 'SVC003'],
+        'PUBLIC': ['PUB001', 'PUB002', 'PUB003']
+    }
+    
+    for group, codes in industry_groups.items():
+        if industry1 in codes and industry2 in codes:
+            return 0.8  # 같은 그룹 내 다른 업종
+        elif industry1 in codes or industry2 in codes:
+            return 0.3  # 다른 그룹
+    
+    return 0.1  # 전혀 다른 업종
+
+def calculate_asset_level_similarity(asset1: str, asset2: str) -> float:
+    """자산 규모 유사도 계산"""
+    if asset1 == asset2:
+        return 1.0
+    
+    # 자산 규모 순서 정의
+    asset_levels = ['UNDER_1', 'FROM_1_TO_5', 'FROM_5_TO_10', 'FROM_10_TO_30', 'FROM_30_TO_50', 'OVER_50']
+    
+    try:
+        idx1 = asset_levels.index(asset1)
+        idx2 = asset_levels.index(asset2)
+        level_diff = abs(idx1 - idx2)
+        
+        if level_diff == 1:
+            return 0.8  # 인접한 자산 규모
+        elif level_diff == 2:
+            return 0.6  # 2단계 차이
+        elif level_diff == 3:
+            return 0.4  # 3단계 차이
+        else:
+            return 0.2  # 큰 차이
+    except ValueError:
+        return 0.1
+
+def calculate_risk_profile_similarity(risk1: float, risk2: float) -> float:
+    """리스크 프로파일 유사도 계산 (±0.5 범위 내에서 유사도 계산)"""
+    risk_diff = abs(risk1 - risk2)
+    if risk_diff <= 0.5:
+        return 1.0 - (risk_diff / 0.5) * 0.2  # 최대 20% 감점
+    elif risk_diff <= 1.0:
+        return 0.8 - ((risk_diff - 0.5) / 0.5) * 0.3  # 0.5-1.0 차이시 0.8에서 0.5까지
+    else:
+        return max(0.0, 0.5 - (risk_diff - 1.0) * 0.1)  # 1.0 이상 차이시 더 감점
+
+def calculate_health_similarity(has_disease1: bool, has_disease2: bool) -> float:
+    """건강 상태 유사도 계산"""
+    if has_disease1 == has_disease2:
+        return 1.0
+    else:
+        return 0.7  # 건강 상태가 다르면 30% 감점
+
+def calculate_overall_similarity(user1: Dict, user2: Dict) -> float:
+    """전체 유사도 계산 (가중 평균)"""
+    # 각 요소별 가중치
+    weights = {
+        'age': 0.25,
+        'industry': 0.20,
+        'asset': 0.25,
+        'risk': 0.25,
+        'health': 0.05
+    }
+    
+    age_sim = calculate_age_similarity(user1['birth_year'], user2['birth_year'])
+    industry_sim = calculate_industry_similarity(user1['industry_code'], user2['industry_code'])
+    asset_sim = calculate_asset_level_similarity(user1['asset_level'], user2['asset_level'])
+    risk_sim = calculate_risk_profile_similarity(user1['risk_profile_score'], user2['risk_profile_score'])
+    health_sim = calculate_health_similarity(user1['has_disease'], user2['has_disease'])
+    
+    overall_similarity = (
+        age_sim * weights['age'] +
+        industry_sim * weights['industry'] +
+        asset_sim * weights['asset'] +
+        risk_sim * weights['risk'] +
+        health_sim * weights['health']
+    )
+    
+    return round(overall_similarity, 4)
+
+def get_customer_portfolio_weights(customer_id: int) -> Dict[str, float]:
+    """고객의 포트폴리오 비중 조회 (실제 테이블에서 조회)"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # IRP 계좌 조회
+        irp_query = """
+        SELECT account_number, current_balance
+        FROM tb_irp_account 
+        WHERE customer_id = %s AND account_status = 'ACTIVE'
+        """
+        cursor.execute(irp_query, (customer_id,))
+        irp_account = cursor.fetchone()
+        
+        if not irp_account:
+            return {'cash_weight': 5.0, 'deposit_weight': 40.0, 'fund_weight': 55.0}  # 기본값
+        
+        irp_account_number = irp_account['account_number']
+        cash_balance = irp_account['current_balance'] or 0
+        
+        # 예금 총액 조회
+        deposit_query = """
+        SELECT SUM(principal_amount) as total_deposit
+        FROM deposit_portfolio 
+        WHERE user_id = %s AND status = 'ACTIVE'
+        """
+        cursor.execute(deposit_query, (customer_id,))
+        deposit_result = cursor.fetchone()
+        deposit_total = deposit_result['total_deposit'] or 0
+        
+        # 펀드 총액 조회
+        fund_query = """
+        SELECT SUM(current_value) as total_fund
+        FROM fund_portfolio 
+        WHERE irp_account_number = %s AND status IN ('ACTIVE', 'PARTIAL_SOLD')
+        """
+        cursor.execute(fund_query, (irp_account_number,))
+        fund_result = cursor.fetchone()
+        fund_total = fund_result['total_fund'] or 0
+        
+        # 총 자산 계산
+        total_value = float(cash_balance) + float(deposit_total) + float(fund_total)
+        
+        portfolio_weights = {
+            'cash_weight': 0.0,
+            'deposit_weight': 0.0,
+            'fund_weight': 0.0
+        }
+        
+        if total_value > 0:
+            portfolio_weights['cash_weight'] = (float(cash_balance) / total_value) * 100
+            portfolio_weights['deposit_weight'] = (float(deposit_total) / total_value) * 100
+            portfolio_weights['fund_weight'] = (float(fund_total) / total_value) * 100
+        
+        cursor.close()
+        conn.close()
+        
+        return portfolio_weights
+        
+    except Exception as e:
+        print(f"포트폴리오 비중 조회 오류: {e}")
+        return {'cash_weight': 5.0, 'deposit_weight': 40.0, 'fund_weight': 55.0}  # 기본값
 
 def identify_document_type(text: str) -> DocumentType:
     """문서 타입 식별"""
@@ -792,6 +978,133 @@ async def verify_documents(
         "individual_documents": all_extracted_info,
         "message": "문서 검증 완료"
     })
+
+@app.post("/api/recommendation/similar-users")
+async def get_similar_users(request: SimilarUserRequest):
+    """
+    유사 사용자 기반 포트폴리오 추천
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 전체 고객 정보 조회 (IRP 계좌 보유 고객만)
+        query = """
+        SELECT 
+            c.customer_id,
+            YEAR(u.birth_date) as birth_year,
+            c.industry_code,
+            c.asset_level,
+            COALESCE(c.risk_profile_score, 2.5) as risk_profile_score,
+            CASE 
+                WHEN c.major_disease = 1 OR c.recent_medical_advice = 1 
+                OR c.recent_hospitalization = 1 OR c.long_term_medication = 1 
+                OR c.disability_registered = 1 THEN 1 
+                ELSE 0 
+            END as has_disease
+        FROM tb_customer c
+        JOIN tb_user u ON c.customer_id = u.user_id
+        WHERE c.has_irp_account = 1 
+        AND c.customer_id != %s
+        AND c.risk_profile_score IS NOT NULL
+        """
+        
+        cursor.execute(query, (request.customer_id,))
+        all_customers = cursor.fetchall()
+        
+        # 요청한 고객 정보
+        target_user = {
+            'customer_id': request.customer_id,
+            'birth_year': request.birth_year,
+            'industry_code': request.industry_code,
+            'asset_level': request.asset_level,
+            'risk_profile_score': request.risk_profile_score,
+            'has_disease': request.has_disease
+        }
+        
+        # 유사도 계산
+        similar_users = []
+        for customer in all_customers:
+            customer_dict = {
+                'customer_id': customer['customer_id'],
+                'birth_year': customer['birth_year'],
+                'industry_code': customer['industry_code'],
+                'asset_level': customer['asset_level'],
+                'risk_profile_score': float(customer['risk_profile_score']),
+                'has_disease': bool(customer['has_disease'])
+            }
+            
+            similarity = calculate_overall_similarity(target_user, customer_dict)
+            
+            if similarity >= 0.3:  # 최소 유사도 임계값
+                similar_users.append({
+                    'customer_id': customer['customer_id'],
+                    'similarity': similarity
+                })
+        
+        # 유사도 순으로 정렬하고 상위 10명 선택
+        similar_users.sort(key=lambda x: x['similarity'], reverse=True)
+        top_similar_users = similar_users[:10]
+        
+        # 상위 유사 사용자들의 평균 포트폴리오 계산
+        avg_cash_weight = 0.0
+        avg_deposit_weight = 0.0
+        avg_fund_weight = 0.0
+        
+        if top_similar_users:
+            total_weight = 0.0
+            weighted_cash = 0.0
+            weighted_deposit = 0.0
+            weighted_fund = 0.0
+            
+            for similar_user in top_similar_users:
+                portfolio = get_customer_portfolio_weights(similar_user['customer_id'])
+                weight = float(similar_user['similarity'])
+                
+                total_weight += weight
+                weighted_cash += float(portfolio['cash_weight']) * weight
+                weighted_deposit += float(portfolio['deposit_weight']) * weight
+                weighted_fund += float(portfolio['fund_weight']) * weight
+            
+            if total_weight > 0:
+                avg_cash_weight = weighted_cash / total_weight
+                avg_deposit_weight = weighted_deposit / total_weight
+                avg_fund_weight = weighted_fund / total_weight
+            else:
+                # 기본값 설정
+                avg_cash_weight = 5.0
+                avg_deposit_weight = 40.0
+                avg_fund_weight = 55.0
+        else:
+            # 유사 사용자가 없으면 기본값
+            avg_cash_weight = 5.0
+            avg_deposit_weight = 40.0
+            avg_fund_weight = 55.0
+        
+        cursor.close()
+        conn.close()
+        
+        response = SimilarUserResponse(
+            similar_users=[SimilarUser(**user) for user in top_similar_users],
+            avg_portfolio=AveragePortfolio(
+                cash_weight=round(avg_cash_weight, 2),
+                deposit_weight=round(avg_deposit_weight, 2),
+                fund_weight=round(avg_fund_weight, 2)
+            )
+        )
+        
+        return JSONResponse({
+            "success": True,
+            "data": response.model_dump(),
+            "message": f"유사 사용자 {len(top_similar_users)}명 발견"
+        })
+        
+    except Exception as e:
+        print(f"유사 사용자 추천 오류: {e}")
+        return JSONResponse({
+            "success": False,
+            "message": f"유사 사용자 추천 중 오류가 발생했습니다: {str(e)}"
+        }, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

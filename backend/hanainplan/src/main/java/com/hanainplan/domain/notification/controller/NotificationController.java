@@ -31,6 +31,16 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
 
+    @PostMapping
+    @Operation(summary = "알림 생성", description = "새로운 알림을 생성합니다.")
+    public ResponseEntity<NotificationDto.Response> createNotification(
+            @RequestBody NotificationDto.CreateRequest request) {
+        log.info("알림 생성 요청 - 사용자 ID: {}, 제목: {}", request.getUserId(), request.getTitle());
+        
+        NotificationDto.Response response = notificationService.createNotification(request);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     @Operation(summary = "사용자 알림 목록 조회", description = "현재 로그인한 사용자의 알림 목록을 페이징으로 조회합니다.")
     public ResponseEntity<Page<NotificationDto.Response>> getUserNotifications(

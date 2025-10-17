@@ -129,6 +129,8 @@ public class SignUpService {
                 .industryName(jobInfo.getIndustryName())
                 .careerYears(jobInfo.getCareerYears())
                 .assetLevel(Customer.AssetLevel.fromValue(jobInfo.getAssetLevel()))
+                .hasIrpAccount(false)  // 초기 회원가입 시 IRP 계좌 없음
+                .irpAccountNumber(null)  // IRP 계좌번호 없음
                 .build();
 
         customerRepository.save(customer);

@@ -5,6 +5,7 @@ public enum NotificationType {
     TRANSACTION("거래"),
     SYSTEM("시스템"),
     SCHEDULE("일정"),
+    REBALANCING("리밸런싱"),
     OTHER("기타");
 
     private final String description;

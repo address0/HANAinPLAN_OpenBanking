@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -62,6 +63,16 @@ public class Customer {
     @Column(name = "irp_account_number", length = 50)
     private String irpAccountNumber;
 
+    @Column(name = "risk_profile_score", precision = 3, scale = 2)
+    private BigDecimal riskProfileScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "risk_profile_type", length = 20)
+    private RiskProfileType riskProfileType;
+
+    @Column(name = "risk_profile_updated_at")
+    private LocalDateTime riskProfileUpdatedAt;
+
     @Column(name = "created_date", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdDate = LocalDateTime.now();
@@ -110,6 +121,40 @@ public class Customer {
                Boolean.TRUE.equals(recentHospitalization) ||
                Boolean.TRUE.equals(longTermMedication) ||
                Boolean.TRUE.equals(disabilityRegistered);
+    }
+
+    public enum RiskProfileType {
+        STABLE("안정형"),
+        STABLE_PLUS("안정추구형"),
+        NEUTRAL("중립형"),
+        AGGRESSIVE("적극형");
+
+        private final String description;
+
+        RiskProfileType(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public static RiskProfileType fromScore(BigDecimal score) {
+            if (score == null) {
+                return STABLE_PLUS; // 기본값
+            }
+            
+            double scoreValue = score.doubleValue();
+            if (scoreValue < 1.9) {
+                return STABLE;
+            } else if (scoreValue < 2.7) {
+                return STABLE_PLUS;
+            } else if (scoreValue < 3.5) {
+                return NEUTRAL;
+            } else {
+                return AGGRESSIVE;
+            }
+        }
     }
 
 }

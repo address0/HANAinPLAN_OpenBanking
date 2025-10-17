@@ -33,7 +33,7 @@ public class Notification extends BaseTimeEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @Column(name = "type", nullable = false, length = 20)
     private NotificationType type;
 
     @Column(name = "is_read")
