@@ -20,15 +20,15 @@ public class HanaBankClient {
 
     private final RestTemplate restTemplate;
     
-    @Value("${hana.bank.url:http://localhost:8081}")
-    private String hanaBankUrl;
+    @Value("${hana.bank.api.url:http://localhost:8081}")
+    private String hanaBankApiUrl;
 
     /**
      * 펀드 매수 API 호출
      */
     public FundPurchaseResponse purchaseFund(String customerCi, String childFundCd, BigDecimal purchaseAmount) {
         try {
-            String url = hanaBankUrl + "/api/hana/fund-subscription/purchase";
+            String url = hanaBankApiUrl + "/api/hana/fund-subscription/purchase";
             
             FundPurchaseRequest request = FundPurchaseRequest.builder()
                     .customerCi(customerCi)
@@ -63,7 +63,7 @@ public class HanaBankClient {
      */
     public FundRedemptionResponse redeemFund(String customerCi, Long subscriptionId, BigDecimal sellUnits, boolean sellAll) {
         try {
-            String url = hanaBankUrl + "/api/hana/fund-subscription/redeem";
+            String url = hanaBankApiUrl + "/api/hana/fund-subscription/redeem";
             
             FundRedemptionRequest request = FundRedemptionRequest.builder()
                     .customerCi(customerCi)
@@ -90,6 +90,90 @@ public class HanaBankClient {
             return FundRedemptionResponse.builder()
                     .success(false)
                     .errorMessage("펀드 매도 API 호출 실패: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * IRP 계좌 현금 잔액 조회
+     */
+    public IrpAccountBalanceResponse getIrpAccountBalance(String accountNumber) {
+        String url = hanaBankApiUrl + "/api/hana/irp/" + accountNumber + "/balance";
+        log.info("하나은행 IRP 계좌 잔액 조회 요청 - URL: {}, accountNumber: {}", url, accountNumber);
+
+        try {
+            ResponseEntity<IrpAccountBalanceResponse> responseEntity =
+                    restTemplate.getForEntity(url, IrpAccountBalanceResponse.class);
+            log.info("하나은행 IRP 계좌 잔액 조회 응답: {}", responseEntity.getBody());
+            return responseEntity.getBody();
+        } catch (Exception e) {
+            log.error("하나은행 IRP 계좌 잔액 조회 실패: {}", e.getMessage(), e);
+            return IrpAccountBalanceResponse.builder()
+                    .success(false)
+                    .errorMessage("IRP 계좌 잔액 조회 실패: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * IRP 예금 보유 내역 조회
+     */
+    public IrpDepositHoldingsResponse getIrpDepositHoldings(String accountNumber) {
+        String url = hanaBankApiUrl + "/api/hana/irp/" + accountNumber + "/deposits";
+        log.info("하나은행 IRP 예금 보유 조회 요청 - URL: {}, accountNumber: {}", url, accountNumber);
+
+        try {
+            ResponseEntity<IrpDepositHoldingsResponse> responseEntity =
+                    restTemplate.getForEntity(url, IrpDepositHoldingsResponse.class);
+            log.info("하나은행 IRP 예금 보유 조회 응답: {}", responseEntity.getBody());
+            return responseEntity.getBody();
+        } catch (Exception e) {
+            log.error("하나은행 IRP 예금 보유 조회 실패: {}", e.getMessage(), e);
+            return IrpDepositHoldingsResponse.builder()
+                    .success(false)
+                    .errorMessage("IRP 예금 보유 조회 실패: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * IRP 펀드 보유 내역 조회
+     */
+    public IrpFundHoldingsResponse getIrpFundHoldings(String accountNumber) {
+        String url = hanaBankApiUrl + "/api/hana/irp/" + accountNumber + "/funds";
+        log.info("하나은행 IRP 펀드 보유 조회 요청 - URL: {}, accountNumber: {}", url, accountNumber);
+
+        try {
+            ResponseEntity<IrpFundHoldingsResponse> responseEntity =
+                    restTemplate.getForEntity(url, IrpFundHoldingsResponse.class);
+            log.info("하나은행 IRP 펀드 보유 조회 응답: {}", responseEntity.getBody());
+            return responseEntity.getBody();
+        } catch (Exception e) {
+            log.error("하나은행 IRP 펀드 보유 조회 실패: {}", e.getMessage(), e);
+            return IrpFundHoldingsResponse.builder()
+                    .success(false)
+                    .errorMessage("IRP 펀드 보유 조회 실패: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    /**
+     * IRP 포트폴리오 전체 조회
+     */
+    public IrpPortfolioResponse getIrpPortfolio(String accountNumber) {
+        String url = hanaBankApiUrl + "/api/hana/irp/" + accountNumber + "/portfolio";
+        log.info("하나은행 IRP 포트폴리오 조회 요청 - URL: {}, accountNumber: {}", url, accountNumber);
+
+        try {
+            ResponseEntity<IrpPortfolioResponse> responseEntity =
+                    restTemplate.getForEntity(url, IrpPortfolioResponse.class);
+            log.info("하나은행 IRP 포트폴리오 조회 응답: {}", responseEntity.getBody());
+            return responseEntity.getBody();
+        } catch (Exception e) {
+            log.error("하나은행 IRP 포트폴리오 조회 실패: {}", e.getMessage(), e);
+            return IrpPortfolioResponse.builder()
+                    .success(false)
+                    .errorMessage("IRP 포트폴리오 조회 실패: " + e.getMessage())
                     .build();
         }
     }
@@ -138,5 +222,88 @@ public class HanaBankClient {
         private BigDecimal netAmount;
         private BigDecimal redemptionFee;
         private String errorMessage;
+    }
+
+    // IRP 관련 DTO 클래스들
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class IrpAccountBalanceResponse {
+        private boolean success;
+        private String errorMessage;
+        private String accountNumber;
+        private BigDecimal cashBalance;
+        private java.time.LocalDateTime lastUpdated;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class IrpDepositHoldingsResponse {
+        private boolean success;
+        private String errorMessage;
+        private java.util.List<IrpDepositHolding> holdings;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class IrpDepositHolding {
+        private Long subscriptionId;
+        private String productCode;
+        private String productName;
+        private BigDecimal principalAmount;
+        private BigDecimal currentValue;
+        private BigDecimal interestRate;
+        private java.time.LocalDateTime subscriptionDate;
+        private java.time.LocalDateTime maturityDate;
+        private String status;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class IrpFundHoldingsResponse {
+        private boolean success;
+        private String errorMessage;
+        private java.util.List<IrpFundHolding> holdings;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class IrpFundHolding {
+        private Long subscriptionId;
+        private String fundCode;
+        private String fundName;
+        private BigDecimal units;
+        private BigDecimal currentNav;
+        private BigDecimal purchaseNav;
+        private BigDecimal currentValue;
+        private BigDecimal purchaseAmount;
+        private BigDecimal totalReturn;
+        private BigDecimal returnRate;
+        private java.time.LocalDateTime subscriptionDate;
+        private String status;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class IrpPortfolioResponse {
+        private boolean success;
+        private String errorMessage;
+        private String accountNumber;
+        private BigDecimal totalValue;
+        private BigDecimal cashBalance;
+        private java.util.List<IrpDepositHolding> depositHoldings;
+        private java.util.List<IrpFundHolding> fundHoldings;
+        private java.time.LocalDateTime lastUpdated;
     }
 }

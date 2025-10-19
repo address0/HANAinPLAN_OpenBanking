@@ -14,7 +14,9 @@ import com.hanainplan.domain.portfolio.dto.PortfolioRecommendationResponse;
 import com.hanainplan.domain.portfolio.dto.RebalancingSimulationRequest;
 import com.hanainplan.domain.portfolio.dto.RebalancingSimulationResponse;
 import com.hanainplan.domain.portfolio.entity.RebalancingJob;
+import com.hanainplan.domain.portfolio.entity.RebalancingOrder;
 import com.hanainplan.domain.portfolio.repository.RebalancingJobRepository;
+import com.hanainplan.domain.portfolio.repository.RebalancingOrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class RebalancingService {
     private final FundPortfolioRepository fundPortfolioRepository;
     private final PortfolioRecommendationService portfolioRecommendationService;
     private final RebalancingJobRepository rebalancingJobRepository;
+    private final RebalancingOrderRepository rebalancingOrderRepository;
     private final NotificationService notificationService;
     private final HanaBankClient hanaBankClient;
 
@@ -115,6 +118,9 @@ public class RebalancingService {
                 .build();
 
         RebalancingJob savedJob = rebalancingJobRepository.save(job);
+
+        // 7. 실제 RebalancingOrder 엔티티 저장
+        saveRebalancingOrders(savedJob.getJobId(), orders);
 
         // 7. 응답 생성
         BigDecimal totalFee = orders.stream()
@@ -217,15 +223,18 @@ public class RebalancingService {
             BigDecimal buyAmount = target.getFundAmount().subtract(current.getFundAmount());
             
             if (buyAmount.compareTo(BigDecimal.valueOf(100000)) > 0) { // 최소 거래 금액 10만원
-                // 현금에서 펀드 매수
+                // 추천 펀드 선택 (실제 존재하는 펀드 클래스 사용)
+                String recommendedFundCode = getRecommendedFundCode();
+                BigDecimal expectedNav = getExpectedNav(recommendedFundCode);
+                
                 orders.add(RebalancingSimulationResponse.RebalancingOrder.builder()
                         .orderType("BUY")
                         .assetType("FUND")
-                        .fundCode("RECOMMENDED_FUND")
-                        .fundName("추천 펀드")
+                        .fundCode(recommendedFundCode)
+                        .fundName("미래에셋퇴직플랜30증권자투자신탁1호(채권혼합) P클래스")
                         .orderAmount(buyAmount)
-                        .expectedNav(BigDecimal.valueOf(1000)) // 임시 NAV
-                        .orderUnits(buyAmount.divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP))
+                        .expectedNav(expectedNav)
+                        .orderUnits(buyAmount.divide(expectedNav, 4, RoundingMode.HALF_UP))
                         .fee(buyAmount.multiply(BigDecimal.valueOf(0.0015))) // 0.15% 수수료
                         .reason("펀드 비중 부족으로 매수 필요")
                         .build());
@@ -237,22 +246,82 @@ public class RebalancingService {
             BigDecimal sellAmount = current.getFundAmount().subtract(target.getFundAmount());
             
             if (sellAmount.compareTo(BigDecimal.valueOf(100000)) > 0) { // 최소 거래 금액 10만원
-                // 펀드 매도
-                orders.add(RebalancingSimulationResponse.RebalancingOrder.builder()
-                        .orderType("SELL")
-                        .assetType("FUND")
-                        .fundCode("EXISTING_FUND")
-                        .fundName("기존 펀드")
-                        .orderAmount(sellAmount)
-                        .expectedNav(BigDecimal.valueOf(1000)) // 임시 NAV
-                        .orderUnits(sellAmount.divide(BigDecimal.valueOf(1000), 4, RoundingMode.HALF_UP))
-                        .fee(sellAmount.multiply(BigDecimal.valueOf(0.0015))) // 0.15% 수수료
-                        .reason("펀드 비중 초과로 매도 필요")
-                        .build());
+                // 기존 보유 펀드에서 매도할 펀드 선택
+                FundPortfolio fundToSell = getFundToSell(irpAccountNumber);
+                
+                if (fundToSell != null) {
+                    BigDecimal expectedNav = getExpectedNav(fundToSell.getFundCode());
+                    
+                    orders.add(RebalancingSimulationResponse.RebalancingOrder.builder()
+                            .orderType("SELL")
+                            .assetType("FUND")
+                            .fundCode(fundToSell.getFundCode())
+                            .fundName(fundToSell.getFundName())
+                            .orderAmount(sellAmount)
+                            .expectedNav(expectedNav)
+                            .orderUnits(sellAmount.divide(expectedNav, 4, RoundingMode.HALF_UP))
+                            .fee(sellAmount.multiply(BigDecimal.valueOf(0.0015))) // 0.15% 수수료
+                            .reason("펀드 비중 초과로 매도 필요")
+                            .build());
+                }
             }
         }
 
         return orders;
+    }
+
+    /**
+     * 추천 펀드 코드 반환 (실제 존재하는 펀드 클래스)
+     */
+    private String getRecommendedFundCode() {
+        // 실제 존재하는 펀드 클래스 코드 반환
+        return "51305P"; // 미래에셋퇴직플랜30 P클래스
+    }
+
+    /**
+     * 예상 NAV 조회
+     */
+    private BigDecimal getExpectedNav(String fundCode) {
+        // 실제로는 하나은행 서버에서 최신 NAV를 조회해야 함
+        // 현재는 테스트용 고정값 사용
+        return BigDecimal.valueOf(1006.48); // 최신 NAV
+    }
+
+    /**
+     * 매도할 펀드 선택
+     */
+    private FundPortfolio getFundToSell(String irpAccountNumber) {
+        List<FundPortfolio> currentFunds = fundPortfolioRepository
+                .findByIrpAccountNumberOrderByCreatedAtDesc(irpAccountNumber);
+        
+        return currentFunds.stream()
+                .filter(FundPortfolio::isActive)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * 리밸런싱 주문을 RebalancingOrder 엔티티로 저장
+     */
+    private void saveRebalancingOrders(Long jobId, List<RebalancingSimulationResponse.RebalancingOrder> orders) {
+        for (RebalancingSimulationResponse.RebalancingOrder orderDto : orders) {
+            RebalancingOrder order = RebalancingOrder.builder()
+                    .jobId(jobId)
+                    .orderType(RebalancingOrder.OrderType.valueOf(orderDto.getOrderType()))
+                    .assetType(RebalancingOrder.AssetType.valueOf(orderDto.getAssetType()))
+                    .fundCode(orderDto.getFundCode())
+                    .fundName(orderDto.getFundName())
+                    .classCode(orderDto.getFundCode()) // 펀드 코드를 클래스 코드로도 사용
+                    .expectedNav(orderDto.getExpectedNav())
+                    .orderUnits(orderDto.getOrderUnits())
+                    .orderAmount(orderDto.getOrderAmount())
+                    .fee(orderDto.getFee())
+                    .status(RebalancingOrder.OrderStatus.PENDING)
+                    .executionReason(orderDto.getReason())
+                    .build();
+            
+            rebalancingOrderRepository.save(order);
+        }
     }
 
     /**
@@ -380,22 +449,12 @@ public class RebalancingService {
         log.info("펀드 거래 실행 시작 - Job ID: {}", job.getJobId());
 
         try {
-            // TODO: 실제 구현 시에는 다음과 같이 처리
-            // 1. RebalancingOrder 목록 조회
-            // 2. 각 주문에 대해 하나은행 API 호출
-            // 3. 체결 결과를 RebalancingOrder에 업데이트
-            // 4. FundPortfolio 테이블 업데이트
-            // (펀드 NAV는 파이썬 크롤러가 정기적으로 업데이트하므로 별도 크롤링 불필요)
-
             // 실제 펀드 거래 실행 (하나은행 API 연동)
             executeActualFundTransactions(job);
-
-            // 현재는 시뮬레이션으로 처리
-            Thread.sleep(2000); // 실제 API 호출 시뮬레이션
             log.info("펀드 거래 실행 완료 - Job ID: {}", job.getJobId());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("펀드 거래 실행 중 중단됨", e);
+        } catch (Exception e) {
+            log.error("펀드 거래 실행 중 오류 발생", e);
+            throw new RuntimeException("펀드 거래 실행 실패: " + e.getMessage());
         }
     }
 
@@ -409,65 +468,119 @@ public class RebalancingService {
             // 고객 CI 조회 (IRP 계좌번호로 고객 정보 조회)
             String customerCi = getCustomerCiByIrpAccount(job.getIrpAccountNumber());
             
-            // 현재 보유 펀드 조회
-            List<FundPortfolio> currentFunds = fundPortfolioRepository
-                    .findByIrpAccountNumberOrderByCreatedAtDesc(job.getIrpAccountNumber());
+            // 리밸런싱 주문 조회 (실제 시뮬레이션 결과의 주문 사용)
+            List<RebalancingOrder> orders = rebalancingOrderRepository.findByJobIdAndStatus(
+                    job.getJobId(), RebalancingOrder.OrderStatus.PENDING);
+            
+            if (orders.isEmpty()) {
+                log.warn("실행할 리밸런싱 주문이 없습니다 - Job ID: {}", job.getJobId());
+                return;
+            }
 
-            // 리밸런싱 주문 생성 (간단한 예시)
-            // 실제로는 시뮬레이션 결과의 주문을 사용해야 함
-            BigDecimal targetFundAmount = BigDecimal.valueOf(1000000); // 목표 펀드 금액
-            BigDecimal currentFundAmount = currentFunds.stream()
-                    .filter(FundPortfolio::isActive)
-                    .map(FundPortfolio::getCurrentValue)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            log.info("리밸런싱 주문 실행 - Job ID: {}, 주문 수: {}", job.getJobId(), orders.size());
 
-            BigDecimal fundDifference = targetFundAmount.subtract(currentFundAmount);
-
-            if (fundDifference.compareTo(BigDecimal.ZERO) > 0) {
-                // 펀드 매수 필요
-                log.info("펀드 매수 실행 - 금액: {}원", fundDifference);
-                
-                // 예시: 첫 번째 펀드에 매수 (실제로는 추천 펀드 선택 로직 필요)
-                String fundCode = "513051"; // 예시 펀드 코드
-                
-                HanaBankClient.FundPurchaseResponse response = hanaBankClient.purchaseFund(
-                        customerCi, fundCode, fundDifference);
-                
-                if (response.isSuccess()) {
-                    log.info("펀드 매수 성공 - 구독ID: {}, 매수좌수: {}", 
-                            response.getSubscriptionId(), response.getPurchaseUnits());
-                } else {
-                    log.error("펀드 매수 실패 - {}", response.getErrorMessage());
-                }
-                
-            } else if (fundDifference.compareTo(BigDecimal.ZERO) < 0) {
-                // 펀드 매도 필요
-                log.info("펀드 매도 실행 - 금액: {}원", fundDifference.abs());
-                
-                // 예시: 첫 번째 활성 펀드 매도
-                FundPortfolio fundToSell = currentFunds.stream()
-                        .filter(FundPortfolio::isActive)
-                        .findFirst()
-                        .orElse(null);
-                
-                if (fundToSell != null) {
-                    // 전체 매도
-                    HanaBankClient.FundRedemptionResponse response = hanaBankClient.redeemFund(
-                            customerCi, fundToSell.getSubscriptionId(), fundToSell.getCurrentUnits(), true);
-                    
-                    if (response.isSuccess()) {
-                        log.info("펀드 매도 성공 - 매도좌수: {}, 실수령액: {}원", 
-                                response.getSellUnits(), response.getNetAmount());
-                    } else {
-                        log.error("펀드 매도 실패 - {}", response.getErrorMessage());
+            for (RebalancingOrder order : orders) {
+                try {
+                    if (order.isFund() && order.isBuy()) {
+                        // 펀드 매수 실행
+                        executeFundPurchase(customerCi, order);
+                    } else if (order.isFund() && order.isSell()) {
+                        // 펀드 매도 실행
+                        executeFundRedemption(customerCi, order, job);
                     }
+                } catch (Exception e) {
+                    log.error("주문 실행 실패 - Order ID: {}, 오류: {}", order.getOrderId(), e.getMessage());
+                    order.fail("주문 실행 실패: " + e.getMessage());
+                    rebalancingOrderRepository.save(order);
                 }
             }
 
         } catch (Exception e) {
-            log.error("실제 펀드 거래 실행 중 오류 발생", e);
+            log.error("펀드 거래 실행 중 오류 발생", e);
             throw new RuntimeException("펀드 거래 실행 실패: " + e.getMessage());
         }
+    }
+
+    /**
+     * 펀드 매수 실행
+     */
+    private void executeFundPurchase(String customerCi, RebalancingOrder order) {
+        log.info("펀드 매수 실행 - Order ID: {}, 펀드코드: {}, 금액: {}원", 
+                order.getOrderId(), order.getFundCode(), order.getOrderAmount());
+
+        // 펀드 코드 확인 (classCode 우선, 없으면 fundCode 사용)
+        String fundCode = order.getClassCode() != null ? order.getClassCode() : order.getFundCode();
+        
+        if (fundCode == null) {
+            order.fail("펀드 코드가 없습니다");
+            rebalancingOrderRepository.save(order);
+            return;
+        }
+
+        HanaBankClient.FundPurchaseResponse response = hanaBankClient.purchaseFund(
+                customerCi, fundCode, order.getOrderAmount());
+        
+        if (response.isSuccess()) {
+            log.info("펀드 매수 성공 - Order ID: {}, 구독ID: {}, 매수좌수: {}", 
+                    order.getOrderId(), response.getSubscriptionId(), response.getPurchaseUnits());
+            
+            // HanaBankClient의 응답에는 purchaseNav와 purchaseAmount가 없으므로 주문 정보 사용
+            order.fill(
+                order.getExpectedNav(), // 예상 NAV 사용
+                response.getPurchaseUnits(),
+                order.getOrderAmount() // 주문 금액 사용
+            );
+            order.submit(String.valueOf(response.getSubscriptionId()));
+        } else {
+            log.error("펀드 매수 실패 - Order ID: {}, 오류: {}", order.getOrderId(), response.getErrorMessage());
+            order.fail("펀드 매수 실패: " + response.getErrorMessage());
+        }
+        
+        rebalancingOrderRepository.save(order);
+    }
+
+    /**
+     * 펀드 매도 실행
+     */
+    private void executeFundRedemption(String customerCi, RebalancingOrder order, RebalancingJob job) {
+        log.info("펀드 매도 실행 - Order ID: {}, 펀드코드: {}, 좌수: {}", 
+                order.getOrderId(), order.getFundCode(), order.getOrderUnits());
+
+        // 현재 보유 펀드에서 구독 ID 조회
+        List<FundPortfolio> currentFunds = fundPortfolioRepository
+                .findByIrpAccountNumberOrderByCreatedAtDesc(job.getIrpAccountNumber());
+        
+        FundPortfolio fundToSell = currentFunds.stream()
+                .filter(fund -> fund.getFundCode().equals(order.getFundCode()))
+                .filter(FundPortfolio::isActive)
+                .findFirst()
+                .orElse(null);
+        
+        if (fundToSell == null) {
+            order.fail("매도할 펀드를 찾을 수 없습니다: " + order.getFundCode());
+            rebalancingOrderRepository.save(order);
+            return;
+        }
+
+        HanaBankClient.FundRedemptionResponse response = hanaBankClient.redeemFund(
+                customerCi, fundToSell.getSubscriptionId(), order.getOrderUnits(), false);
+        
+        if (response.isSuccess()) {
+            log.info("펀드 매도 성공 - Order ID: {}, 매도좌수: {}, 실수령액: {}원", 
+                    order.getOrderId(), response.getSellUnits(), response.getNetAmount());
+            
+            order.fill(
+                BigDecimal.ZERO, // 매도 시 NAV는 0으로 설정
+                response.getSellUnits(),
+                response.getNetAmount()
+            );
+            order.submit("REDEMPTION_" + order.getOrderId()); // 임시 거래 ID
+        } else {
+            log.error("펀드 매도 실패 - Order ID: {}, 오류: {}", order.getOrderId(), response.getErrorMessage());
+            order.fail("펀드 매도 실패: " + response.getErrorMessage());
+        }
+        
+        rebalancingOrderRepository.save(order);
     }
 
     /**

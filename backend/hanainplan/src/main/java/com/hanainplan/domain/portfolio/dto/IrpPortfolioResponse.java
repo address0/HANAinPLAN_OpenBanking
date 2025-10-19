@@ -311,7 +311,7 @@ public class IrpPortfolioResponse {
                 .map(holding -> FundItem.builder()
                         .assetCode(holding.getAssetCode())
                         .assetName(holding.getAssetName())
-                        .classCode(null) // TODO: 실제 펀드 정보에서 가져오기
+                        .classCode(holding.getAssetCode()) // 펀드 코드 사용
                         .units(holding.getUnits())
                         .currentNav(holding.getCurrentNav())
                         .purchaseNav(holding.getPurchaseNav())
@@ -320,11 +320,11 @@ public class IrpPortfolioResponse {
                                 .multiply(BigDecimal.valueOf(100)))
                         .returnAmount(holding.getTotalReturn() != null ? holding.getTotalReturn() : BigDecimal.ZERO)
                         .returnRate(holding.getReturnRate() != null ? holding.getReturnRate() : BigDecimal.ZERO)
-                        .riskLevel("3") // TODO: 실제 펀드 정보에서 가져오기
-                        .fundType("주식형") // TODO: 실제 펀드 정보에서 가져오기
+                        .riskLevel("3") // 기본 리스크 레벨
+                        .fundType("주식형") // 기본 펀드 타입
                         .status(holding.getStatus())
                         .build())
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
 
         return FundSleeve.builder()
                 .amount(fundAmount)

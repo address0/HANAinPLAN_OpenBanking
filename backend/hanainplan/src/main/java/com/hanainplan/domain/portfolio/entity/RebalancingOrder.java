@@ -96,7 +96,7 @@ public class RebalancingOrder {
     @Column(name = "failed_at")
     private LocalDateTime failedAt;
 
-    @Column(name = "failure_reason", length = 200)
+    @Column(name = "failure_reason", length = 1000)
     private String failureReason;
 
     @CreatedDate

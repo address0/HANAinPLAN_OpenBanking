@@ -27,7 +27,7 @@ import java.util.Optional;
 @RequestMapping("/api/v1/irp")
 @RequiredArgsConstructor
 @Tag(name = "IRP 계좌 관리", description = "하나은행 IRP 계좌 개설 및 관리 API")
-public class IrpAccountController {
+public class IrpAccountManagementController {
 
     private final IrpAccountService irpAccountService;
 
