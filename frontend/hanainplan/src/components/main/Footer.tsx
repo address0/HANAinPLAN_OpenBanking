@@ -8,17 +8,17 @@ function Footer() {
             <span className="font-hana-bold text-gray-900">하나인플랜</span>
           </div>
           <p className="mt-3 leading-6 font-hana-regular">
-            금융 라이프를 더 편리하고 안전하게 <br />
-            하나인플랜은 맞춤형 보험과 노후 설계를 제공합니다.
+            하나인플랜에서 금융 라이프를 더 편리하고 안전하게 <br />
+            개인연금을 맞춤형으로 설계하고, 관리해 보세요.
           </p>
         </div>
 
         <div>
           <h4 className="font-hana-medium text-gray-900 mb-3">바로가기</h4>
           <ul className="space-y-2 font-hana-regular">
-            <li><a className="hover:text-hana-green" href="#">메인</a></li>
-            <li><a className="hover:text-hana-green" href="#consult">상담 신청</a></li>
-            <li><a className="hover:text-hana-green" href="#pension-calculator">연금 계산기</a></li>
+            <li><a className="hover:text-hana-green" href="/main">메인</a></li>
+            <li><a className="hover:text-hana-green" href="/products/irp">IRP 상품소개</a></li>
+            <li><a className="hover:text-hana-green" href="/consultation/request">상담 신청</a></li>
           </ul>
         </div>
 
