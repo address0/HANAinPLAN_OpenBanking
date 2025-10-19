@@ -162,35 +162,53 @@ export async function getIrpPortfolio(
   );
 }
 
+// 포트폴리오 추천 응답 타입
+export interface PortfolioRecommendationResponse {
+  customerId: number;
+  irpAccountNumber: string;
+  riskProfileType: string;
+  riskProfileDescription: string;
+  modelPortfolio: {
+    cashWeight: number;
+    depositWeight: number;
+    fundWeight: number;
+    description: string;
+    basis: string;
+  };
+  similarUserPortfolio: {
+    cashWeight: number;
+    depositWeight: number;
+    fundWeight: number;
+    similarUserCount: number;
+    averageSimilarity: number;
+    description: string;
+    basis: string;
+  };
+  recommendedPortfolio: {
+    cashWeight: number;
+    depositWeight: number;
+    fundWeight: number;
+    description: string;
+    basis: string;
+    modelWeight: number;
+    similarUserWeight: number;
+  };
+  metadata: {
+    generatedAt: string;
+    algorithm: string;
+    totalUsersAnalyzed: number;
+    similarUsersFound: number;
+    minSimilarityThreshold: number;
+    constraints: string;
+    notes: string;
+  };
+}
+
 /**
  * 유사 사용자 포트폴리오 추천 조회
  */
 export async function getSimilarUserPortfolio(
   customerId: number
-): Promise<{
-  customerId: number;
-  cashWeight: number;
-  depositWeight: number;
-  fundWeight: number;
-  similarUsers: Array<{
-    customerId: number;
-    similarity: number;
-    age: number;
-    assetLevel: string;
-    riskProfile: string;
-  }>;
-}> {
-  return httpGet<{
-    customerId: number;
-    cashWeight: number;
-    depositWeight: number;
-    fundWeight: number;
-    similarUsers: Array<{
-      customerId: number;
-      similarity: number;
-      age: number;
-      assetLevel: string;
-      riskProfile: string;
-    }>;
-  }>(`irp/portfolio/${customerId}/similar-user-portfolio`);
+): Promise<PortfolioRecommendationResponse> {
+  return httpGet<PortfolioRecommendationResponse>(`irp/portfolio/${customerId}/recommendation`);
 }
