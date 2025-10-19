@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CTAButton from './CTAButton'
-import ProductCard from './ProductCard'
 
 function MainSection() {
   const navigate = useNavigate()
-  const [isVisible, setIsVisible] = useState<{ intro: boolean; category: boolean; pension: boolean; cards: boolean[] }>({
+  const [isVisible, setIsVisible] = useState<{ intro: boolean; category: boolean; pension: boolean; cards: boolean[]; productCards: boolean[] }>({
     intro: false,
     category: false,
     pension: false,
-    cards: new Array(6).fill(false)
+    cards: new Array(6).fill(false),
+    productCards: new Array(3).fill(false)
   })
   const introRef = useRef<HTMLElement>(null)
   const categoryRef = useRef<HTMLElement>(null)
   const pensionRef = useRef<HTMLElement>(null)
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const productCardRefs = useRef<(HTMLDivElement | null)[]>([])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -39,6 +40,15 @@ function MainSection() {
                 return { ...prev, cards: newCards }
               })
             }
+
+            const productCardIndex = productCardRefs.current.findIndex(ref => ref === target)
+            if (productCardIndex !== -1) {
+              setIsVisible(prev => {
+                const newProductCards = [...prev.productCards]
+                newProductCards[productCardIndex] = true
+                return { ...prev, productCards: newProductCards }
+              })
+            }
           } else {
             if (target === introRef.current) {
               setIsVisible(prev => ({ ...prev, intro: false }))
@@ -56,6 +66,15 @@ function MainSection() {
                 return { ...prev, cards: newCards }
               })
             }
+
+            const productCardIndex = productCardRefs.current.findIndex(ref => ref === target)
+            if (productCardIndex !== -1) {
+              setIsVisible(prev => {
+                const newProductCards = [...prev.productCards]
+                newProductCards[productCardIndex] = false
+                return { ...prev, productCards: newProductCards }
+              })
+            }
           }
         })
       },
@@ -63,7 +82,7 @@ function MainSection() {
     )
 
     const timer = setTimeout(() => {
-      const allRefs = [introRef.current, categoryRef.current, pensionRef.current, ...cardRefs.current]
+      const allRefs = [introRef.current, categoryRef.current, pensionRef.current, ...cardRefs.current, ...productCardRefs.current]
       allRefs.forEach(ref => ref && observer.observe(ref))
     }, 100)
 
@@ -104,74 +123,45 @@ function MainSection() {
                 <p>IRP 계좌 안에서 정기예금, 펀드를 가입하고</p>
                 <p>HANAinPLAN에서 내 자산을 관리받아 보세요.</p>
               </div>
-              <CTAButton
-                label="IRP 계좌 개설하러 가기 →"
-                href="/products/irp"
-                className="w-full sm:w-[320px] h-[56px]"
-              />
             </div>
           </div>
         </div>
-
-        {/* {}
-        <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 place-items-center">
-          {[
-            {
-              imageSrc: "/images/pension-insurance.jpg",
-              alt: "연금/투자보험 이미지",
-              title: "연금/투자보험",
-              description: "노후 생활자금 마련과 자산 증식을 위한 장기 투자형 보험"
-            },
-            {
-              imageSrc: "/images/savings-insurance.png",
-              alt: "저축보험 이미지",
-              title: "저축보험",
-              description: "안정적인 이자와 목표 마련을 위한 장기 저축형 보험"
-            },
-            {
-              imageSrc: "/images/term-insurance.png",
-              alt: "정기보험 이미지",
-              title: "정기보험",
-              description: "특정 기간 동안 사망·재해 등 위험을 보장하는 기간 한정형 보험"
-            },
-            {
-              imageSrc: "/images/life-insurance.jpg",
-              alt: "종신보험 이미지",
-              title: "종신보험",
-              description: "평생 동안 사망 보장을 제공하는 종신 보장성 보험"
-            },
-            {
-              imageSrc: "/images/CI-insurance.jpg",
-              alt: "암/CI/간병보험 이미지",
-              title: "암/CI/간병보험",
-              description: "암·중대한 질병·간병 비용을 보장하는 건강 보장성 보험"
-            },
-            {
-              imageSrc: "/images/medical-insurance.jpg",
-              alt: "진병/실손의료보험 이미지",
-              title: "질병/실손의료보험",
-              description: "질병·사고로 인한 의료비 실손 보장을 제공하는 의료 보험"
-            }
-          ].map((card, index) => (
-            <div
-              key={index}
-              ref={(el) => { cardRefs.current[index] = el }}
-              className={`transition-all duration-700 ease-out ${
-                isVisible.cards[index]
-                  ? 'translate-y-0 opacity-100'
-                  : 'translate-y-10 opacity-0'
-              }`}
-              style={{ transitionDelay: `${(index % 3) * 150}ms` }}
-            >
-              <ProductCard
-                imageSrc={card.imageSrc}
-                alt={card.alt}
-                title={card.title}
-                description={card.description}
-              />
-            </div>
-          ))}
-        </div> */}
+        <div className="w-full container mx-auto px-4 py-20 grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
+          <div 
+            ref={(el) => { productCardRefs.current[0] = el }}
+            className={`col-span-1 flex flex-col items-center justify-center w-full max-w-4xl m-auto p-4 bg-white rounded-lg shadow-lg h-[300px] gap-4 hover:shadow-md hover:bg-gray-50 transition-all duration-1000 ease-out cursor-pointer ${
+              isVisible.productCards[0] ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`} 
+            onClick={() => navigate('/products/irp')}
+          >
+            <img src="/icons/irpaccount.png" alt="IRP 계좌" className="w-1/3 object-contain" />
+            <h3 className="text-xl sm:text-2xl font-hana-medium text-gray-900">IRP 계좌 개설하기</h3>
+            <p className="text-gray-600 font-hana-regular text-base leading-6 text-left">IRP 계좌를 개설하고 자동이체를 설정하면, <br /> 연 900만원까지 소득 세제혜택을 받을 수 있어요.</p>
+          </div>
+          <div 
+            ref={(el) => { productCardRefs.current[1] = el }}
+            className={`col-span-1 flex flex-col items-center justify-center w-full max-w-4xl m-auto p-4 bg-white rounded-lg shadow-lg h-[300px] gap-4 hover:shadow-md hover:bg-gray-50 transition-all duration-1000 ease-out cursor-pointer ${
+              isVisible.productCards[1] ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`} 
+            onClick={() => navigate('/products/deposit')}
+          >
+            <img src="/icons/deposit.png" alt="정기예금" className="w-1/3 object-contain" />
+            <h3 className="text-xl sm:text-2xl font-hana-medium text-gray-900">퇴직연금 정기예금</h3>
+            <p className="text-gray-600 font-hana-regular text-base leading-6 text-left">IRP 계좌와 연결하여 정기예금을 개설할 수 있어요. <br /> 최적의 금리와 예치기간을 추천해 드릴게요.</p>
+          </div>
+          <div 
+            ref={(el) => { productCardRefs.current[2] = el }}
+            className={`col-span-1 flex flex-col items-center justify-center w-full max-w-4xl m-auto p-4 bg-white rounded-lg shadow-lg h-[300px] gap-4 hover:shadow-md hover:bg-gray-50 transition-all duration-1000 ease-out cursor-pointer ${
+              isVisible.productCards[2] ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`} 
+            onClick={() => navigate('/products/fund')}
+          >
+            <img src="/icons/fund.png" alt="펀드" className="w-1/3 object-contain" />
+            <h3 className="text-xl sm:text-2xl font-hana-medium text-gray-900">퇴직연금 펀드</h3>
+            <p className="text-gray-600 font-hana-regular text-base leading-6 text-left">IRP 계좌 안에서, 펀드를 통해 자산을 운용해요.<br /> 하나인플랜에서 내 펀드 수익률을 관리해 보세요.</p>
+          </div>
+          
+        </div>
       </section>
 
       {}

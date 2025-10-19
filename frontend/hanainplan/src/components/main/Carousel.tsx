@@ -56,7 +56,8 @@ function Carousel({ className = '' }: CarouselProps) {
   };
 
   return (
-    <div className={`relative w-full h-[600px] overflow-hidden ${className}`}>
+    <div className="relative">
+      <div className={`relative w-full h-[600px] overflow-hidden ${className}`}>
       {}
       <div
         className="flex transition-transform duration-500 ease-in-out h-full"
@@ -193,10 +194,27 @@ function Carousel({ className = '' }: CarouselProps) {
         ))}
       </div>
 
+
       {}
       <div className="sr-only">
         <button onClick={goToPrevious}>이전 슬라이드</button>
         <button onClick={goToNext}>다음 슬라이드</button>
+      </div>
+      </div>
+
+      {/* 스크롤 유도 요소 - 캐러셀 바깥쪽 */}
+      <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 animate-bounce-gentle">
+        <img 
+          src="/icons/scroll-down.png" 
+          alt="스크롤 다운" 
+          className="w-8 h-8 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+          onClick={() => {
+            const mainSection = document.querySelector('section');
+            if (mainSection) {
+              mainSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        />
       </div>
     </div>
   );

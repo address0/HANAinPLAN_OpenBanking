@@ -127,7 +127,7 @@ function App() {
           <Route path="/consultation/my" element={<MyConsultations />} />
 
           {}
-          <Route path="/funds" element={<FundList />} />
+          <Route path="/products/fund" element={<FundList />} />
           <Route path="/fund/:fundCode" element={<FundDetail />} />
           <Route path="/fund/my" element={<FundMy />} />
 

@@ -1,4 +1,28 @@
 import { axiosInstance } from '../lib/axiosInstance';
+import { httpGet, httpPost, httpDelete } from '../lib/http';
+
+// 리스크 프로파일 관련 타입
+export interface RiskProfileRequest {
+  customerId: number;
+  sessionId?: string;
+  answers: QuestionAnswer[];
+}
+
+export interface QuestionAnswer {
+  questionNumber: number;
+  answerScore: number;
+  questionText?: string;
+  answerText?: string;
+}
+
+export interface RiskProfileResponse {
+  customerId: number;
+  riskProfileScore: number;
+  riskProfileType: string;
+  riskProfileTypeName: string;
+  answers: QuestionAnswer[];
+  evaluatedAt: string;
+}
 
 export interface IrpAccountOpenRequest {
   customerId: number;
@@ -57,48 +81,23 @@ export interface IrpAccountStatusResponse {
 }
 
 export const openIrpAccount = async (request: IrpAccountOpenRequest): Promise<IrpAccountOpenResponse> => {
-  try {
-    const response = await axiosInstance.post<IrpAccountOpenResponse>('/v1/irp-integration/accounts/open', request);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpPost<IrpAccountOpenResponse, IrpAccountOpenRequest>('/v1/irp-integration/accounts/open', request);
 };
 
 export const getIrpAccount = async (customerId: number): Promise<IrpAccountInfo> => {
-  try {
-    const response = await axiosInstance.get<IrpAccountInfo>(`/v1/irp-integration/accounts/customer/${customerId}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpGet<IrpAccountInfo, { customerId: number }>(`/v1/irp-integration/accounts/customer/${customerId}`, { customerId });
 };
 
 export const checkIrpAccountStatus = async (customerId: number): Promise<IrpAccountStatusResponse> => {
-  try {
-    const response = await axiosInstance.get<IrpAccountStatusResponse>(`/v1/irp-integration/accounts/check/${customerId}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpGet<IrpAccountStatusResponse, { customerId: number }>(`/v1/irp-integration/accounts/check/${customerId}`, { customerId });
 };
 
 export const syncIrpAccountWithHanaInPlan = async (customerId: number): Promise<{ syncSuccess: boolean; message: string }> => {
-  try {
-    const response = await axiosInstance.post<{ syncSuccess: boolean; message: string }>(`/v1/irp-integration/sync/customer/${customerId}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpPost<{ syncSuccess: boolean; message: string }, { customerId: number }>(`/v1/irp-integration/sync/customer/${customerId}`, { customerId });
 };
 
 export const closeIrpAccount = async (accountNumber: string): Promise<{ accountNumber: string; message: string }> => {
-  try {
-    const response = await axiosInstance.delete<{ accountNumber: string; message: string }>(`/v1/irp/close/${accountNumber}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpDelete<{ accountNumber: string; message: string }, { accountNumber: string }>(`/v1/irp/close/${accountNumber}`, { accountNumber });
 };
 
 export interface InterestRateInfo {
@@ -121,12 +120,7 @@ export interface DepositProduct {
 }
 
 export const getAllInterestRates = async (): Promise<InterestRateInfo[]> => {
-  try {
-    const response = await axiosInstance.get<InterestRateInfo[]>('/banking/interest-rates/all');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpGet<InterestRateInfo[], {}>('/banking/interest-rates/all', {});
 };
 
 export interface OptimalDepositRecommendation {
@@ -161,21 +155,11 @@ export interface DepositSubscriptionRequest {
 }
 
 export const getAllDepositProducts = async (): Promise<{ success: boolean; count: number; products: DepositProduct[] }> => {
-  try {
-    const response = await axiosInstance.get('/banking/deposit-products');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpGet<{ success: boolean; count: number; products: DepositProduct[] }, {}>('/banking/deposit-products', {});
 };
 
 export const getDepositProductsByBank = async (bankCode: string): Promise<{ success: boolean; bankCode: string; count: number; products: DepositProduct[] }> => {
-  try {
-    const response = await axiosInstance.get(`/banking/deposit-products/bank/${bankCode}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpGet<{ success: boolean; bankCode: string; count: number; products: DepositProduct[] }, { bankCode: string }>(`/banking/deposit-products/bank/${bankCode}`, { bankCode });
 };
 
 export interface DepositRecommendationRequest {
@@ -185,19 +169,26 @@ export interface DepositRecommendationRequest {
 }
 
 export const getOptimalDepositRecommendation = async (request: DepositRecommendationRequest): Promise<{ success: boolean; message: string; recommendation: OptimalDepositRecommendation }> => {
-  try {
-    const response = await axiosInstance.post('/banking/deposit-products/recommend', request);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpPost<{ success: boolean; message: string; recommendation: OptimalDepositRecommendation }, DepositRecommendationRequest>('/banking/deposit-products/recommend', request);
 };
 
 export const subscribeDeposit = async (request: DepositSubscriptionRequest): Promise<any> => {
-  try {
-    const response = await axiosInstance.post('/banking/deposit/subscribe', request);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  return httpPost<any, DepositSubscriptionRequest>('/banking/deposit/subscribe', request);
+};
+
+// 리스크 프로파일 관련 API 함수들
+export const evaluateRiskProfile = async (request: RiskProfileRequest): Promise<RiskProfileResponse> => {
+  return httpPost<RiskProfileResponse, RiskProfileRequest>('/risk-profile/evaluate', request);
+};
+
+export const getRiskProfile = async (customerId: number): Promise<RiskProfileResponse> => {
+  return httpGet<RiskProfileResponse, {}>(`/risk-profile/${customerId}`, {});
+};
+
+export const getRiskProfileQuestions = async (): Promise<string[]> => {
+  return httpPost<string[], {}>('/risk-profile/questions', {});
+};
+
+export const getRiskProfileAnswerOptions = async (questionNumber: number): Promise<string[]> => {
+  return httpPost<string[], { questionNumber: number }>(`/risk-profile/answers/${questionNumber}`, { questionNumber });
 };

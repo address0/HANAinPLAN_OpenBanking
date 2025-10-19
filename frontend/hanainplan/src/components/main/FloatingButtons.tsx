@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 function FloatingButtons() {
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(true)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -12,30 +13,47 @@ function FloatingButtons() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // 말풍선을 10초 후에 숨기는 효과
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTooltip(false)
+    }, 10000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const openChatbot = () => {
-    alert('챗봇 기능이 곧 추가될 예정입니다!')
+    alert('붙여주시면 챗봇 기능 추가할게뇽!!')
   }
 
   return (
     <>
       {}
-      <button
-        onClick={openChatbot}
-        className="fixed bottom-6 left-6 w-14 h-14 bg-hana-green text-white rounded-full shadow-lg hover:bg-hana-green/90 hover:shadow-xl transition-all duration-300 flex items-center justify-center z-50 group"
-        aria-label="챗봇 열기"
-      >
-        <svg
-          className="w-6 h-6 group-hover:scale-110 transition-transform"
-          fill="currentColor"
-          viewBox="0 0 24 24"
+      <div className="fixed bottom-6 left-6 z-50">
+        {/* 말풍선 */}
+        {showTooltip && (
+          <div className="absolute bottom-1/2 left-20 animate-fade-in">
+            <div className="bg-white text-gray-800 px-4 py-2 rounded-lg shadow-lg border border-hana-green/50 max-w-xs">
+              <div className="text-sm font-medium whitespace-nowrap font-hana-regular text-hana-green">
+                궁금한 게 있으면 별벗에게 물어보세요!
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* 챗봇 버튼 */}
+        <button
+          onClick={openChatbot}
+          className="w-14 h-14 bg-hana-green text-white rounded-full shadow-lg hover:bg-hana-green/90 hover:shadow-xl transition-all duration-300 flex items-center justify-center group relative animate-bounce-gentle"
+          aria-label="챗봇 열기"
         >
-          <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98.97 4.29L1 23l6.71-1.97C9.02 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-        </svg>
-      </button>
+          <img src="/character/chatbot.png" alt="챗봇" className="w-12 h-12 object-contain" />
+        </button>
+      </div>
 
       {}
       {showScrollTop && (

@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import type { IrpAccountOpenRequest } from '../../api/productApi';
-import { openIrpAccount, checkIrpAccountStatus } from '../../api/productApi';
+import type { IrpAccountOpenRequest, RiskProfileRequest, RiskProfileResponse, QuestionAnswer } from '../../api/productApi';
+import { openIrpAccount, checkIrpAccountStatus, evaluateRiskProfile } from '../../api/productApi';
 import { getActiveBankingAccounts, type BankingAccount } from '../../api/bankingApi';
 import { useUserStore } from '../../store/userStore';
 import { getBankByAccountNumber } from '../../store/bankStore';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 function IrpProducts() {
   const navigate = useNavigate();
@@ -18,6 +19,48 @@ function IrpProducts() {
   const [irpAccountInfo, setIrpAccountInfo] = useState<any>(null);
   const [accounts, setAccounts] = useState<BankingAccount[]>([]);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+
+  // 리스크 프로파일 관련 상태
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [surveyAnswers, setSurveyAnswers] = useState<QuestionAnswer[]>([]);
+  const [riskProfileResult, setRiskProfileResult] = useState<RiskProfileResponse | null>(null);
+
+  // 리스크 프로파일 질문과 답변 정의 (프론트엔드에서 직접)
+  const riskProfileQuestions = [
+    "귀하의 투자 경험은 어느 정도입니까?",
+    "투자금의 일부 손실 가능성에 대해 어떻게 생각하십니까?",
+    "IRP 계좌의 운용 기간(인출 시점까지)은 어느 정도입니까?",
+    "투자 성과를 평가할 때 가장 중요하게 생각하는 것은?",
+    "최근 1년간 금융상품 투자 시, 변동성에 따른 대응 방식은?",
+    "현재의 전체 자산 대비 투자 가능 비율은 어느 정도입니까?",
+    "IRP를 통해 얻고 싶은 주요 목표는 무엇입니까?"
+  ];
+
+  const riskProfileAnswers = [
+    ["전혀 없음", "예·적금만 있음", "펀드 등 간접투자 경험 있음", "직접투자(주식 등) 경험 있음", "3년 이상 투자활동 지속"],
+    ["절대 손실 원하지 않음", "약간의 손실은 감수 가능", "수익을 위해 손실도 감수 가능", "손실을 감수하더라도 고수익 추구", "큰 손실 가능해도 고수익 기대"],
+    ["3년 미만", "3~5년", "5~10년", "10~20년", "20년 이상"],
+    ["원금 보전", "안정적인 이자 수익", "예금보다 높은 안정적 수익", "시장 평균 이상의 수익", "높은 기대수익률"],
+    ["손실 시 즉시 해지", "일부 축소", "유지", "저가 매수", "추가 매수"],
+    ["10% 이하", "20% 이하", "30% 이하", "50% 이하", "50% 이상"],
+    ["안정적 퇴직금 운용", "물가 상승 방어", "중위험 중수익", "장기 성장성 확보", "공격적 수익 추구"]
+  ];
+
+  // 절세 효과 차트 데이터
+  const taxSavingsData = [
+    {
+      category: '5,500만원 이하',
+      amount: 1155000,
+      percentage: 77,
+      color: '#10b981'
+    },
+    {
+      category: '5,500만원 초과',
+      amount: 924000,
+      percentage: 62,
+      color: '#3b82f6'
+    }
+  ];
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdAccountInfo, setCreatedAccountInfo] = useState<any>(null);
 
@@ -78,6 +121,7 @@ function IrpProducts() {
               linkedMainAccount: activeAccountsResponse[0].accountNumber
             }));
           }
+
         } catch (error) {
           setHasIrpAccount(false);
           setAccounts([]);
@@ -90,6 +134,7 @@ function IrpProducts() {
 
     initializeData();
   }, [user?.id]);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -142,6 +187,80 @@ function IrpProducts() {
     navigate('/consultation/request');
   };
 
+  // 설문 답변 처리
+  const handleSurveyAnswer = (answerScore: number) => {
+    const questionNumber = currentQuestionIndex + 1;
+    const answer: QuestionAnswer = {
+      questionNumber,
+      answerScore,
+      questionText: riskProfileQuestions[currentQuestionIndex],
+      answerText: riskProfileAnswers[currentQuestionIndex]?.[answerScore - 1] || ''
+    };
+
+    const updatedAnswers = [...surveyAnswers];
+    const existingAnswerIndex = updatedAnswers.findIndex(a => a.questionNumber === questionNumber);
+    
+    if (existingAnswerIndex >= 0) {
+      updatedAnswers[existingAnswerIndex] = answer;
+    } else {
+      updatedAnswers.push(answer);
+    }
+    
+    setSurveyAnswers(updatedAnswers);
+    
+    // 다음 질문으로 이동
+    if (currentQuestionIndex < riskProfileQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // 설문 완료 - 리스크 프로파일 평가
+      submitRiskProfileSurvey(updatedAnswers);
+    }
+  };
+
+  // 리스크 프로파일 설문 제출
+  const submitRiskProfileSurvey = async (answers: QuestionAnswer[]) => {
+    try {
+      setIsLoading(true);
+      const request: RiskProfileRequest = {
+        customerId: user?.id || 0,
+        sessionId: `session_${Date.now()}`,
+        answers
+      };
+
+      const result = await evaluateRiskProfile(request);
+      setRiskProfileResult(result);
+      
+      // 폼 데이터에 리스크 프로파일 결과 저장
+      setFormData(prev => ({
+        ...prev,
+        investmentStyle: mapRiskTypeToInvestmentStyle(result.riskProfileType)
+      }));
+      
+      setCurrentStep(3); // 결과 화면으로 이동
+    } catch (error) {
+      console.error('리스크 프로파일 평가 실패:', error);
+      setError('리스크 프로파일 평가 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 리스크 타입을 투자 스타일로 매핑
+  const mapRiskTypeToInvestmentStyle = (riskType: string): 'CONSERVATIVE' | 'MODERATE_CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' => {
+    switch (riskType) {
+      case 'CONSERVATIVE':
+        return 'CONSERVATIVE';
+      case 'MODERATE_CONSERVATIVE':
+        return 'MODERATE_CONSERVATIVE';
+      case 'MODERATE':
+        return 'MODERATE';
+      case 'AGGRESSIVE':
+        return 'AGGRESSIVE';
+      default:
+        return 'MODERATE';
+    }
+  };
+
   const handleIrpAccountCreation = async () => {
     setIsLoading(true);
     setError(null);
@@ -192,219 +311,120 @@ function IrpProducts() {
         {}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {}
-          {hasIrpAccount && (
+          {hasIrpAccount ? (
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-8">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-hana-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-hana-medium text-green-800 mb-1">하나은행 IRP 계좌를 보유하고 있습니다</h2>
-                  <p className="text-green-700 font-hana-light">안전한 노후 준비를 위해 IRP 계좌를 개설하셨습니다.</p>
+                  <h2 className="text-xl font-hana-medium text-hana-green mb-1">{user?.name}님은 하나은행 IRP 계좌를 보유하고 있습니다</h2>
+
                 </div>
                 <button
                   onClick={() => navigate('/portfolio')}
-                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-hana-bold hover:bg-green-700 transition-colors"
+                  className="bg-hana-green text-white px-6 py-3 rounded-xl font-hana-bold hover:bg-green-700 transition-colors"
                 >
-                  포트폴리오 보기
+                  내 IRP 포트폴리오
                 </button>
               </div>
-
-              {}
-              {(irpAccountInfo || createdAccountInfo) && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-green-200">
-                  <div className="bg-white p-4 rounded-lg border border-green-100">
-                    <div className="text-sm text-green-700 mb-1">계좌번호</div>
-                    <div className="font-hana-medium text-green-900">
-                      {irpAccountInfo?.accountNumber || createdAccountInfo?.accountNumber || '조회 중...'}
-                    </div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-green-100">
-                    <div className="text-sm text-green-700 mb-1">현재 잔액</div>
-                    <div className="font-hana-medium text-green-900">
-                      {irpAccountInfo?.currentBalance
-                        ? `${irpAccountInfo.currentBalance.toLocaleString()}원`
-                        : createdAccountInfo?.initialDeposit
-                        ? `${createdAccountInfo.initialDeposit.toLocaleString()}원`
-                        : '0원'
-                      }
-                    </div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-green-100">
-                    <div className="text-sm text-green-700 mb-1">월 자동납입</div>
-                    <div className="font-hana-medium text-green-900">
-                      {(irpAccountInfo?.monthlyDeposit || createdAccountInfo?.monthlyDeposit)
-                        ? `${((irpAccountInfo?.monthlyDeposit || createdAccountInfo?.monthlyDeposit) / 10000).toLocaleString()}만원`
-                        : '설정 안함'
-                      }
-                    </div>
-                  </div>
-                </div>
-              )}
+            
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-hana-green/30 p-8 mb-8 flex flex-col items-center justify-center">
+              <h3 className="text-2xl font-hana-medium text-hana-green mb-2 text-center">{user?.name}님은 하나은행 IRP 계좌를 보유하고 있지 않습니다.</h3>
+              <p className="text-gray-600 font-hana-regular text-center">하나은행 IRP 계좌를 개설하고, 하나인플랜에서 투자 혜택을 누려 보세요!</p>
+              <button
+                onClick={handleApplyClick}
+                className="bg-hana-green text-white px-6 py-3 mt-6 rounded-md font-hana-bold hover:bg-green-700 transition-colors"
+              >
+                하나은행 IRP 계좌 개설하기
+              </button>
             </div>
           )}
 
-          {}
-          <div className="bg-gradient-to-br from-hana-green/5 to-blue-50 rounded-2xl p-8 mb-8">
-            <div className="flex flex-col lg:flex-row items-center gap-8">
-              <div className="flex-1">
-                <h1 className="text-4xl font-hana-medium text-gray-900 mb-4">IRP로 안전한 노후 준비하세요</h1>
-                <p className="text-xl font-hana-light text-gray-600 mb-6">
-                  개인형퇴직연금(IRP)으로 퇴직 후에도 안정적인 생활을 보장받으세요
-                </p>
+          <h1 className="text-2xl font-hana-medium text-gray-900 mb-6 text-left">퇴직연금이란?</h1>
+          <p className="text-gray-600 font-hana-light text-left">퇴직연금은 퇴직 후 안정적인 노후 생활을 위해 자발적으로 가입하는 개인형 퇴직연금 상품입니다.</p>
+          <p className="text-gray-600 font-hana-light text-left">사용자(회사)와 근로자는 퇴직금 제도와 DB형, DC형 중 하나 이상을 설정해야 하며, 양측의 협의 하에 복수의 제도를 동시에 설정할 수 있습니다.</p>
+          <h2 className="text-xl font-hana-medium text-gray-700 mb-4 mt-12 text-center">퇴직연금 제도의 종류</h2>
+          <img src="/images/irp_intro1.png" alt="퇴직연금 비교표" className="w-full h-auto mb-8" />
 
-                {}
-                {error && (
-                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-red-800 font-hana-light">{error}</p>
-                      <button
-                        onClick={() => setError(null)}
-                        className="ml-auto text-red-500 hover:text-red-700"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {!hasIrpAccount && (
-                    <button
-                      onClick={handleApplyClick}
-                      className="bg-hana-green text-white px-8 py-4 rounded-xl font-hana-bold text-lg hover:bg-green-600 transition-colors shadow-lg"
-                    >
-                      하나은행 IRP 계좌 개설하기
-                    </button>
-                  )}
-                  <button
-                    onClick={handleConsultationClick}
-                    className="bg-white border-2 border-hana-green text-hana-green px-8 py-4 rounded-xl font-hana-bold text-lg hover:bg-hana-green hover:text-white transition-colors"
-                  >
-                    전문가 상담받기
-                  </button>
-                </div>
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-blue-800 font-hana-light text-sm">
-                    💡 <strong className="font-hana-medium">하나은행 IRP 계좌를 개설하면</strong> 여러 금융기관에 분산된 퇴직연금과 개인연금을
-                    <br />
-                    HANAinPLAN에서 통합 관리할 수 있습니다.
-                  </p>
-                </div>
+          <h2 className="text-xl font-hana-medium text-gray-700 mb-4 mt-12 text-left">IRP(개인형퇴직연금)란?</h2>
+          <p className="text-gray-600 font-hana-light text-left">개인형 퇴직연금(Individual Retirement Pension)은 근로자가 퇴직으로 수령한 퇴직급여를 바로 사용하지 않고, <br />보관/운용 하다가 연금/일시금으로 수령할 수 있는 퇴직급여 통합계좌입니다.</p>
+          <img src="/images/irp_intro2.png" alt="IRP 주요 혜택" className="w-full h-auto mb-8" />
+          <h3 className="text-lg font-hana-medium text-gray-700 mb-4 mt-12 text-left">퇴직 시 IRP 의무가입</h3>
+          <ul className="list-disc list-inside text-gray-600 font-hana-regular text-left mt-4 mb-12">
+            <li>원칙: 퇴직 시 IRP로 퇴직급여를 수령해야 함</li>
+            <li>만 55세 이후 퇴직, 퇴직급여액 300만원 이하 수령 시 일반계좌로 수령 가능</li>
+          </ul>
+          
+          <div className="bg-white w-full rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
+            <h1 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">개인형 퇴직연금(IRP) 혜택</h1>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="mt-8">
+                <div className="text-xl font-hana-medium text-gray-900 mb-4 rounded-lg bg-gray-200 p-4 text-center">과세이연</div>
+                <h3 className="text-hana-green font-hana-medium my-4">
+                  퇴직급여가 세전금액으로 이전되어, IRP 운용 중 과세이연 혜택
+                </h3>
+                <p className="text-gray-600 font-hana-regular my-2">과세이연: 소득 발생(매매차익, 이자 등) 시 세금 납부 연기</p>
+                <p className="text-gray-600 font-hana-regular">퇴직급여는 소득 과세 전 금액으로 IRP계좌에 이전 - 수령 전까지 과세이연</p>
               </div>
-              <div className="flex-shrink-0">
-                <div className="w-64 h-64 flex items-center justify-center">
-                  <img
-                    src="/character/irp.png"
-                    alt="IRP 캐릭터"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+              <div className="mt-8">
+                <div className="text-xl font-hana-medium text-gray-900 mb-4 rounded-lg bg-gray-200 p-4 text-center">연금수령</div>
+                <h3 className="text-hana-green font-hana-medium my-4">
+                  IRP를 통해 55세 이후 연금으로 수령 가능
+                </h3>
+                <p className="text-gray-600 font-hana-regular my-2">연금수령 시: 과세이연된 퇴직급여 + 운용수익 모두 저율 연금소득세 적용</p>
+                <p className="text-gray-600 font-hana-regular">과세 이연된 퇴직급여: 퇴직소득세 30% ~ 40% 감면혜택</p>
+                <p className="text-gray-600 font-hana-regular">운용수익: 저율과세(5.5% ~ 3.3%) 혜택</p>
+              </div>
+              <div className="mt-8">
+                <div className="text-xl font-hana-medium text-gray-900 mb-4 rounded-lg bg-gray-200 p-4 text-center">다양한 상품투자</div>
+                <h3 className="text-hana-green font-hana-medium my-4">
+                  DC와 동일하게 포트폴리오 투자 가능
+                </h3>
+                <p className="text-gray-600 font-hana-regular my-2">원리금 보장/실적배당형 상품 등 본인 투자성향에 맞는 포트폴리오 구성 가능</p>
+                <p className="text-gray-600 font-hana-regular">운용 중 언제든지 상품교체 가능</p>
+              </div>
+              <div className="mt-8">
+                <div className="text-xl font-hana-medium text-gray-900 mb-4 rounded-lg bg-gray-200 p-4 text-center">세액공제</div>
+                <h3 className="text-hana-green font-hana-medium my-4">
+                  추가 납입금 세액공제 가능
+                </h3>
+                <p className="text-gray-600 font-hana-regular my-2">연간 900만원 한도(연금저축, DC합산) 이내 13.2% ~ 16.5% 세액공제 혜택</p>
+                <p className="text-gray-600 font-hana-regular">IRP설정 시 연금저축계좌/DC 합산하여 매년 1,800만원까지 추가 납입 가능</p>
               </div>
             </div>
           </div>
-
           {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
-            <h2 className="text-2xl font-hana-medium text-gray-900 mb-6">IRP(개인형퇴직연금)란?</h2>
-            <div className="space-y-4 text-gray-700 font-hana-light">
-              <p className="text-lg">
-                IRP는 개인이 퇴직 후 안정적인 노후 생활을 위해 자발적으로 가입하는 개인형 퇴직연금 상품입니다.
-              </p>
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 my-4">
-                <p className="text-blue-800 font-medium">
-                  💡 <strong>DB형 퇴직연금에 가입된 재직자라면 퇴사나 이직할 때 IRP 계좌가 필요합니다.</strong>
-                </p>
-                <p className="text-blue-700 text-sm mt-2">
-                  DB형 퇴직연금(확정급여형)은 퇴직 시 퇴직금을 수령할 수 없어 IRP 계좌로 의무 이관해야 합니다.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-                  <h3 className="text-lg font-hana-medium text-gray-900 mb-3">주요 특징</h3>
-                  <ul className="space-y-2 text-gray-600 font-hana-light">
-                    <li>• 퇴직금 이관 및 추가 납입 가능</li>
-                    <li>• 다양한 투자 옵션 제공</li>
-                    <li>• 55세부터 연금 또는 일시금 수령 가능</li>
-                  </ul>
-                </div>
-                <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-                  <h3 className="text-lg font-hana-medium text-gray-900 mb-3">고객 혜택</h3>
-                  <ul className="space-y-2 text-gray-600 font-hana-light">
-                    <li>• 연간 최대 900만원 세액공제</li>
-                    <li>• 퇴직소득세 절세 효과</li>
-                    <li>• 장기 투자를 통한 자산 증식</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
-            <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">IRP 주요 혜택</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">💰</span>
-                </div>
-                <h4 className="font-hana-bold text-lg mb-2">퇴직금 이관</h4>
-                <p className="text-gray-600 text-sm">기존 퇴직금을 하나은행 IRP로 안전하게 이관</p>
-              </div>
-              <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">📈</span>
-                </div>
-                <h4 className="font-hana-bold text-lg mb-2">추가 납입</h4>
-                <p className="text-gray-600 text-sm">연간 최대 900만원까지 추가 납입 가능</p>
-              </div>
-              <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🏆</span>
-                </div>
-                <h4 className="font-hana-bold text-lg mb-2">세제 혜택</h4>
-                <p className="text-gray-600 text-sm">연간 최대 900만원 세액공제 혜택</p>
-              </div>
-            </div>
-          </div>
-
-          {}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
-            <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">IRP 세제 혜택 정리</h3>
-            <p className="text-gray-600 font-hana-light text-center mb-8">
-              소득 수준별로 다른 세액공제율과 납입한도를 적용받습니다
-            </p>
+            <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">소득 수준 별 IRP 세제 혜택</h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {}
               <div className="space-y-6">
                 <h4 className="text-xl font-hana-medium text-gray-900 mb-4">세액공제율</h4>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex justify-between items-center p-4 bg-hana-green/10 rounded-lg border border-hana-green/30">
                     <div>
-                      <span className="font-hana-bold text-lg text-green-800">총급여 5,500만원 이하</span>
-                      <p className="text-green-600 text-sm mt-1">16.5% 세액공제</p>
+                      <span className="font-hana-bold text-lg text-hana-green">총급여 5,500만원 이하</span>
+                      <p className="text-hana-green text-sm mt-1 font-hana-regular">16.5% 세액공제</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-hana-bold text-green-700">1,155,000원</span>
-                      <p className="text-green-600 text-sm">700만원 납입 시</p>
+                      <span className="text-2xl font-hana-bold text-hana-green">1,155,000원</span>
+                      <p className="text-hana-green text-sm font-hana-regular">700만원 납입 시</p>
                     </div>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div>
                       <span className="font-hana-bold text-lg text-blue-800">총급여 5,500만원 초과</span>
-                      <p className="text-blue-600 text-sm mt-1">13.2% 세액공제</p>
+                      <p className="text-blue-700 text-sm mt-1 font-hana-regular">13.2% 세액공제</p>
                     </div>
                     <div className="text-right">
                       <span className="text-2xl font-hana-bold text-blue-700">924,000원</span>
-                      <p className="text-blue-600 text-sm">700만원 납입 시</p>
+                      <p className="text-blue-700 text-sm font-hana-regular">700만원 납입 시</p>
                     </div>
                   </div>
                 </div>
@@ -412,107 +432,52 @@ function IrpProducts() {
 
               {}
               <div className="space-y-6">
-                <h4 className="text-xl font-hana-medium text-gray-900 mb-4">혜택 비교 차트</h4>
-                <div className="space-y-4">
-                  {}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-gray-700">총급여 5,500만원 이하</span>
-                      <span className="text-green-600 font-hana-bold">1,155,000원 절세</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-8 relative overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-green-400 to-green-600 h-full rounded-full transition-all duration-1000 ease-out relative"
-                        style={{ width: '77%' }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                      </div>
-                      <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-sm font-bold">77%</span>
-                    </div>
-                  </div>
-
-                  {}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-gray-700">총급여 5,500만원 초과</span>
-                      <span className="text-blue-600 font-hana-bold">924,000원 절세</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-8 relative overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-1000 ease-out relative"
-                        style={{ width: '62%' }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                      </div>
-                      <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-sm font-bold">62%</span>
-                    </div>
-                  </div>
+                <h4 className="text-lg font-hana-medium text-gray-800 mb-4">혜택 비교</h4>
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={taxSavingsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="category" 
+                        tick={{ fontSize: 12, fontFamily: 'Hana2-Regular' }}
+                        angle={0}
+                        textAnchor="middle"
+                        height={60}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12, fontFamily: 'Hana2-Regular' }}
+                        tickFormatter={(value) => `${value.toLocaleString()}원`}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [
+                          `${value.toLocaleString()}원`, 
+                          '절세액'
+                        ]}
+                        labelFormatter={(label: string) => label}
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Hana2-Regular'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="amount" 
+                        radius={[4, 4, 0, 0]}
+                        animationDuration={1000}
+                        fill="#10b981"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
 
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">
                     <strong>절세율 계산:</strong> 5,500만원 이하 소득자는 231만원 더 많은 세액공제를 받을 수 있습니다.
                     <br />
                     <span className="text-green-600">→ 고소득자 대비 25% 높은 절세 효과</span>
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
-                <div className="text-3xl mb-2">💰</div>
-                <h5 className="font-hana-medium text-lg text-yellow-800 mb-2">연간 납입한도</h5>
-                <p className="text-yellow-700 font-hana-light text-sm">900만원 (총급여 5,500만원 이하)</p>
-                <p className="text-yellow-700 font-hana-light text-sm">700만원 (총급여 5,500만원 초과)</p>
-              </div>
-              <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <div className="text-3xl mb-2">📊</div>
-                <h5 className="font-hana-medium text-lg text-green-800 mb-2">세액공제율</h5>
-                <p className="text-green-700 font-hana-light text-sm">16.5% (5,500만원 이하)</p>
-                <p className="text-green-700 font-hana-light text-sm">13.2% (5,500만원 초과)</p>
-              </div>
-              <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                <div className="text-3xl mb-2">🎯</div>
-                <h5 className="font-hana-medium text-lg text-blue-800 mb-2">최대 절세효과</h5>
-                <p className="text-blue-700 font-hana-light text-sm">1,485,000원 (5,500만원 이하)</p>
-                <p className="text-blue-700 font-hana-light text-sm">924,000원 (5,500만원 초과)</p>
-              </div>
-            </div>
-          </div>
-
-          {}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8">
-            <h3 className="text-2xl font-hana-medium text-gray-900 mb-6 text-center">하나은행 IRP 상품 특징</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🛡️</span>
-                </div>
-                <h4 className="font-hana-medium text-lg mb-2">안전한 운용</h4>
-                <p className="text-gray-600 font-hana-light text-sm">하나자산운용의 전문적인 운용으로 안정적인 수익 추구</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">⚡</span>
-                </div>
-                <h4 className="font-hana-medium text-lg mb-2">간편한 관리</h4>
-                <p className="text-gray-600 font-hana-light text-sm">온라인으로 언제든지 계좌 조회 및 관리 가능</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🎯</span>
-                </div>
-                <h4 className="font-hana-medium text-lg mb-2">맞춤형 투자</h4>
-                <p className="text-gray-600 font-hana-light text-sm">고객의 위험성향에 맞는 다양한 투자 옵션 제공</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">💎</span>
-                </div>
-                <h4 className="font-hana-medium text-lg mb-2">우수한 수수료</h4>
-                <p className="text-gray-600 text-sm">경쟁력 있는 수수료로 고객의 수익 극대화</p>
               </div>
             </div>
           </div>
@@ -523,15 +488,15 @@ function IrpProducts() {
             <div className="space-y-4">
               <div className="border-l-4 border-hana-green pl-4 py-2">
                 <h4 className="font-hana-medium text-lg mb-2">Q. IRP 가입 자격이 있나요?</h4>
-                <p className="text-gray-600 font-hana-light">만 18세 이상의 개인이라면 누구나 가입 가능합니다. 직장인, 자영업자, 프리랜서 등 상관없이 가입하실 수 있습니다.</p>
+                <p className="text-gray-600 font-hana-regular">만 18세 이상의 개인이라면 누구나 가입 가능합니다. 직장인, 자영업자, 프리랜서 등 상관없이 가입하실 수 있습니다.</p>
               </div>
               <div className="border-l-4 border-blue-500 pl-4 py-2">
                 <h4 className="font-hana-medium text-lg mb-2">Q. 퇴직금 이관은 어떻게 하나요?</h4>
-                <p className="text-gray-600 font-hana-light">기존 회사의 퇴직금을 하나은행 IRP로 이관할 수 있습니다. 이관 절차는 간단하며, 세제 혜택도 그대로 유지됩니다.</p>
+                <p className="text-gray-600 font-hana-regular">기존 회사의 퇴직금을 하나은행 IRP로 이관할 수 있습니다. 이관 절차는 간단하며, 세제 혜택도 그대로 유지됩니다.</p>
               </div>
               <div className="border-l-4 border-purple-500 pl-4 py-2">
                 <h4 className="font-hana-medium text-lg mb-2">Q. 언제부터 연금을 받을 수 있나요?</h4>
-                <p className="text-gray-600">만 55세부터 연금 또는 일시금으로 수령할 수 있습니다. 연금으로 받으면 세제 혜택이 더욱 커집니다.</p>
+                <p className="text-gray-600 font-hana-regular">만 55세부터 연금 또는 일시금으로 수령할 수 있습니다.</p>
               </div>
             </div>
           </div>
@@ -543,9 +508,9 @@ function IrpProducts() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {}
-            <div className="bg-gradient-to-r from-hana-green to-green-600 text-white p-6 rounded-t-2xl">
+            <div className="bg-hana-green text-white p-6 rounded-t-2xl">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-hana-medium">하나은행 IRP 계좌 개설</h2>
+                <h2 className="text-2xl font-hana-medium">IRP 계좌 개설</h2>
                 <button
                   onClick={() => setShowModal(false)}
                   className="text-white hover:text-gray-200 text-2xl"
@@ -586,10 +551,7 @@ function IrpProducts() {
 
               {currentStep === 1 && (
                 <div className="text-center">
-                  <h3 className="text-xl font-hana-medium mb-4">납입금액 설정</h3>
-                  <p className="text-gray-600 font-hana-light mb-6">
-                    초기 납입금액과 자동납입 설정을 선택해주세요
-                  </p>
+                  <h3 className="text-xl font-hana-medium mb-4">초기 납입금액 설정</h3>
                   <div className="space-y-4 text-left max-w-md mx-auto">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -731,74 +693,115 @@ function IrpProducts() {
 
               {currentStep === 2 && (
                 <div className="text-center">
-                  <h3 className="text-xl font-hana-medium mb-4">투자 성향 설정</h3>
-                  <p className="text-gray-600 font-hana-light mb-6">
-                    고객님의 위험성향에 맞는 포트폴리오를 설정해주세요
-                  </p>
-                  <div className="space-y-4 text-left max-w-md mx-auto">
-                    <div className="space-y-3">
-                      <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-hana-green cursor-pointer">
-                        <input
-                          type="radio"
-                          name="risk"
-                          value="CONSERVATIVE"
-                          className="mr-3 text-hana-green"
-                          checked={formData.investmentStyle === 'CONSERVATIVE'}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            investmentStyle: e.target.value as 'CONSERVATIVE' | 'MODERATE_CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE'
-                          }))}
-                        />
-                        <div>
-                          <div className="font-medium">안정추구</div>
-                          <div className="text-sm text-gray-500">안전하고 안정적인 투자를 선호</div>
-                        </div>
-                      </label>
-                      <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-hana-green cursor-pointer">
-                        <input
-                          type="radio"
-                          name="risk"
-                          value="MODERATE"
-                          className="mr-3 text-hana-green"
-                          checked={formData.investmentStyle === 'MODERATE'}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            investmentStyle: e.target.value as 'CONSERVATIVE' | 'MODERATE_CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE'
-                          }))}
-                        />
-                        <div>
-                          <div className="font-medium">중립</div>
-                          <div className="text-sm text-gray-500">위험과 수익의 균형을 추구</div>
-                        </div>
-                      </label>
-                      <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-hana-green cursor-pointer">
-                        <input
-                          type="radio"
-                          name="risk"
-                          value="AGGRESSIVE"
-                          className="mr-3 text-hana-green"
-                          checked={formData.investmentStyle === 'AGGRESSIVE'}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            investmentStyle: e.target.value as 'CONSERVATIVE' | 'MODERATE_CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE'
-                          }))}
-                        />
-                        <div>
-                          <div className="font-medium">위험추구</div>
-                          <div className="text-sm text-gray-500">고위험 고수익을 추구</div>
-                        </div>
-                      </label>
+                  <h3 className="text-xl font-hana-medium mb-4">투자 성향 측정({currentQuestionIndex + 1}/7)</h3>
+                  
+                  <div className="space-y-4 text-left max-w-lg mx-auto">
+                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                      <h4 className="font-hana-medium text-gray-800 mb-3">
+                        {riskProfileQuestions[currentQuestionIndex]}
+                      </h4>
+                      <div className="space-y-2">
+                        {riskProfileAnswers[currentQuestionIndex]?.map((option, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSurveyAnswer(index + 1)}
+                            className="w-full p-3 text-left border-2 border-gray-200 rounded-lg hover:border-hana-green hover:bg-green-50 transition-colors"
+                          >
+                            <div className="flex items-center">
+                              <div className="w-6 h-6 border-2 border-gray-300 rounded-full mr-3 flex items-center justify-center">
+                                <div className="w-3 h-3 bg-hana-green rounded-full opacity-0"></div>
+                              </div>
+                              <span className="font-hana-regular">{option}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-blue-800 text-sm">
-                        💡 투자 성향에 따라 원금손실 가능성과 수익률이 달라집니다.
-                      </p>
+                    
+                    <div className="flex justify-center">
+                      <div className="flex space-x-2">
+                        {Array.from({ length: 7 }).map((_, index) => (
+                          <div
+                            key={index}
+                            className={`w-3 h-3 rounded-full ${
+                              index <= currentQuestionIndex ? 'bg-hana-green' : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {currentStep === 3 && (
+              {currentStep === 3 && riskProfileResult && (
+                <div className="text-center">
+                  <h3 className="text-xl font-hana-medium mb-4">투자 성향 분석 결과</h3>
+                  <p className="text-gray-600 font-hana-light mb-6">
+                    고객님의 투자 성향을 분석한 결과입니다
+                  </p>
+                  
+                  <div className="space-y-6 max-w-lg mx-auto">
+                    {/* 리스크 프로파일 결과 카드 */}
+                    <div className="bg-gradient-to-r from-hana-green to-green-600 text-white p-6 rounded-xl">
+                      <div className="text-center">
+                        <div className="text-3xl font-hana-bold mb-2">{riskProfileResult.riskProfileTypeName}</div>
+                        <div className="text-lg font-hana-medium opacity-90">리스크 점수: {riskProfileResult.riskProfileScore}점</div>
+                      </div>
+                    </div>
+
+                    {/* 투자 성향 설명 */}
+                    <div className="bg-gray-50 p-4 rounded-lg text-left">
+                      <h4 className="font-hana-medium text-gray-800 mb-3">투자 성향 분석</h4>
+                      <div className="space-y-2 text-sm text-gray-600">
+                        {riskProfileResult.riskProfileType === 'CONSERVATIVE' && (
+                          <>
+                            <p>• 안정적인 투자를 선호하시는 보수적 성향입니다</p>
+                            <p>• 원금 보전을 최우선으로 생각하십니다</p>
+                            <p>• 예금, 적금 등 안전한 상품을 선호합니다</p>
+                          </>
+                        )}
+                        {riskProfileResult.riskProfileType === 'MODERATE_CONSERVATIVE' && (
+                          <>
+                            <p>• 약간의 위험을 감수하되 안정성을 중시합니다</p>
+                            <p>• 안정적인 수익을 추구하십니다</p>
+                            <p>• 채권형 펀드나 안정형 상품을 선호합니다</p>
+                          </>
+                        )}
+                        {riskProfileResult.riskProfileType === 'MODERATE' && (
+                          <>
+                            <p>• 위험과 수익의 균형을 추구합니다</p>
+                            <p>• 적당한 위험을 감수하며 안정적인 수익을 원합니다</p>
+                            <p>• 균형형 펀드나 혼합형 상품을 선호합니다</p>
+                          </>
+                        )}
+                        {riskProfileResult.riskProfileType === 'AGGRESSIVE' && (
+                          <>
+                            <p>• 높은 수익을 위해 위험을 감수할 수 있습니다</p>
+                            <p>• 장기적인 성장을 추구합니다</p>
+                            <p>• 주식형 펀드나 성장형 상품을 선호합니다</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 계좌 개설 진행 버튼 */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-blue-800 text-sm mb-3">
+                        💡 분석된 투자 성향에 맞는 IRP 계좌를 개설하시겠습니까?
+                      </p>
+                      <button
+                        onClick={() => setCurrentStep(4)}
+                        className="bg-hana-green text-white px-6 py-3 rounded-lg font-hana-medium hover:bg-green-700 transition-colors"
+                      >
+                        계좌 개설 계속하기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 4 && (
                 <div className="text-center">
                   <h3 className="text-xl font-hana-medium mb-4">약관 동의</h3>
                   <p className="text-gray-600 font-hana-light mb-6">
@@ -913,7 +916,7 @@ function IrpProducts() {
                 </div>
               )}
 
-              {currentStep === 4 && (
+              {currentStep === 5 && (
                 <div className="text-center">
                   <h3 className="text-xl font-hana-medium mb-4">정보 확인</h3>
                   <p className="text-gray-600 font-hana-light mb-6">
@@ -995,13 +998,12 @@ function IrpProducts() {
                       <h4 className="font-hana-medium text-green-900 mb-3">투자 성향</h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-green-700">선택한 성향:</span>
-                          <span className="font-medium">
-                            {formData.investmentStyle === 'CONSERVATIVE' && '안정추구'}
-                            {formData.investmentStyle === 'MODERATE' && '중립'}
-                            {formData.investmentStyle === 'AGGRESSIVE' && '위험추구'}
-                            {formData.investmentStyle === 'MODERATE_CONSERVATIVE' && '중립보수'}
-                          </span>
+                          <span className="text-green-700">분석 결과:</span>
+                          <span className="font-medium">{riskProfileResult?.riskProfileTypeName || '미설정'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-green-700">리스크 점수:</span>
+                          <span className="font-medium">{riskProfileResult?.riskProfileScore || 'N/A'}점</span>
                         </div>
                       </div>
                     </div>
@@ -1048,10 +1050,10 @@ function IrpProducts() {
                     이전
                   </button>
                 )}
-                {currentStep < 4 ? (
+                {currentStep < 5 ? (
                   <button
                     onClick={() => {
-                      if (currentStep === 3 && !isAllTermsAgreed) {
+                      if (currentStep === 4 && !isAllTermsAgreed) {
                         setError('모든 필수 약관에 동의해야 다음 단계로 진행할 수 있습니다.');
                         return;
                       }

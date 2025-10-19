@@ -30,7 +30,7 @@ function Nav() {
       submenu: [
         { label: 'IRP(개인연금)란?', path: '/products/irp' },
         { label: '퇴직연금 정기예금', path: '/products/deposit' },
-        { label: '퇴직연금 펀드', path: '/funds' }
+        { label: '퇴직연금 펀드', path: '/products/fund' }
       ]
     },
     {
