@@ -28,18 +28,18 @@ function Nav() {
     {
       label: 'IRP',
       submenu: [
-        { label: 'IRP 상품소개', path: '/products/irp' },
-        { label: 'IRP 정기예금', path: '/products/deposit' },
-        { label: 'IRP 펀드', path: '/funds' }
+        { label: 'IRP(개인연금)란?', path: '/products/irp' },
+        { label: '퇴직연금 정기예금', path: '/products/deposit' },
+        { label: '퇴직연금 펀드', path: '/funds' }
       ]
     },
     {
-      label: '자산',
-      shortLabel: '자산',
+      label: '내 자산',
+      shortLabel: '내 자산',
       submenu: [
-        { label: '내 계좌', path: '/my-account' },
-        { label: '포트폴리오', path: '/portfolio' },
-        { label: '나의 펀드', path: '/fund/my' },
+        { label: '계좌 목록', path: '/my-account' },
+        { label: 'IRP 포트폴리오', path: '/portfolio' },
+        { label: '펀드 포트폴리오', path: '/fund/my' },
         { label: '연금 계산기', path: '/pension-calculator' }
       ]
     },
@@ -47,7 +47,7 @@ function Nav() {
       label: '상담',
       shortLabel: '상담',
       submenu: [
-        { label: '상담직원 보기', path: '/consultation/staff' },
+        { label: '상담직원 목록', path: '/consultation/staff' },
         { label: '상담 신청하기', path: '/consultation/request' },
         { label: '내 상담', path: '/consultation/my' }
       ]
@@ -177,7 +177,7 @@ function Nav() {
           {menuItems.map((item, index) => (
             <button
               key={index}
-              className={`relative flex-1 max-w-20 sm:max-w-24 lg:max-w-32 py-2 sm:py-3 px-1 sm:px-2 lg:px-3 rounded-lg transition-all duration-200 font-hana-medium text-sm sm:text-base lg:text-lg ${
+              className={`relative flex-1 max-w-20 sm:max-w-24 lg:max-w-36 py-2 sm:py-3 px-1 sm:px-2 lg:px-3 rounded-lg transition-all duration-200 font-hana-medium text-sm sm:text-base lg:text-lg ${
                 activeDropdown === item.label
                   ? 'text-hana-green bg-hana-green/5'
                   : 'text-gray-700 hover:text-hana-green hover:bg-hana-green/5'
@@ -267,7 +267,7 @@ function Nav() {
               <div className="max-w-md sm:max-w-2xl lg:max-w-4xl flex-1 px-2 sm:px-4">
                 <div className="flex justify-center items-start gap-2 sm:gap-4 lg:gap-8">
                   {menuItems.map((item, index) => (
-                    <div key={index} className="flex-1 max-w-20 sm:max-w-24 lg:max-w-32">
+                    <div key={index} className="flex-1 max-w-20 sm:max-w-24 lg:max-w-36">
                       <div className="space-y-1 sm:space-y-2">
                         {item.submenu.map((subItem, subIndex) => (
                           <button
