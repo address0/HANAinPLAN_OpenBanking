@@ -238,7 +238,6 @@ function DepositProducts() {
                       <ul className="space-y-2">
                         <li>• 안정적인 자산 증식</li>
                         <li>• 노후 자금 준비</li>
-                        <li>• AI 기반 최적 상품 추천</li>
                       </ul>
                     </div>
                   </div>
@@ -251,7 +250,7 @@ function DepositProducts() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-2xl font-hana-bold text-white mb-2">
-                        AI 맞춤 상품 추천
+                        맞춤 예금상품 컨설팅
                       </h3>
                       <p className="text-white/90">
                         은퇴 시점에 맞춰 최적의 금리로 안전하게 자산을 운용하세요.
@@ -277,17 +276,15 @@ function DepositProducts() {
 
           {activeTab === 'recommend' && (
             <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-3xl font-hana-bold text-gray-900 mb-6">AI 맞춤 상품 추천</h2>
+              <h2 className="text-3xl font-hana-bold text-gray-900 mb-6">고객 맞춤 예금상품 컨설팅</h2>
 
               {!recommendation ? (
                 <div className="max-w-2xl mx-auto">
                   <div className="mb-8 text-center">
-                    <svg className="mx-auto h-24 w-24 text-hana-green mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-gray-600 mb-2">
-                      은퇴 시점과 예치 희망 금액을 입력하시면<br />
-                      최고 금리의 정기예금 상품을 추천해드립니다.
+                    <img src="/character/happy.png" alt="recommendation" className="mx-auto h-32 w-32 mb-4" />
+                    <p className="text-gray-600 font-hana-medium mb-2">
+                      고객님의 은퇴 시점과 예치 희망 금액을 입력하시면<br />
+                      최고 금리의 정기예금 상품을 추천해드려요.
                     </p>
                   </div>
 
@@ -324,7 +321,7 @@ function DepositProducts() {
                       </p>
                       {irpAccount && (
                         <p className="mt-1 text-xs text-blue-600">
-                          💡 현재 IRP 잔액: {irpAccount.currentBalance?.toLocaleString()}원
+                        현재 IRP 잔액: {irpAccount.currentBalance?.toLocaleString()}원
                         </p>
                       )}
                     </div>
@@ -498,7 +495,7 @@ function DepositProducts() {
                       }}
                       className="w-full bg-hana-green text-white px-8 py-3 rounded-lg font-hana-medium hover:bg-green-600 transition-colors"
                     >
-                      AI 추천 받기
+                      추천 받기 🔍
                     </button>
                   </div>
                 </div>

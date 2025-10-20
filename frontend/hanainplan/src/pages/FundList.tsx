@@ -225,20 +225,14 @@ const FundList = () => {
                     </a>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mb-2 font-hana-regular">
-                  {fund.fundMaster.assetType}
-                </p>
-                <p className="text-xs text-gray-500 font-hana-regular">
-                  펀드코드: {fund.childFundCd}
-                </p>
-              </div>
-
-              <div className="text-right">
                 {fund.fundMaster.riskGrade && (
                   <div className={`text-sm font-hana-bold ${getRiskColor(fund.fundMaster.riskGrade)}`}>
                     위험등급 {fund.fundMaster.riskGrade}
                   </div>
                 )}
+              </div>
+
+              <div className="text-right">
                 {fund.latestNav && fund.latestNavDate && (
                   <div className="mt-2">
                     <div className="text-xs text-gray-500 font-hana-regular">기준가</div>

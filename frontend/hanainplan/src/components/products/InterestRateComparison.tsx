@@ -53,7 +53,11 @@ function InterestRateComparison({ rates }: InterestRateComparisonProps) {
 
         return (
           <div key={bankName} className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="bg-gradient-to-r from-hana-green to-green-600 text-white px-6 py-4">
+            <div className={`text-white px-6 py-4 ${
+              bankName === '하나은행' ? 'bg-green-600' :
+              bankName === '국민은행' ? 'bg-orange-500' :
+              bankName === '신한은행' ? 'bg-blue-600' : 'bg-gray-600'
+            }`}>
               <h3 className="text-xl font-hana-bold">{bankName}</h3>
             </div>
 
